@@ -1,12 +1,14 @@
 package com.erthi.amanah.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -185,18 +187,40 @@ fun SectionHeader(title: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun EmptyState(message: String, modifier: Modifier = Modifier) {
+fun EmptyState(
+    message: String,
+    modifier: Modifier = Modifier,
+    icon: ImageVector = Icons.Default.Inbox,
+    iconTint: Color = MetallicSilver,
+) {
     Box(
-        modifier = modifier.fillMaxWidth().padding(32.dp),
+        modifier = modifier.fillMaxWidth().padding(vertical = 32.dp, horizontal = 24.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextMuted,
-                textAlign = TextAlign.Center,
-            )
+        Card(
+            colors = CardDefaults.cardColors(containerColor = ObsidianCard.copy(alpha = 0.6f)),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().border(1.dp, MetallicBorder.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(32.dp).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Box(
+                    modifier = Modifier.size(56.dp).clip(CircleShape)
+                        .background(iconTint.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(icon, null, tint = iconTint.copy(alpha = 0.6f), modifier = Modifier.size(28.dp))
+                }
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextMuted,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 }

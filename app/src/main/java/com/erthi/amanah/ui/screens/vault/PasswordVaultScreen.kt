@@ -147,7 +147,11 @@ fun PasswordVaultScreen(
             }
 
             if (filtered.isEmpty()) {
-                EmptyState(if (searchQuery.isNotBlank()) "لا نتائج للبحث" else "لا توجد كلمات مرور محفوظة\nاضغط + لإضافة بيانات")
+                EmptyState(
+                    message = if (searchQuery.isNotBlank()) "لا نتائج للبحث" else "لا توجد كلمات مرور محفوظة\nاضغط + لإضافة بيانات جديدة",
+                    icon = if (searchQuery.isNotBlank()) Icons.Default.Search else Icons.Default.Lock,
+                    iconTint = VaultColor,
+                )
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
