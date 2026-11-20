@@ -16,7 +16,12 @@ import com.erthi.amanah.ui.components.ErthiTopBar
 import com.erthi.amanah.ui.theme.*
 
 @Composable
-fun FinanceScreen(onBack: () -> Unit, onNavigateDebts: () -> Unit, onNavigateAssets: () -> Unit) {
+fun FinanceScreen(
+    onBack: () -> Unit,
+    onNavigateDebts: () -> Unit,
+    onNavigateAssets: () -> Unit,
+    onNavigateDigitalAccounts: () -> Unit = {},
+) {
     Scaffold(
         topBar = { ErthiTopBar(title = "الأموال", onBack = onBack) },
         containerColor = NavyDeep,
@@ -24,7 +29,7 @@ fun FinanceScreen(onBack: () -> Unit, onNavigateDebts: () -> Unit, onNavigateAss
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             FinanceCard("الديون", "ما عليك من ديون وما لك عند الآخرين", Icons.Default.CreditCard, DebtsColor, onNavigateDebts)
             FinanceCard("الممتلكات", "العقارات والسيارات والأصول", Icons.Default.HomeWork, AssetsColor, onNavigateAssets)
-            FinanceCard("الحسابات البنكية", "أرقام مرجعية للحسابات البنكية", Icons.Default.AccountBalance, FinanceColor) {}
+            FinanceCard("الحسابات الرقمية", "الحسابات البنكية والاشتراكات الرقمية", Icons.Default.AccountBalance, FinanceColor, onNavigateDigitalAccounts)
         }
     }
 }

@@ -15,13 +15,13 @@ import com.erthi.amanah.ui.components.ErthiTopBar
 import com.erthi.amanah.ui.theme.*
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit, onNavigateAboutApp: () -> Unit, onNavigateAboutErthi: () -> Unit) {
+fun SettingsScreen(onBack: () -> Unit, onNavigateAboutApp: () -> Unit, onNavigateAboutErthi: () -> Unit, onLockApp: () -> Unit = {}) {
     Scaffold(
         topBar = { ErthiTopBar(title = "الإعدادات والأمان", onBack = onBack) },
         containerColor = NavyDeep,
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SettingItem(Icons.Default.Lock, "قفل التطبيق", "بالبصمة أو الرمز السري") {}
+            SettingItem(Icons.Default.Lock, "قفل التطبيق", "بالبصمة أو الرمز السري", onClick = onLockApp)
             SettingItem(Icons.Default.Security, "تشفير البيانات", "تشفير محلي AES-256") {}
             SettingItem(Icons.Default.VpnKey, "مفتاح الاسترداد", "إدارة مفتاح فك التشفير") {}
             SettingItem(Icons.Default.Description, "إثبات الوفاة (اختياري)", "تحديد الطريقة المطلوبة لفتح الوصية") {}

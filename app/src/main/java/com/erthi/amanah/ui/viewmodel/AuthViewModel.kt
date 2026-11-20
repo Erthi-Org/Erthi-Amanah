@@ -24,13 +24,18 @@ class AuthViewModel @Inject constructor(
     private val authManager: AuthManager,
 ) : ViewModel() {
 
+    private val _isAuthenticated = MutableStateFlow(false)
+    val isAuthenticated: StateFlow<Boolean> = _isAuthenticated
+
     val authState: StateFlow<AuthState> = combine(
         authManager.isOnboardingDone,
         authManager.isPinSet,
-    ) { onboardingDone, pinSet ->
+        _isAuthenticated,
+    ) { onboardingDone, pinSet, authenticated ->
         when {
             !onboardingDone -> AuthState.FirstLaunch
             !pinSet -> AuthState.PinNotSet
+            authenticated -> AuthState.Unlocked
             else -> AuthState.Locked
         }
     }.stateIn(
@@ -42,18 +47,9 @@ class AuthViewModel @Inject constructor(
     private val _pinError = MutableStateFlow<String?>(null)
     val pinError: StateFlow<String?> = _pinError
 
-    private val _isAuthenticated = MutableStateFlow(false)
-    val isAuthenticated: StateFlow<Boolean> = _isAuthenticated
-
     fun setPin(pin: String, confirmPin: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
-        if (pin.length < 4) {
-            onError("الرمز السري يجب أن يكون 4 أرقام على الأقل")
-            return
-        }
-        if (pin != confirmPin) {
-            onError("الرمزان غير متطابقان")
-            return
-        }
+        if (pin.length < 4) { onError("الرمز السري يجب أن يكون 4 أرقام على الأقل"); return }
+        if (pin != confirmPin) { onError("الرمزان غير متطابقان"); return }
         viewModelScope.launch {
             authManager.setPin(pin)
             _isAuthenticated.value = true
@@ -63,8 +59,7 @@ class AuthViewModel @Inject constructor(
 
     fun verifyPin(pin: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
-            val valid = authManager.verifyPin(pin)
-            if (valid) {
+            if (authManager.verifyPin(pin)) {
                 _isAuthenticated.value = true
                 onSuccess()
             } else {
@@ -79,5 +74,11 @@ class AuthViewModel @Inject constructor(
 
     fun lock() {
         _isAuthenticated.value = false
+    }
+
+    fun isBiometricEnabled() = authManager.isBiometricEnabled
+
+    fun setBiometricEnabled(enabled: Boolean) {
+        viewModelScope.launch { authManager.setBiometricEnabled(enabled) }
     }
 }

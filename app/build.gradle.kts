@@ -95,6 +95,7 @@ dependencies {
     implementation(libs.room.ktx)
     kapt(libs.room.compiler)
 
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.datastore.preferences)

@@ -95,7 +95,8 @@ fun ErthiNavGraph(
             FinanceScreen(
                 onBack = { navController.popBackStack() },
                 onNavigateDebts = { navController.navigate(Screen.Debts.route) },
-                onNavigateAssets = { navController.navigate(Screen.Assets.route) }
+                onNavigateAssets = { navController.navigate(Screen.Assets.route) },
+                onNavigateDigitalAccounts = { navController.navigate(Screen.DigitalAccounts.route) },
             )
         }
 
@@ -135,7 +136,13 @@ fun ErthiNavGraph(
             SettingsScreen(
                 onBack = { navController.popBackStack() },
                 onNavigateAboutApp = { navController.navigate(Screen.AboutApp.route) },
-                onNavigateAboutErthi = { navController.navigate(Screen.AboutErthi.route) }
+                onNavigateAboutErthi = { navController.navigate(Screen.AboutErthi.route) },
+                onLockApp = {
+                    authViewModel.lock()
+                    navController.navigate(Screen.Auth.route) {
+                        popUpTo(Screen.Home.route) { inclusive = true }
+                    }
+                },
             )
         }
 

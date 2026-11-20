@@ -77,14 +77,28 @@ fun EmergencyScreen(onBack: () -> Unit) {
             EmptyContactPlaceholder()
             Spacer(Modifier.weight(1f))
             Button(
-                onClick = {},
+                onClick = {
+                    val smsIntent = Intent(Intent.ACTION_SENDTO).apply {
+                        data = Uri.parse("smsto:")
+                        putExtra("sms_body", "🆘 طارئ — أحتاج مساعدة عاجلة. يُرجى الاتصال بي فوراً.")
+                    }
+                    if (smsIntent.resolveActivity(context.packageManager) != null) {
+                        context.startActivity(smsIntent)
+                    } else {
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, "🆘 طارئ — أحتاج مساعدة عاجلة. يُرجى الاتصال بي فوراً.")
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "إرسال استغاثة"))
+                    }
+                },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(28.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = EmergencyRed, contentColor = Color.White),
             ) {
                 Icon(Icons.Default.LocationOn, null)
                 Spacer(Modifier.width(8.dp))
-                Text("إرسال استغاثة وموقعي\nإلى جهات الاتصال المحددة", textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, lineHeight = 20.sp)
+                Text("إرسال استغاثة\nإلى جهات الاتصال المحددة", textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, lineHeight = 20.sp)
             }
         }
     }
