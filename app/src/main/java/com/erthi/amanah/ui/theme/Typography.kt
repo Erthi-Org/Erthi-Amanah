@@ -2,26 +2,21 @@ package com.erthi.amanah.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.googlefonts.Font
-import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.unit.sp
 import com.erthi.amanah.R
 
-private val googleFontProvider = GoogleFont.Provider(
-    providerAuthority = "com.google.android.gms.fonts",
-    providerPackage = "com.google.android.gms",
-    certificates = R.array.com_google_android_gms_fonts_certs,
-)
-
-private val NotoKufiArabicFont = GoogleFont("Noto Kufi Arabic")
-
+// XML-based downloadable fonts backed by Android's Font Provider service (GMS).
+// Unlike the Compose runtime Google Fonts provider, these are cached at the OS level
+// by the Android font framework — the font survives app restarts and works offline
+// after the first successful download.
 val NotoKufiArabicFamily = FontFamily(
-    Font(googleFont = NotoKufiArabicFont, fontProvider = googleFontProvider, weight = FontWeight.Normal),
-    Font(googleFont = NotoKufiArabicFont, fontProvider = googleFontProvider, weight = FontWeight.Medium),
-    Font(googleFont = NotoKufiArabicFont, fontProvider = googleFontProvider, weight = FontWeight.SemiBold),
-    Font(googleFont = NotoKufiArabicFont, fontProvider = googleFontProvider, weight = FontWeight.Bold),
+    Font(R.font.noto_kufi_arabic_w400, FontWeight.Normal),
+    Font(R.font.noto_kufi_arabic_w500, FontWeight.Medium),
+    Font(R.font.noto_kufi_arabic_w600, FontWeight.SemiBold),
+    Font(R.font.noto_kufi_arabic_w700, FontWeight.Bold),
 )
 
 val ErthiTypography = Typography(

@@ -1,16 +1,20 @@
 package com.erthi.amanah.ui.viewmodel
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.withTransaction
 import com.erthi.amanah.data.backup.BackupCrypto
+import com.erthi.amanah.data.backup.DriveBackupFile
+import com.erthi.amanah.data.backup.DriveBackupManager
 import com.erthi.amanah.data.db.ErthiDatabase
 import com.erthi.amanah.data.db.dao.*
 import com.erthi.amanah.data.db.entity.*
 import com.erthi.amanah.data.security.CryptoManager
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +25,9 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.security.SecureRandom
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 sealed class BackupState {
@@ -28,6 +35,13 @@ sealed class BackupState {
     data object InProgress : BackupState()
     data class Success(val message: String) : BackupState()
     data class Error(val message: String) : BackupState()
+}
+
+sealed class DriveState {
+    data object Idle : DriveState()
+    data object InProgress : DriveState()
+    data class Success(val message: String) : DriveState()
+    data class Error(val message: String) : DriveState()
 }
 
 @HiltViewModel
@@ -43,10 +57,123 @@ class BackupViewModel @Inject constructor(
     private val documentDao: DocumentDao,
     private val vaultItemDao: VaultItemDao,
     private val crypto: CryptoManager,
+    private val driveManager: DriveBackupManager,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<BackupState>(BackupState.Idle)
     val state: StateFlow<BackupState> = _state.asStateFlow()
+
+    // ── Drive state ───────────────────────────────────────────────────────────
+
+    private val _driveState = MutableStateFlow<DriveState>(DriveState.Idle)
+    val driveState: StateFlow<DriveState> = _driveState.asStateFlow()
+
+    private val _driveAccount = MutableStateFlow<GoogleSignInAccount?>(driveManager.getSignedInAccount())
+    val driveAccount: StateFlow<GoogleSignInAccount?> = _driveAccount.asStateFlow()
+
+    private val _driveBackups = MutableStateFlow<List<DriveBackupFile>>(emptyList())
+    val driveBackups: StateFlow<List<DriveBackupFile>> = _driveBackups.asStateFlow()
+
+    fun driveSignInIntent(): Intent = driveManager.buildSignInIntent()
+
+    fun handleDriveSignInResult(data: Intent?) {
+        val account = driveManager.handleSignInResult(data)
+        _driveAccount.value = account
+        if (account != null && driveManager.hasRequiredScopes()) {
+            loadDriveBackups()
+        } else if (account != null) {
+            _driveState.value = DriveState.Error("لم يتم منح صلاحية الوصول إلى Drive. أعد المحاولة.")
+        } else {
+            _driveState.value = DriveState.Error("فشل تسجيل الدخول إلى Google.")
+        }
+    }
+
+    fun driveSignOut() {
+        viewModelScope.launch {
+            driveManager.signOut()
+            _driveAccount.value = null
+            _driveBackups.value = emptyList()
+            _driveState.value = DriveState.Idle
+        }
+    }
+
+    fun loadDriveBackups() {
+        viewModelScope.launch {
+            _driveState.value = DriveState.InProgress
+            try {
+                _driveBackups.value = driveManager.listBackups()
+                _driveState.value = DriveState.Idle
+            } catch (e: Exception) {
+                _driveState.value = DriveState.Error("فشل تحميل قائمة النسخ: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun clearDriveState() { _driveState.value = DriveState.Idle }
+
+    // Upload a WASI_BAK2 (PBKDF2+AES-GCM) portable backup to Drive
+    fun exportDriveBackup(passphrase: String) {
+        viewModelScope.launch {
+            _driveState.value = DriveState.InProgress
+            try {
+                val json = buildPortableBackupJson()
+                val plainBytes = json.toByteArray(Charsets.UTF_8)
+                val salt = ByteArray(32).also { SecureRandom().nextBytes(it) }
+                val key = BackupCrypto.pbkdf2Key(passphrase, salt)
+                val (iv, ciphertext) = BackupCrypto.encrypt(key, plainBytes)
+                val magic = "WASI_BAK2".toByteArray(Charsets.UTF_8)
+                val encBytes = magic + salt + iv + ciphertext
+
+                val dateStr = SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault()).format(Date())
+                val filename = "wasiyyati_drive_$dateStr.wasi2bak"
+                val fileId = driveManager.uploadBackup(encBytes, filename)
+                _driveState.value = DriveState.Success("✅ تم رفع النسخة بنجاح إلى Google Drive ($fileId)")
+                loadDriveBackups()
+            } catch (e: Exception) {
+                _driveState.value = DriveState.Error("❌ فشل الرفع إلى Drive: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    // Download and restore a WASI_BAK2 backup from Drive
+    fun importDriveBackup(fileId: String, passphrase: String) {
+        viewModelScope.launch {
+            _driveState.value = DriveState.InProgress
+            try {
+                val raw = driveManager.downloadBackup(fileId)
+                val header = String(raw.copyOfRange(0, 9), Charsets.UTF_8)
+                if (header != "WASI_BAK2") throw IllegalArgumentException("ملف النسخة تالف أو غير صالح")
+                val salt = raw.copyOfRange(9, 41)
+                val iv = raw.copyOfRange(41, 53)
+                val ct = raw.copyOfRange(53, raw.size)
+                val key = BackupCrypto.pbkdf2Key(passphrase, salt)
+                val plainBytes = try {
+                    BackupCrypto.decrypt(key, iv, ct)
+                } catch (_: Exception) {
+                    throw IllegalArgumentException("كلمة المرور خاطئة أو الملف تالف")
+                }
+                restorePortableFromJson(String(plainBytes, Charsets.UTF_8))
+                _driveState.value = DriveState.Success("✅ تمت الاستعادة من Google Drive بنجاح")
+            } catch (e: IllegalArgumentException) {
+                _driveState.value = DriveState.Error("❌ ${e.message}")
+            } catch (e: Exception) {
+                _driveState.value = DriveState.Error("❌ فشل الاستعادة من Drive: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun deleteDriveBackup(fileId: String) {
+        viewModelScope.launch {
+            _driveState.value = DriveState.InProgress
+            try {
+                driveManager.deleteBackup(fileId)
+                _driveState.value = DriveState.Success("✅ تم حذف النسخة من Drive")
+                loadDriveBackups()
+            } catch (e: Exception) {
+                _driveState.value = DriveState.Error("❌ فشل الحذف: ${e.localizedMessage}")
+            }
+        }
+    }
 
     // ── ENC/DEC helpers using device Keystore ─────────────────────────────
 
