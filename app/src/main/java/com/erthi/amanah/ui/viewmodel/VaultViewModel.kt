@@ -7,6 +7,8 @@ import com.erthi.amanah.data.db.dao.VaultItemDao
 import com.erthi.amanah.data.db.entity.VaultCategory
 import com.erthi.amanah.data.db.entity.VaultItemEntity
 import com.erthi.amanah.data.security.CryptoManager
+import com.erthi.amanah.util.PasswordStrength
+import com.erthi.amanah.util.PasswordUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +16,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import java.security.SecureRandom
 
 private const val ENC = "[enc]"
 
@@ -67,38 +68,16 @@ class VaultViewModel @Inject constructor(
         viewModelScope.launch { dao.delete(item) }
     }
 
-    // Returns a secure random password
     fun generatePassword(
         length: Int = 16,
         upper: Boolean = true,
         lower: Boolean = true,
         digits: Boolean = true,
         symbols: Boolean = true,
-    ): String {
-        val pool = buildString {
-            if (upper) append("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-            if (lower) append("abcdefghijklmnopqrstuvwxyz")
-            if (digits) append("0123456789")
-            if (symbols) append("@#\$%^&*!_-+=?")
-        }.ifEmpty { "abcdefghijklmnopqrstuvwxyz" }
-        val rng = SecureRandom()
-        return (1..length).map { pool[rng.nextInt(pool.length)] }.joinToString("")
-    }
+    ): String = PasswordUtils.generatePassword(length, upper, lower, digits, symbols)
 
-    fun passwordStrength(password: String): PasswordStrength {
-        if (password.length < 6) return PasswordStrength.WEAK
-        var score = 0
-        if (password.length >= 12) score++
-        if (password.any { it.isUpperCase() }) score++
-        if (password.any { it.isLowerCase() }) score++
-        if (password.any { it.isDigit() }) score++
-        if (password.any { !it.isLetterOrDigit() }) score++
-        return when {
-            score <= 2 -> PasswordStrength.WEAK
-            score == 3 -> PasswordStrength.MEDIUM
-            else -> PasswordStrength.STRONG
-        }
-    }
+    fun passwordStrength(password: String): PasswordStrength =
+        PasswordUtils.passwordStrength(password)
 
     private fun String.enc(): String {
         val bytes = toByteArray(Charsets.UTF_8)
@@ -127,5 +106,3 @@ class VaultViewModel @Inject constructor(
         notes = notes?.dec(),
     )
 }
-
-enum class PasswordStrength { WEAK, MEDIUM, STRONG }

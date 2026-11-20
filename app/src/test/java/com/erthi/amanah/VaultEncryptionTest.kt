@@ -1,9 +1,15 @@
 package com.erthi.amanah
 
+import com.erthi.amanah.data.security.CryptoManager
 import org.junit.Assert.*
 import org.junit.Test
 import java.util.Base64
 
+/**
+ * Tests for vault field encryption format.
+ * Exercises CryptoManager.EncryptedData.fromByteArray() — the production class
+ * used by VaultViewModel.dec() to parse [enc]-prefixed stored values.
+ */
 class VaultEncryptionTest {
 
     private val ENC_PREFIX = "[enc]"
@@ -27,13 +33,53 @@ class VaultEncryptionTest {
         assertFalse("".startsWith(ENC_PREFIX))
     }
 
-    // ── Base64 + prefix round-trip ─────────────────────────────────────────
+    // ── CryptoManager.EncryptedData.fromByteArray — production class ───────
+
+    @Test
+    fun encryptedData_fromByteArray_splits_iv_and_ciphertext() {
+        val iv = ByteArray(12) { (it + 1).toByte() }
+        val ciphertext = ByteArray(16) { (it + 50).toByte() }
+        val combined = iv + ciphertext
+
+        val parsed = CryptoManager.EncryptedData.fromByteArray(combined)
+        assertArrayEquals(iv, parsed.iv)
+        assertArrayEquals(ciphertext, parsed.ciphertext)
+    }
+
+    @Test
+    fun encryptedData_fromByteArray_iv_is_exactly_12_bytes() {
+        val iv = ByteArray(12) { it.toByte() }
+        val ct = ByteArray(1) { 0xFF.toByte() }
+        val combined = iv + ct
+
+        val parsed = CryptoManager.EncryptedData.fromByteArray(combined)
+        assertEquals(12, parsed.iv.size)
+        assertEquals(1, parsed.ciphertext.size)
+    }
+
+    @Test
+    fun encryptedData_toByteArray_reconstructs_original_bytes() {
+        val iv = ByteArray(12) { (it * 3).toByte() }
+        val ct = ByteArray(32) { (it + 100).toByte() }
+        val original = CryptoManager.EncryptedData(iv, ct)
+        val reconstructed = original.toByteArray()
+        assertArrayEquals(iv + ct, reconstructed)
+    }
+
+    @Test
+    fun encryptedData_roundtrip_fromByteArray_then_toByteArray() {
+        val originalBytes = ByteArray(44) { it.toByte() }
+        val parsed = CryptoManager.EncryptedData.fromByteArray(originalBytes)
+        val reconstructed = parsed.toByteArray()
+        assertArrayEquals(originalBytes, reconstructed)
+    }
+
+    // ── [enc] prefix + base64 round-trip ──────────────────────────────────
 
     @Test
     fun enc_prefix_plus_base64_roundtrip() {
         val originalBytes = ByteArray(44) { it.toByte() } // iv(12) + ciphertext(32)
-        val encoded = ENC_PREFIX + Base64.getEncoder().encodeToString(originalBytes)
-
+        val encoded = ENC_PREFIX + Base64.getEncoder().withoutPadding().encodeToString(originalBytes)
         assertTrue(encoded.startsWith(ENC_PREFIX))
         val decoded = Base64.getDecoder().decode(encoded.removePrefix(ENC_PREFIX))
         assertArrayEquals(originalBytes, decoded)
@@ -41,39 +87,10 @@ class VaultEncryptionTest {
 
     @Test
     fun enc_prefix_payload_minimum_12_bytes_iv() {
-        // Minimum meaningful payload: 12 bytes IV + at least 1 byte ciphertext
         val minPayload = ByteArray(13)
-        val encoded = ENC_PREFIX + Base64.getEncoder().encodeToString(minPayload)
-        val decoded = Base64.getDecoder().decode(encoded.removePrefix(ENC_PREFIX))
-        assertTrue(decoded.size >= 13)
-    }
-
-    // ── EncryptedData fromByteArray edge cases ─────────────────────────────
-
-    @Test
-    fun encryptedData_toByteArray_contains_iv_then_ciphertext() {
-        val iv = ByteArray(12) { (it + 1).toByte() }
-        val ciphertext = ByteArray(16) { (it + 50).toByte() }
-        val combined = iv + ciphertext
-
-        val extractedIv = combined.copyOfRange(0, 12)
-        val extractedCt = combined.copyOfRange(12, combined.size)
-
-        assertArrayEquals(iv, extractedIv)
-        assertArrayEquals(ciphertext, extractedCt)
-    }
-
-    @Test
-    fun encryptedData_fromByteArray_exactly_12_bytes_iv() {
-        val iv = ByteArray(12) { it.toByte() }
-        val ct = ByteArray(1) { 0xFF.toByte() }
-        val combined = iv + ct
-
-        val restoredIv = combined.copyOfRange(0, 12)
-        val restoredCt = combined.copyOfRange(12, combined.size)
-
-        assertEquals(12, restoredIv.size)
-        assertEquals(1, restoredCt.size)
+        val parsed = CryptoManager.EncryptedData.fromByteArray(minPayload)
+        assertEquals(12, parsed.iv.size)
+        assertEquals(1, parsed.ciphertext.size)
     }
 
     @Test
@@ -83,19 +100,6 @@ class VaultEncryptionTest {
     }
 
     // ── Vault item field handling ──────────────────────────────────────────
-
-    @Test
-    fun vault_item_username_encrypted_field_roundtrip() {
-        val username = "user@example.com"
-        val fakeIv = ByteArray(12) { it.toByte() }
-        val fakeCt = username.toByteArray()
-        val stored = ENC_PREFIX + Base64.getEncoder().encodeToString(fakeIv + fakeCt)
-
-        assertTrue(stored.startsWith(ENC_PREFIX))
-        val raw = Base64.getDecoder().decode(stored.removePrefix(ENC_PREFIX))
-        val recoveredUsername = String(raw.copyOfRange(12, raw.size))
-        assertEquals(username, recoveredUsername)
-    }
 
     @Test
     fun null_or_blank_field_does_not_start_with_enc_prefix() {

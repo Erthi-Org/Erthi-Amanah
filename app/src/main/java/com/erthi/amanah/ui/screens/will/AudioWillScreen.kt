@@ -26,10 +26,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.erthi.amanah.ui.components.ErthiTopBar
 import com.erthi.amanah.ui.theme.*
+import com.erthi.amanah.ui.viewmodel.AudioWillViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -37,11 +40,17 @@ import java.util.*
 private enum class RecordState { IDLE, RECORDING, STOPPED, PLAYING, SAVED }
 
 @Composable
-fun AudioWillScreen(onBack: () -> Unit) {
+fun AudioWillScreen(
+    onBack: () -> Unit,
+    viewModel: AudioWillViewModel = hiltViewModel(),
+) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var recordState by remember { mutableStateOf(RecordState.IDLE) }
     var elapsedSeconds by remember { mutableIntStateOf(0) }
-    var savedPath by remember { mutableStateOf<String?>(null) }
+    var savedFileName by remember { mutableStateOf<String?>(null) }
+    var encryptedFile by remember { mutableStateOf<File?>(null) }
+    var tempPlaybackFile by remember { mutableStateOf<File?>(null) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
 
     val recorder = remember { mutableStateOf<MediaRecorder?>(null) }
@@ -54,7 +63,6 @@ fun AudioWillScreen(onBack: () -> Unit) {
             }
     }
 
-    // Tick timer while recording
     LaunchedEffect(recordState) {
         if (recordState == RecordState.RECORDING) {
             while (isActive && recordState == RecordState.RECORDING) {
@@ -64,11 +72,11 @@ fun AudioWillScreen(onBack: () -> Unit) {
         }
     }
 
-    // Cleanup on exit
     DisposableEffect(Unit) {
         onDispose {
             recorder.value?.apply { try { stop(); release() } catch (_: Exception) {} }
             player.value?.apply { try { stop(); release() } catch (_: Exception) {} }
+            tempPlaybackFile?.delete()
         }
     }
 
@@ -110,32 +118,64 @@ fun AudioWillScreen(onBack: () -> Unit) {
     }
 
     fun startPlayback() {
-        try {
-            val mp = MediaPlayer()
-            mp.setDataSource(outputFile.absolutePath)
-            mp.prepare()
-            mp.setOnCompletionListener { recordState = RecordState.STOPPED }
-            mp.start()
-            player.value = mp
-            recordState = RecordState.PLAYING
-        } catch (e: Exception) {
-            errorMsg = "فشل تشغيل التسجيل: ${e.localizedMessage}"
+        scope.launch {
+            try {
+                val sourceFile = encryptedFile ?: outputFile
+                val playFile = if (encryptedFile != null) {
+                    val tmp = viewModel.decryptAudioToTemp(sourceFile, context.cacheDir)
+                    if (tmp == null) {
+                        errorMsg = "فشل فك تشفير التسجيل"
+                        return@launch
+                    }
+                    tempPlaybackFile = tmp
+                    tmp
+                } else {
+                    sourceFile
+                }
+                val mp = MediaPlayer()
+                mp.setDataSource(playFile.absolutePath)
+                mp.prepare()
+                mp.setOnCompletionListener {
+                    recordState = if (encryptedFile != null) RecordState.SAVED else RecordState.STOPPED
+                    tempPlaybackFile?.delete()
+                    tempPlaybackFile = null
+                    player.value = null
+                }
+                mp.start()
+                player.value = mp
+                recordState = RecordState.PLAYING
+            } catch (e: Exception) {
+                errorMsg = "فشل تشغيل التسجيل: ${e.localizedMessage}"
+            }
         }
     }
 
     fun stopPlayback() {
         player.value?.apply { try { stop(); release() } catch (_: Exception) {} }
         player.value = null
-        recordState = RecordState.STOPPED
+        tempPlaybackFile?.delete()
+        tempPlaybackFile = null
+        recordState = if (encryptedFile != null) RecordState.SAVED else RecordState.STOPPED
     }
 
     fun saveRecording() {
-        savedPath = outputFile.absolutePath
-        recordState = RecordState.SAVED
+        scope.launch {
+            val enc = viewModel.encryptAudio(outputFile)
+            if (enc != null) {
+                encryptedFile = enc
+                savedFileName = enc.name
+                recordState = RecordState.SAVED
+            } else {
+                errorMsg = "فشل تشفير التسجيل"
+            }
+        }
     }
 
     fun discardRecording() {
-        outputFile.delete()
+        encryptedFile?.delete()
+        encryptedFile = null
+        if (outputFile.exists()) outputFile.delete()
+        savedFileName = null
         elapsedSeconds = 0
         recordState = RecordState.IDLE
         errorMsg = null
@@ -154,7 +194,6 @@ fun AudioWillScreen(onBack: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Info banner
             Card(
                 colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color(0xFF0D0A00)),
                 shape = RoundedCornerShape(12.dp),
@@ -163,18 +202,15 @@ fun AudioWillScreen(onBack: () -> Unit) {
                 Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
                     Icon(Icons.Default.Info, null, tint = GoldAccent, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("سجّل وصيتك بصوتك. يُخزَّن التسجيل محلياً على هاتفك بشكل مشفّر.", style = MaterialTheme.typography.bodySmall, color = GoldAccent.copy(alpha = 0.85f))
+                    Text("سجّل وصيتك بصوتك. يُخزَّن التسجيل محلياً على هاتفك مشفّراً بـ AES-256.", style = MaterialTheme.typography.bodySmall, color = GoldAccent.copy(alpha = 0.85f))
                 }
             }
 
             Spacer(Modifier.weight(1f))
 
-            // State indicator
             when (recordState) {
                 RecordState.RECORDING -> {
-                    Box(
-                        modifier = Modifier.size(16.dp).clip(CircleShape).background(EmergencyRed),
-                    )
+                    Box(modifier = Modifier.size(16.dp).clip(CircleShape).background(EmergencyRed))
                     Text("جارٍ التسجيل", color = EmergencyRed, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
                 RecordState.PLAYING -> {
@@ -187,7 +223,7 @@ fun AudioWillScreen(onBack: () -> Unit) {
                 }
                 RecordState.SAVED -> {
                     Icon(Icons.Default.SaveAlt, null, tint = GoldAccent, modifier = Modifier.size(32.dp))
-                    Text("تم الحفظ", color = GoldAccent, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("تم الحفظ المشفّر", color = GoldAccent, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
                 else -> {
                     Icon(Icons.Default.Mic, null, tint = MetallicSilver, modifier = Modifier.size(48.dp))
@@ -195,7 +231,6 @@ fun AudioWillScreen(onBack: () -> Unit) {
                 }
             }
 
-            // Timer
             Text(
                 timerText,
                 fontSize = 48.sp,
@@ -212,13 +247,12 @@ fun AudioWillScreen(onBack: () -> Unit) {
                 Text(it, color = EmergencyRed, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
             }
 
-            savedPath?.let {
-                Text("محفوظ في: ${File(it).name}", color = TextMuted, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
+            savedFileName?.let {
+                Text("محفوظ: $it", color = TextMuted, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
             }
 
             Spacer(Modifier.weight(1f))
 
-            // Controls
             if (!hasPermission) {
                 Button(
                     onClick = { permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
@@ -272,7 +306,7 @@ fun AudioWillScreen(onBack: () -> Unit) {
                             ) {
                                 Icon(Icons.Default.Save, null)
                                 Spacer(Modifier.width(6.dp))
-                                Text("حفظ", fontWeight = FontWeight.Bold)
+                                Text("حفظ مشفّر", fontWeight = FontWeight.Bold)
                             }
                         }
                         TextButton(onClick = { discardRecording() }, modifier = Modifier.fillMaxWidth()) {
@@ -311,6 +345,9 @@ fun AudioWillScreen(onBack: () -> Unit) {
                                 Spacer(Modifier.width(6.dp))
                                 Text("تم", fontWeight = FontWeight.Bold)
                             }
+                        }
+                        TextButton(onClick = { discardRecording() }, modifier = Modifier.fillMaxWidth()) {
+                            Text("حذف التسجيل", color = EmergencyRed)
                         }
                     }
                 }

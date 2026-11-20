@@ -1,111 +1,109 @@
 package com.erthi.amanah
 
+import com.erthi.amanah.util.PasswordStrength
+import com.erthi.amanah.util.PasswordUtils
 import org.junit.Assert.*
 import org.junit.Test
 
 /**
- * Tests for password strength classification logic used in VaultViewModel.
- * Mirrors the evaluateStrength() logic: score-based with WEAK/MEDIUM/STRONG levels.
+ * Tests for password strength classification — exercises PasswordUtils.passwordStrength()
+ * which is the production function delegated to by VaultViewModel.passwordStrength().
  */
 class PasswordStrengthTest {
-
-    private enum class PasswordStrength { WEAK, MEDIUM, STRONG }
-
-    private fun evaluateStrength(password: String): PasswordStrength {
-        var score = 0
-        if (password.length >= 8) score++
-        if (password.length >= 12) score++
-        if (password.any { it.isUpperCase() }) score++
-        if (password.any { it.isLowerCase() }) score++
-        if (password.any { it.isDigit() }) score++
-        if (password.any { !it.isLetterOrDigit() }) score++
-        return when {
-            score >= 5 -> PasswordStrength.STRONG
-            score >= 3 -> PasswordStrength.MEDIUM
-            else -> PasswordStrength.WEAK
-        }
-    }
 
     // ── WEAK ─────────────────────────────────────────────────────────────
 
     @Test
     fun empty_password_is_weak() {
-        assertEquals(PasswordStrength.WEAK, evaluateStrength(""))
+        assertEquals(PasswordStrength.WEAK, PasswordUtils.passwordStrength(""))
     }
 
     @Test
     fun single_char_is_weak() {
-        assertEquals(PasswordStrength.WEAK, evaluateStrength("a"))
+        assertEquals(PasswordStrength.WEAK, PasswordUtils.passwordStrength("a"))
     }
 
     @Test
     fun short_lowercase_only_is_weak() {
-        assertEquals(PasswordStrength.WEAK, evaluateStrength("abcd"))
+        // length < 6 → WEAK immediately
+        assertEquals(PasswordStrength.WEAK, PasswordUtils.passwordStrength("abcd"))
     }
 
     @Test
     fun digits_only_short_is_weak() {
-        assertEquals(PasswordStrength.WEAK, evaluateStrength("1234"))
+        assertEquals(PasswordStrength.WEAK, PasswordUtils.passwordStrength("1234"))
+    }
+
+    @Test
+    fun lowercase_and_digits_no_length_no_upper_is_weak() {
+        // "abcd1234": lower(1) + digit(2) = score 2 → WEAK
+        assertEquals(PasswordStrength.WEAK, PasswordUtils.passwordStrength("abcd1234"))
     }
 
     // ── MEDIUM ───────────────────────────────────────────────────────────
 
     @Test
-    fun eight_char_mixed_case_is_medium() {
-        // length>=8(1) + upper(1) + lower(1) + digit(1) = 4 → MEDIUM (>=3)
-        assertEquals(PasswordStrength.MEDIUM, evaluateStrength("Abcde123"))
+    fun upper_lower_digit_is_medium() {
+        // "Abcde123": upper(1) + lower(2) + digit(3) = score 3 → MEDIUM
+        assertEquals(PasswordStrength.MEDIUM, PasswordUtils.passwordStrength("Abcde123"))
     }
 
     @Test
-    fun eight_char_letters_and_digits_is_medium() {
-        assertEquals(PasswordStrength.MEDIUM, evaluateStrength("abcd1234"))
+    fun lower_digit_symbol_is_medium() {
+        // "abc12!@#": lower(1) + digit(2) + symbol(3) = score 3 → MEDIUM
+        assertEquals(PasswordStrength.MEDIUM, PasswordUtils.passwordStrength("abc12!@#"))
+    }
+
+    @Test
+    fun twelve_chars_lower_digit_is_medium() {
+        // "abcdef123456": length>=12(1) + lower(2) + digit(3) = score 3 → MEDIUM
+        assertEquals(PasswordStrength.MEDIUM, PasswordUtils.passwordStrength("abcdef123456"))
     }
 
     // ── STRONG ───────────────────────────────────────────────────────────
 
     @Test
-    fun twelve_char_mixed_with_symbol_is_strong() {
-        // length>=8(1) + length>=12(1) + upper(1) + lower(1) + digit(1) + special(1) = 6 → STRONG
-        assertEquals(PasswordStrength.STRONG, evaluateStrength("Abcdef123!@#"))
+    fun twelve_char_all_classes_is_strong() {
+        // "Abcdef123!@#": length>=12(1) + upper(2) + lower(3) + digit(4) + symbol(5) → STRONG
+        assertEquals(PasswordStrength.STRONG, PasswordUtils.passwordStrength("Abcdef123!@#"))
     }
 
     @Test
-    fun sixteen_char_all_char_classes_is_strong() {
-        assertEquals(PasswordStrength.STRONG, evaluateStrength("MyP@ssw0rd!2024x"))
+    fun sixteen_char_all_classes_is_strong() {
+        assertEquals(PasswordStrength.STRONG, PasswordUtils.passwordStrength("MyP@ssw0rd!2024x"))
     }
 
     @Test
-    fun symbol_only_twelve_chars_hits_at_least_medium() {
-        // length>=8(1) + length>=12(1) + special(1) = 3 → MEDIUM (not WEAK)
-        val result = evaluateStrength("!@#\$%^&*()!@")
-        assertNotEquals(PasswordStrength.WEAK, result)
+    fun upper_lower_digit_symbol_no_length_is_strong() {
+        // "Abcde1!q": upper(1) + lower(2) + digit(3) + symbol(4) = score 4 → STRONG
+        assertEquals(PasswordStrength.STRONG, PasswordUtils.passwordStrength("Abcde1!q"))
     }
 
     // ── Boundaries ───────────────────────────────────────────────────────
 
     @Test
-    fun exactly_8_chars_counts_length_bonus() {
-        // "abcABC1!" → length>=8(1) + upper(1) + lower(1) + digit(1) + special(1) = 5 → STRONG
-        assertEquals(PasswordStrength.STRONG, evaluateStrength("abcABC1!"))
+    fun exactly_5_chars_is_weak_regardless_of_complexity() {
+        // length < 6 → WEAK
+        assertEquals(PasswordStrength.WEAK, PasswordUtils.passwordStrength("Ab1!x"))
     }
 
     @Test
-    fun exactly_12_chars_counts_both_length_bonuses() {
-        // "abcABC123!@#" → length>=8(1) + length>=12(1) + upper(1) + lower(1) + digit(1) + special(1) = 6 → STRONG
-        assertEquals(PasswordStrength.STRONG, evaluateStrength("abcABC123!@#"))
+    fun exactly_6_chars_is_scored_normally() {
+        // "Ab1!xY": upper(1) + lower(2) + digit(3) + symbol(4) = score 4 → STRONG
+        assertEquals(PasswordStrength.STRONG, PasswordUtils.passwordStrength("Ab1!xY"))
     }
 
     @Test
-    fun seven_chars_no_length_bonus() {
-        // "Abcde1!" → upper(1) + lower(1) + digit(1) + special(1) = 4 → MEDIUM
-        assertEquals(PasswordStrength.MEDIUM, evaluateStrength("Abcde1!"))
+    fun exactly_12_chars_gets_length_bonus() {
+        // "ABCDEFGHIJ12": length>=12(1) + upper(2) + digit(3) = score 3 → MEDIUM
+        assertEquals(PasswordStrength.MEDIUM, PasswordUtils.passwordStrength("ABCDEFGHIJ12"))
     }
 
     // ── Generated password quality ────────────────────────────────────────
 
     @Test
-    fun generated_12_char_alphanumeric_symbol_is_strong() {
-        // Simulated generated password with all classes
-        assertEquals(PasswordStrength.STRONG, evaluateStrength("aB3!dE6@gH9#"))
+    fun generated_password_all_classes_12_chars_is_strong() {
+        // All char classes present, 12 chars
+        assertEquals(PasswordStrength.STRONG, PasswordUtils.passwordStrength("aB3@dE6!gH9#"))
     }
 }

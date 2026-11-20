@@ -33,7 +33,7 @@ import com.erthi.amanah.data.db.entity.VaultItemEntity
 import com.erthi.amanah.ui.components.EmptyState
 import com.erthi.amanah.ui.components.ErthiTopBar
 import com.erthi.amanah.ui.theme.*
-import com.erthi.amanah.ui.viewmodel.PasswordStrength
+import com.erthi.amanah.util.PasswordStrength
 import com.erthi.amanah.ui.viewmodel.VaultViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)

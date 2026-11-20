@@ -12,6 +12,9 @@ interface BeneficiaryDao {
     @Query("SELECT * FROM beneficiaries WHERE isEmergencyContact = 1 ORDER BY emergencyPriority ASC")
     fun getEmergencyContacts(): Flow<List<BeneficiaryEntity>>
 
+    @Query("SELECT * FROM beneficiaries WHERE canAccessWill = 1 ORDER BY fullName ASC")
+    fun getAuthorizedBeneficiaries(): Flow<List<BeneficiaryEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBeneficiary(beneficiary: BeneficiaryEntity): Long
 
