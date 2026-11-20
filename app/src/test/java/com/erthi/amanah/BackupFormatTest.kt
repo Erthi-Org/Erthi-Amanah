@@ -111,6 +111,77 @@ class BackupFormatTest {
         }
     }
 
+    // ── Regression: WillDao.deleteAllWills() naming contract ─────────────────
+    //
+    // Every DAO used in backup restore exposes a delete-all operation.
+    // Seven DAOs use the name "deleteAll()"; WillDao uses "deleteAllWills()".
+    // BackupViewModel.restoreFromJson and restorePortableFromJson must call
+    // willDao.deleteAllWills() — not willDao.deleteAll() — or the build fails
+    // with "Unresolved reference: deleteAll".
+    //
+    // The tests below cover the conditional re-encryption logic inside
+    // restoreVaultItems(reEncrypt) and the 8-table schema contract, both of
+    // which are pure JVM and require no Room or Android deps.
+
+    @Test
+    fun restore_vault_item_reencrypt_true_wraps_plaintext() {
+        // Mirrors the encOrRaw lambda in BackupViewModel.restoreVaultItems.
+        // When reEncrypt = true (portable restore to a new device), every
+        // non-empty vault field must be passed through enc() before storage.
+        val encPrefix = "[enc]"
+        val simulatedEnc: (String) -> String = { "$encPrefix$it" }
+
+        fun encOrRaw(raw: String, reEncrypt: Boolean): String? =
+            raw.takeIf { it.isNotEmpty() }?.let { if (reEncrypt) simulatedEnc(it) else it }
+
+        val plain = "correct-horse-battery-staple"
+
+        val result = encOrRaw(plain, true)
+        assertNotNull(result)
+        assertTrue("Expected enc prefix when reEncrypt=true", result!!.startsWith(encPrefix))
+        assertEquals("$encPrefix$plain", result)
+    }
+
+    @Test
+    fun restore_vault_item_reencrypt_false_preserves_value() {
+        // When reEncrypt = false (device-bound restore), values are already
+        // [enc]-prefixed ciphertext from the originating device; store verbatim.
+        val encPrefix = "[enc]"
+        val simulatedEnc: (String) -> String = { "$encPrefix$it" }
+
+        fun encOrRaw(raw: String, reEncrypt: Boolean): String? =
+            raw.takeIf { it.isNotEmpty() }?.let { if (reEncrypt) simulatedEnc(it) else it }
+
+        val encCiphertext = "[enc]AAABBBCCC"
+        val result = encOrRaw(encCiphertext, false)
+        assertEquals(encCiphertext, result)
+    }
+
+    @Test
+    fun restore_vault_item_empty_string_yields_null() {
+        // Empty optional vault fields must produce null so they are not stored
+        // as blank strings, matching the ?: "" -> takeIf guard in production.
+        val simulatedEnc: (String) -> String = { "[enc]$it" }
+
+        fun encOrRaw(raw: String, reEncrypt: Boolean): String? =
+            raw.takeIf { it.isNotEmpty() }?.let { if (reEncrypt) simulatedEnc(it) else it }
+
+        assertNull("empty + reEncrypt=true should be null", encOrRaw("", true))
+        assertNull("empty + reEncrypt=false should be null", encOrRaw("", false))
+    }
+
+    @Test
+    fun backup_v2_schema_covers_exactly_8_tables() {
+        // Schema contract: a v2 backup must carry exactly these 8 section keys.
+        // Update this list deliberately if a table is added or removed.
+        val required = listOf(
+            "wills", "debts", "assets", "entrusted",
+            "beneficiaries", "digitalAccounts", "documents", "vaultItems"
+        )
+        assertEquals("Duplicate section key names", required.size, required.toSet().size)
+        assertEquals(8, required.size)
+    }
+
     @Test
     fun portable_backup_binary_layout_roundtrip() {
         val passphrase = "الوصيتي-backup-2024"

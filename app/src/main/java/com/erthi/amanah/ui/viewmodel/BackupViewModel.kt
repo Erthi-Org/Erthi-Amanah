@@ -336,7 +336,7 @@ class BackupViewModel @Inject constructor(
     private suspend fun restoreFromJson(json: String) {
         val root = JSONObject(json)
         db.withTransaction {
-            willDao.deleteAll()
+            willDao.deleteAllWills()
             debtDao.deleteAll()
             assetDao.deleteAll()
             entrustedDao.deleteAll()
@@ -361,7 +361,7 @@ class BackupViewModel @Inject constructor(
     private suspend fun restorePortableFromJson(json: String) {
         val root = JSONObject(json)
         db.withTransaction {
-            willDao.deleteAll()
+            willDao.deleteAllWills()
             debtDao.deleteAll()
             assetDao.deleteAll()
             entrustedDao.deleteAll()
