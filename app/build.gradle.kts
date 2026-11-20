@@ -127,7 +127,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.ui.text.google.fonts)
-    implementation(libs.google.sign.in)
+    implementation(libs.google.signin)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
