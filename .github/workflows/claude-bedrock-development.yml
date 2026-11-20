@@ -10,7 +10,6 @@ on:
         type: choice
         default: auth
         options: [auth, smoke]
-        type: string
 permissions:
   contents: read
 concurrency:
