@@ -26,18 +26,21 @@ android {
 
     }
 
-    // CI provides a stable debug keystore via DEBUG_KEYSTORE_BASE64 secret.
-    // Locally falls back to the standard ~/.android/debug.keystore.
-    val ciKeystoreFile = rootProject.file("ci-debug.keystore")
-    val useCiKeystore = ciKeystoreFile.exists()
+    val ciKeystorePath = System.getenv("DEBUG_KEYSTORE_FILE")
+    val requireStableDebugSigning = System.getenv("REQUIRE_STABLE_DEBUG_SIGNING") == "true"
+    require(!requireStableDebugSigning || !ciKeystorePath.isNullOrBlank()) {
+        "Stable debug signing requires DEBUG_KEYSTORE_FILE"
+    }
+    val ciKeystoreFile = ciKeystorePath?.let { file(it) }
 
     signingConfigs {
-        if (useCiKeystore) {
+        if (ciKeystoreFile != null) {
+            require(ciKeystoreFile.isFile) { "Stable debug keystore is missing" }
             create("ciDebug") {
                 storeFile = ciKeystoreFile
-                storePassword = System.getenv("DEBUG_STORE_PASSWORD") ?: "android"
-                keyAlias = System.getenv("DEBUG_KEY_ALIAS") ?: "androiddebugkey"
-                keyPassword = System.getenv("DEBUG_KEY_PASSWORD") ?: "android"
+                storePassword = requireNotNull(System.getenv("DEBUG_STORE_PASSWORD")?.takeIf { it.isNotBlank() })
+                keyAlias = requireNotNull(System.getenv("DEBUG_KEY_ALIAS")?.takeIf { it.isNotBlank() })
+                keyPassword = requireNotNull(System.getenv("DEBUG_KEY_PASSWORD")?.takeIf { it.isNotBlank() })
             }
         }
     }
@@ -54,7 +57,7 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            if (useCiKeystore) {
+            if (ciKeystoreFile != null) {
                 signingConfig = signingConfigs.getByName("ciDebug")
             }
         }
