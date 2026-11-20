@@ -1,0 +1,33 @@
+*.iml
+.gradle
+/local.properties
+/.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Signing
+*.jks
+*.keystore
+keystore.properties
+
+# Android generated
+app/build/
+*.apk
+*.aab
+*.ap_
+
+# Sensitive
+google-services.json
+secrets.properties
+*.pem
+*.key
+
+# Gradle wrapper
+!gradle/wrapper/gradle-wrapper.jar
+
+# Test artifacts
+app/schemas/
