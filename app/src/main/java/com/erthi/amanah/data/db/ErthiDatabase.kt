@@ -14,8 +14,9 @@ import com.erthi.amanah.data.db.entity.*
         DigitalAccountEntity::class,
         DocumentEntity::class,
         BeneficiaryEntity::class,
+        VaultItemEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class ErthiDatabase : RoomDatabase() {
@@ -26,4 +27,5 @@ abstract class ErthiDatabase : RoomDatabase() {
     abstract fun digitalAccountDao(): DigitalAccountDao
     abstract fun documentDao(): DocumentDao
     abstract fun beneficiaryDao(): BeneficiaryDao
+    abstract fun vaultItemDao(): VaultItemDao
 }

@@ -2,44 +2,63 @@ package com.erthi.amanah.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primary navy palette
-val NavyDeep = Color(0xFF0D1B2E)
-val NavyMid = Color(0xFF152540)
-val NavyCard = Color(0xFF1A2E4A)
-val NavyLight = Color(0xFF213654)
+// ── Ultra-Deep Glossy Black Palette ──────────────────────────────────────────
+val GlossyBlack      = Color(0xFF030405)   // primary background
+val GlossyBlackMid   = Color(0xFF080B10)   // secondary surfaces
+val ObsidianCard     = Color(0xFF111720)   // elevated obsidian cards
+val ObsidianElevated = Color(0xFF171E29)   // deep reflective surfaces
 
-// Silver-blue accent
-val SilverBlue = Color(0xFF7DA8D0)
-val SilverLight = Color(0xFFB8D4E8)
-val SilverPale = Color(0xFFDDEEF8)
+// Aliases kept for all existing screens
+val NavyDeep  = GlossyBlack
+val NavyMid   = GlossyBlackMid
+val NavyCard  = ObsidianCard
+val NavyLight = ObsidianElevated
 
-// Text
-val TextPrimary = Color(0xFFFFFFFF)
+// ── Metallic Silver ───────────────────────────────────────────────────────────
+val MetallicSilver  = Color(0xFFC0C0C0)
+val PolishedSilver  = Color(0xFFE3E8EF)
+val SilverHighlight = Color(0xFFF2F5FA)
+
+// Aliases for existing screens
+val SilverBlue  = MetallicSilver
+val SilverLight = PolishedSilver
+val SilverPale  = SilverHighlight
+
+// ── Text ─────────────────────────────────────────────────────────────────────
+val TextPrimary   = Color(0xFFFFFFFF)
 val TextSecondary = Color(0xFFB0C4D8)
-val TextMuted = Color(0xFF7A95AA)
+val TextMuted     = Color(0xFF5A6880)
 
-// Semantic
-val EmergencyRed = Color(0xFFD32F2F)
+// ── Gold Accent (Erthi brand) ─────────────────────────────────────────────────
+val GoldAccent  = Color(0xFFD9AA54)
+val GoldBright  = Color(0xFFFFD470)
+
+// ── Semantic ─────────────────────────────────────────────────────────────────
+val EmergencyRed      = Color(0xFFD32F2F)
 val EmergencyRedLight = Color(0xFFEF5350)
-val SuccessGreen = Color(0xFF2E7D32)
+val SuccessGreen      = Color(0xFF2E7D32)
 val SuccessGreenLight = Color(0xFF4CAF50)
-val WarningAmber = Color(0xFFF57C00)
-val GoldAccent = Color(0xFFD4A017)
+val WarningAmber      = Color(0xFFF57C00)
 
-// Card variants
-val CardWhite = Color(0xFFFFFFFF)
+// ── Divider / metallic border ─────────────────────────────────────────────────
+val DividerColor    = Color(0xFF1E2A3A)
+val MetallicBorder  = Color(0xFF2E3A4E)
+
+// Legacy
+val CardWhite     = Color(0xFFFFFFFF)
 val CardLightBlue = Color(0xFFEBF4FC)
-val DividerColor = Color(0xFF2A3F5A)
 
-// Module icon colors
-val WillColor = Color(0xFF5C6BC0)
-val FinanceColor = Color(0xFFD4A017)
-val DebtsColor = Color(0xFFEF5350)
-val AssetsColor = Color(0xFF4CAF50)
-val EntrustedColor = Color(0xFFFFA726)
-val DigitalColor = Color(0xFF29B6F6)
-val DocumentsColor = Color(0xFF78909C)
-val BeneficiariesColor = Color(0xFFEC407A)
-val EmergencyColor = Color(0xFFD32F2F)
-val BackupColor = Color(0xFF26A69A)
-val SettingsColor = Color(0xFF78909C)
+// ── Module accent colors ──────────────────────────────────────────────────────
+val WillColor         = Color(0xFF7B61FF)   // purple
+val FinanceColor      = Color(0xFFD9AA54)   // gold
+val DebtsColor        = Color(0xFFEF5350)   // red
+val AssetsColor       = Color(0xFF4CAF50)   // green
+val EntrustedColor    = Color(0xFFFFA726)   // amber
+val DigitalColor      = Color(0xFF29B6F6)   // cyan
+val DocumentsColor    = Color(0xFF78909C)   // slate
+val BeneficiariesColor= Color(0xFFEC407A)   // pink
+val EmergencyColor    = Color(0xFFD32F2F)   // red
+val BackupColor       = Color(0xFF26A69A)   // teal
+val SettingsColor     = Color(0xFF90A4AE)   // blue-gray
+val VaultColor        = Color(0xFF00B4D8)   // electric cyan  (password vault)
+val VaultPurple       = Color(0xFF9C27B0)   // purple variant

@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">إرثي أمانة</string>
-    <string name="app_name_en">Erthi Amanah</string>
+    <string name="app_name">وصيتي</string>
+    <string name="app_name_en">Wasiyyati</string>
+    <string name="app_tagline">وصيتي — أحد مشروعات إرثي الخيرية</string>
 
     <!-- Navigation -->
     <string name="nav_home">الرئيسية</string>

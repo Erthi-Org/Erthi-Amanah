@@ -57,16 +57,16 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "إرثي أمانة",
+                text = "وصيتي",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary,
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = "Erthi Amanah",
-                fontSize = 16.sp,
-                color = SilverBlue,
+                text = "Wasiyyati — أحد مشروعات إرثي الخيرية",
+                fontSize = 14.sp,
+                color = GoldAccent,
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(12.dp))

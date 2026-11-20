@@ -18,10 +18,13 @@ import com.erthi.amanah.ui.screens.digital.DigitalAccountsScreen
 import com.erthi.amanah.ui.screens.documents.DocumentsScreen
 import com.erthi.amanah.ui.screens.emergency.EmergencyScreen
 import com.erthi.amanah.ui.screens.entrusted.EntrustedScreen
+import com.erthi.amanah.ui.screens.feedback.FeedbackScreen
 import com.erthi.amanah.ui.screens.finance.FinanceScreen
 import com.erthi.amanah.ui.screens.home.HomeScreen
+import com.erthi.amanah.ui.screens.more.MoreScreen
 import com.erthi.amanah.ui.screens.onboarding.OnboardingScreen
 import com.erthi.amanah.ui.screens.settings.SettingsScreen
+import com.erthi.amanah.ui.screens.vault.PasswordVaultScreen
 import com.erthi.amanah.ui.screens.will.WillEditorScreen
 import com.erthi.amanah.ui.screens.will.WillScreen
 import com.erthi.amanah.ui.viewmodel.AuthState
@@ -81,7 +84,8 @@ fun ErthiNavGraph(
         composable(Screen.Will.route) {
             WillScreen(
                 onBack = { navController.popBackStack() },
-                onEditWill = { navController.navigate(Screen.WillEditor.route) }
+                onEditWill = { navController.navigate(Screen.WillEditor.route) },
+                onWillAccess = { navController.navigate(Screen.WillAccess.route) },
             )
         }
 
@@ -152,6 +156,44 @@ fun ErthiNavGraph(
 
         composable(Screen.AboutErthi.route) {
             AboutErthiScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.PasswordVault.route) {
+            PasswordVaultScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.More.route) {
+            MoreScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateEmergency = { navController.navigate(Screen.Emergency.route) },
+                onNavigateSettings = { navController.navigate(Screen.Settings.route) },
+                onNavigateAboutApp = { navController.navigate(Screen.AboutApp.route) },
+                onNavigateAboutErthi = { navController.navigate(Screen.AboutErthi.route) },
+                onNavigateFeedback = { navController.navigate(Screen.Feedback.route) },
+            )
+        }
+
+        composable(Screen.Feedback.route) {
+            FeedbackScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.WillAccess.route) {
+            // Placeholder — will be implemented in Phase 8
+            androidx.compose.material3.Scaffold(
+                topBar = { com.erthi.amanah.ui.components.ErthiTopBar(title = "إعدادات الوصول", onBack = { navController.popBackStack() }) },
+                containerColor = com.erthi.amanah.ui.theme.GlossyBlack,
+            ) { padding ->
+                androidx.compose.foundation.layout.Box(
+                    modifier = androidx.compose.ui.Modifier.fillMaxSize().padding(padding),
+                    contentAlignment = androidx.compose.ui.Alignment.Center,
+                ) {
+                    androidx.compose.material3.Text(
+                        "قريباً — إعدادات الوصول للوصية",
+                        color = com.erthi.amanah.ui.theme.TextSecondary,
+                        style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
         }
     }
 }

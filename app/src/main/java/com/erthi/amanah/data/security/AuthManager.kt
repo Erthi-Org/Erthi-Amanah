@@ -27,6 +27,34 @@ class AuthManager @Inject constructor(
         private val KEY_PIN_SALT = stringPreferencesKey("pin_salt")
         private val KEY_ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         private val KEY_BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
+        private val KEY_LOCKOUT_UNTIL_MS = androidx.datastore.preferences.core.longPreferencesKey("lockout_until_ms")
+        private val KEY_FAILED_ATTEMPTS = androidx.datastore.preferences.core.intPreferencesKey("failed_attempts")
+    }
+
+    val lockoutUntilMs: Flow<Long> = dataStore.data.map { prefs -> prefs[KEY_LOCKOUT_UNTIL_MS] ?: 0L }
+    val failedAttempts: Flow<Int> = dataStore.data.map { prefs -> prefs[KEY_FAILED_ATTEMPTS] ?: 0 }
+
+    suspend fun recordFailedAttempt(): Int {
+        var newCount = 0
+        dataStore.edit { prefs ->
+            newCount = (prefs[KEY_FAILED_ATTEMPTS] ?: 0) + 1
+            prefs[KEY_FAILED_ATTEMPTS] = newCount
+        }
+        return newCount
+    }
+
+    suspend fun setLockout(durationMs: Long) {
+        dataStore.edit { prefs ->
+            prefs[KEY_LOCKOUT_UNTIL_MS] = System.currentTimeMillis() + durationMs
+            prefs[KEY_FAILED_ATTEMPTS] = 0
+        }
+    }
+
+    suspend fun clearLockout() {
+        dataStore.edit { prefs ->
+            prefs[KEY_LOCKOUT_UNTIL_MS] = 0L
+            prefs[KEY_FAILED_ATTEMPTS] = 0
+        }
     }
 
     val isPinSet: Flow<Boolean> = dataStore.data.map { prefs ->

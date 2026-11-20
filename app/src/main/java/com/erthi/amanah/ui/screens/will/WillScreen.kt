@@ -29,6 +29,7 @@ import java.util.Locale
 fun WillScreen(
     onBack: () -> Unit,
     onEditWill: () -> Unit,
+    onWillAccess: () -> Unit = {},
     viewModel: WillViewModel = hiltViewModel(),
 ) {
     val wills by viewModel.wills.collectAsState()
@@ -59,7 +60,7 @@ fun WillScreen(
                 Text("إجراءات الوصية", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = SilverBlue, modifier = Modifier.padding(bottom = 4.dp))
             }
             item { WillOptionItem(icon = Icons.Default.Edit, label = "كتابة وصية جديدة", onClick = onEditWill) }
-            item { WillOptionItem(icon = Icons.Default.Key, label = "إعدادات الوصول", onClick = {}) }
+            item { WillOptionItem(icon = Icons.Default.Key, label = "إعدادات الوصول", onClick = onWillAccess) }
             item {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color(0xFF1A1200)),
