@@ -107,3 +107,4 @@ jobs:
               f.write("SDK estimated cost USD: " + str(result.get("total_cost_usd", "not reported")) + "\\n")
           PY
 
+# Retest the exact Amanah OIDC grant.
