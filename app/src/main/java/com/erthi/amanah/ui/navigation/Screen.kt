@@ -30,4 +30,6 @@ sealed class Screen(val route: String) {
     // More hub
     data object More : Screen("more")
     data object Feedback : Screen("feedback")
+    // Audio will recording
+    data object AudioWill : Screen("audio_will")
 }

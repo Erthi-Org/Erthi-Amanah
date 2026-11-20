@@ -25,6 +25,8 @@ import com.erthi.amanah.ui.screens.more.MoreScreen
 import com.erthi.amanah.ui.screens.onboarding.OnboardingScreen
 import com.erthi.amanah.ui.screens.settings.SettingsScreen
 import com.erthi.amanah.ui.screens.vault.PasswordVaultScreen
+import com.erthi.amanah.ui.screens.will.AudioWillScreen
+import com.erthi.amanah.ui.screens.will.WillAccessScreen
 import com.erthi.amanah.ui.screens.will.WillEditorScreen
 import com.erthi.amanah.ui.screens.will.WillScreen
 import com.erthi.amanah.ui.viewmodel.AuthState
@@ -86,6 +88,7 @@ fun ErthiNavGraph(
                 onBack = { navController.popBackStack() },
                 onEditWill = { navController.navigate(Screen.WillEditor.route) },
                 onWillAccess = { navController.navigate(Screen.WillAccess.route) },
+                onAudioWill = { navController.navigate(Screen.AudioWill.route) },
             )
         }
 
@@ -178,22 +181,11 @@ fun ErthiNavGraph(
         }
 
         composable(Screen.WillAccess.route) {
-            // Placeholder — will be implemented in Phase 8
-            androidx.compose.material3.Scaffold(
-                topBar = { com.erthi.amanah.ui.components.ErthiTopBar(title = "إعدادات الوصول", onBack = { navController.popBackStack() }) },
-                containerColor = com.erthi.amanah.ui.theme.GlossyBlack,
-            ) { padding ->
-                androidx.compose.foundation.layout.Box(
-                    modifier = androidx.compose.ui.Modifier.fillMaxSize().padding(padding),
-                    contentAlignment = androidx.compose.ui.Alignment.Center,
-                ) {
-                    androidx.compose.material3.Text(
-                        "قريباً — إعدادات الوصول للوصية",
-                        color = com.erthi.amanah.ui.theme.TextSecondary,
-                        style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-                    )
-                }
-            }
+            WillAccessScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.AudioWill.route) {
+            AudioWillScreen(onBack = { navController.popBackStack() })
         }
     }
 }

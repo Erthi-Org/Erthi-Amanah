@@ -34,6 +34,10 @@ class BeneficiaryViewModel @Inject constructor(
         }
     }
 
+    fun updateBeneficiary(beneficiary: BeneficiaryEntity) {
+        viewModelScope.launch { beneficiaryDao.updateBeneficiary(beneficiary) }
+    }
+
     fun delete(beneficiary: BeneficiaryEntity) {
         viewModelScope.launch { beneficiaryDao.deleteBeneficiary(beneficiary) }
     }

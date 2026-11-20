@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.random.Random
+import java.security.SecureRandom
 
 private const val ENC = "[enc]"
 
@@ -81,7 +81,8 @@ class VaultViewModel @Inject constructor(
             if (digits) append("0123456789")
             if (symbols) append("@#\$%^&*!_-+=?")
         }.ifEmpty { "abcdefghijklmnopqrstuvwxyz" }
-        return (1..length).map { pool[Random.nextInt(pool.length)] }.joinToString("")
+        val rng = SecureRandom()
+        return (1..length).map { pool[rng.nextInt(pool.length)] }.joinToString("")
     }
 
     fun passwordStrength(password: String): PasswordStrength {

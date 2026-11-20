@@ -13,6 +13,12 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
+import java.security.SecureRandom
+import javax.crypto.Cipher
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.PBEKeySpec
+import javax.crypto.spec.SecretKeySpec
 import javax.inject.Inject
 
 sealed class BackupState {
@@ -93,6 +99,71 @@ class BackupViewModel @Inject constructor(
     }
 
     fun clearState() { _state.value = BackupState.Idle }
+
+    // ── Portable backup (PBKDF2 + AES-GCM, cross-device) ──────────────────────
+
+    fun exportPortableBackup(uri: Uri, passphrase: String) {
+        viewModelScope.launch {
+            _state.value = BackupState.InProgress
+            try {
+                val json = buildBackupJson()
+                val plainBytes = json.toByteArray(Charsets.UTF_8)
+                val rng = SecureRandom()
+                val salt = ByteArray(32).also { rng.nextBytes(it) }
+                val iv = ByteArray(12).also { rng.nextBytes(it) }
+                val key = pbkdf2Key(passphrase, salt)
+                val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(128, iv))
+                val ciphertext = cipher.doFinal(plainBytes)
+                // Format: WASI_BAK2(8) + salt(32) + iv(12) + ciphertext
+                val magic = "WASI_BAK2".toByteArray(Charsets.UTF_8)
+                val output = magic + salt + iv + ciphertext
+                context.contentResolver.openOutputStream(uri)?.use { it.write(output) }
+                _state.value = BackupState.Success("✅ تم تصدير النسخة المحمولة — ${plainBytes.size / 1024} كيلوبايت")
+            } catch (e: Exception) {
+                _state.value = BackupState.Error("❌ فشل التصدير المحمول: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun importPortableBackup(uri: Uri, passphrase: String) {
+        viewModelScope.launch {
+            _state.value = BackupState.InProgress
+            try {
+                val raw = context.contentResolver.openInputStream(uri)?.readBytes()
+                    ?: throw IllegalStateException("لا يمكن قراءة الملف")
+                val magic = "WASI_BAK2"
+                val header = String(raw.copyOfRange(0, 9), Charsets.UTF_8)
+                if (header != magic) throw IllegalArgumentException("الملف ليس نسخة محمولة صالحة")
+                val salt = raw.copyOfRange(9, 41)
+                val iv = raw.copyOfRange(41, 53)
+                val ct = raw.copyOfRange(53, raw.size)
+                val key = pbkdf2Key(passphrase, salt)
+                val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(128, iv))
+                val plainBytes = try {
+                    cipher.doFinal(ct)
+                } catch (e: Exception) {
+                    throw IllegalArgumentException("كلمة المرور خاطئة أو الملف تالف")
+                }
+                val jsonStr = String(plainBytes, Charsets.UTF_8)
+                restoreFromJson(jsonStr)
+                _state.value = BackupState.Success("✅ تمت الاستعادة المحمولة بنجاح")
+            } catch (e: IllegalArgumentException) {
+                _state.value = BackupState.Error("❌ ${e.message}")
+            } catch (e: Exception) {
+                _state.value = BackupState.Error("❌ فشل الاستعادة المحمولة: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    private fun pbkdf2Key(passphrase: String, salt: ByteArray): SecretKeySpec {
+        val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+        val spec = PBEKeySpec(passphrase.toCharArray(), salt, 310_000, 256)
+        val encoded = factory.generateSecret(spec).encoded
+        spec.clearPassword()
+        return SecretKeySpec(encoded, "AES")
+    }
 
     private suspend fun buildBackupJson(): String {
         val wills = willDao.getAllWills().first()
