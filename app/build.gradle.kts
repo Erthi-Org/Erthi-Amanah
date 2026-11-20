@@ -15,8 +15,8 @@ android {
         applicationId = "com.erthi.amanah"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -24,6 +24,22 @@ android {
             useSupportLibrary = true
         }
 
+    }
+
+    // CI provides a stable debug keystore via DEBUG_KEYSTORE_BASE64 secret.
+    // Locally falls back to the standard ~/.android/debug.keystore.
+    val ciKeystoreFile = rootProject.file("ci-debug.keystore")
+    val useCiKeystore = ciKeystoreFile.exists()
+
+    signingConfigs {
+        if (useCiKeystore) {
+            create("ciDebug") {
+                storeFile = ciKeystoreFile
+                storePassword = System.getenv("DEBUG_STORE_PASSWORD") ?: "android"
+                keyAlias = System.getenv("DEBUG_KEY_ALIAS") ?: "androiddebugkey"
+                keyPassword = System.getenv("DEBUG_KEY_PASSWORD") ?: "android"
+            }
+        }
     }
 
     buildTypes {
@@ -38,6 +54,9 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            if (useCiKeystore) {
+                signingConfig = signingConfigs.getByName("ciDebug")
+            }
         }
     }
 
