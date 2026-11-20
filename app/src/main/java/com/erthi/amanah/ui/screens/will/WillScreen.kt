@@ -2,6 +2,8 @@ package com.erthi.amanah.ui.screens.will
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -11,55 +13,117 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.erthi.amanah.data.db.entity.WillEntity
 import com.erthi.amanah.ui.components.ErthiTopBar
 import com.erthi.amanah.ui.theme.*
+import com.erthi.amanah.ui.viewmodel.WillViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
-fun WillScreen(onBack: () -> Unit, onEditWill: () -> Unit) {
+fun WillScreen(
+    onBack: () -> Unit,
+    onEditWill: () -> Unit,
+    viewModel: WillViewModel = hiltViewModel(),
+) {
+    val wills by viewModel.wills.collectAsState()
+
     Scaffold(
         topBar = { ErthiTopBar(title = "الوصية", onBack = onBack) },
         containerColor = NavyDeep,
     ) { padding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(140.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(NavyCard),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.HistoryEdu, contentDescription = null, tint = GoldAccent, modifier = Modifier.size(56.dp))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("اكتب وصيتك وعيّن آلية الوصول إليها", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+            item {
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(120.dp)
+                        .clip(RoundedCornerShape(16.dp)).background(NavyCard),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.HistoryEdu, contentDescription = null, tint = GoldAccent, modifier = Modifier.size(48.dp))
+                        Spacer(Modifier.height(6.dp))
+                        Text("اكتب وصيتك وعيّن آلية الوصول إليها", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                    }
                 }
             }
-            Spacer(modifier = Modifier.height(20.dp))
-            Text("اكتب وصيتك", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = SilverBlue, modifier = Modifier.padding(bottom = 12.dp))
-            WillOptionItem(icon = Icons.Default.Edit, label = "كتابة الوصية", onClick = onEditWill)
-            WillOptionItem(icon = Icons.Default.Mic, label = "تسجيل وصية صوتية", onClick = {})
-            WillOptionItem(icon = Icons.Default.Videocam, label = "تسجيل وصية بالفيديو", onClick = {})
-            WillOptionItem(icon = Icons.Default.AttachFile, label = "إرفاق مستندات", onClick = {})
-            WillOptionItem(icon = Icons.Default.Key, label = "إعدادات الوصول\nمن يمكنه فتح الوصية وكيف؟", onClick = {})
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color(0xFF1A1200)),
-                shape = RoundedCornerShape(12.dp),
-            ) {
-                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
-                    Icon(Icons.Default.Info, contentDescription = null, tint = GoldAccent, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "تنبيه: الوصية المكتوبة هنا هي توثيق شخصي. مدى إلزاميتها القانونية يعتمد على تشريعات بلدك وشروط الإشهاد الرسمي.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = GoldAccent,
-                    )
+            item { Spacer(Modifier.height(4.dp)) }
+            item {
+                Text("إجراءات الوصية", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = SilverBlue, modifier = Modifier.padding(bottom = 4.dp))
+            }
+            item { WillOptionItem(icon = Icons.Default.Edit, label = "كتابة وصية جديدة", onClick = onEditWill) }
+            item { WillOptionItem(icon = Icons.Default.Key, label = "إعدادات الوصول", onClick = {}) }
+            item {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color(0xFF1A1200)),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = GoldAccent, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "تنبيه: الوصية المكتوبة هنا هي توثيق شخصي. مدى إلزاميتها القانونية يعتمد على تشريعات بلدك.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = GoldAccent,
+                        )
+                    }
                 }
+            }
+            if (wills.isNotEmpty()) {
+                item {
+                    Spacer(Modifier.height(8.dp))
+                    Text("الوصايا المحفوظة (${wills.size})", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = SilverBlue, modifier = Modifier.padding(bottom = 4.dp))
+                }
+                items(wills, key = { it.id }) { will ->
+                    WillCard(will = will, onDelete = { viewModel.deleteWill(will) })
+                }
+            }
+            item { Spacer(Modifier.height(24.dp)) }
+        }
+    }
+}
+
+@Composable
+private fun WillCard(will: WillEntity, onDelete: () -> Unit) {
+    val dateStr = remember(will.updatedAt) {
+        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(will.updatedAt))
+    }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = NavyCard),
+    ) {
+        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                if (will.isDraft) Icons.Default.EditNote else Icons.Default.HistoryEdu,
+                contentDescription = null,
+                tint = if (will.isDraft) TextSecondary else GoldAccent,
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(will.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Text(will.content, style = MaterialTheme.typography.bodySmall, color = TextSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(dateStr, style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                    if (will.isDraft) {
+                        Spacer(Modifier.width(8.dp))
+                        Surface(shape = RoundedCornerShape(4.dp), color = SilverBlue.copy(alpha = 0.2f)) {
+                            Text("مسودة", modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, color = SilverBlue)
+                        }
+                    }
+                }
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, null, tint = EmergencyRed, modifier = Modifier.size(20.dp))
             }
         }
     }

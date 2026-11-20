@@ -16,19 +16,27 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
+    private var authViewModel: AuthViewModel? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             ErthiAmanaTheme {
-                val authViewModel: AuthViewModel = hiltViewModel()
-                val authState by authViewModel.authState.collectAsState()
+                val vm: AuthViewModel = hiltViewModel()
+                authViewModel = vm
+                val authState by vm.authState.collectAsState()
                 ErthiNavGraph(
                     authState = authState,
-                    authViewModel = authViewModel,
+                    authViewModel = vm,
                 )
             }
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        authViewModel?.lock()
     }
 }

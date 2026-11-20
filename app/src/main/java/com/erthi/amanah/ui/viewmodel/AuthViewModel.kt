@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -47,6 +48,16 @@ class AuthViewModel @Inject constructor(
     private val _pinError = MutableStateFlow<String?>(null)
     val pinError: StateFlow<String?> = _pinError
 
+    private val _failedAttempts = MutableStateFlow(0)
+    private val _lockedUntilMs = MutableStateFlow(0L)
+
+    val remainingLockSeconds: StateFlow<Int> = _lockedUntilMs
+        .map { until ->
+            val remaining = ((until - System.currentTimeMillis()) / 1000).toInt()
+            if (remaining > 0) remaining else 0
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
     fun setPin(pin: String, confirmPin: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
         if (pin.length < 4) { onError("الرمز السري يجب أن يكون 4 أرقام على الأقل"); return }
         if (pin != confirmPin) { onError("الرمزان غير متطابقان"); return }
@@ -58,12 +69,38 @@ class AuthViewModel @Inject constructor(
     }
 
     fun verifyPin(pin: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        val now = System.currentTimeMillis()
+        val lockUntil = _lockedUntilMs.value
+        if (lockUntil > now) {
+            val remaining = ((lockUntil - now) / 1000) + 1
+            onError("محاولات خاطئة كثيرة. انتظر $remaining ثانية")
+            return
+        }
         viewModelScope.launch {
             if (authManager.verifyPin(pin)) {
+                _failedAttempts.value = 0
+                _lockedUntilMs.value = 0L
                 _isAuthenticated.value = true
                 onSuccess()
             } else {
-                onError("الرمز السري غير صحيح")
+                val attempts = _failedAttempts.value + 1
+                _failedAttempts.value = attempts
+                when {
+                    attempts >= 10 -> {
+                        _lockedUntilMs.value = System.currentTimeMillis() + 300_000L // 5 min
+                        _failedAttempts.value = 0
+                        onError("10 محاولات خاطئة. الرجاء الانتظار 5 دقائق")
+                    }
+                    attempts >= 5 -> {
+                        _lockedUntilMs.value = System.currentTimeMillis() + 30_000L // 30 sec
+                        _failedAttempts.value = 0
+                        onError("5 محاولات خاطئة. الرجاء الانتظار 30 ثانية")
+                    }
+                    else -> {
+                        val remaining = 5 - attempts
+                        onError("رمز سري خاطئ. تبقّت $remaining محاولات")
+                    }
+                }
             }
         }
     }
