@@ -3,6 +3,7 @@ name: Android CI — Build & Test
 on:
   push:
     branches: [ "feature/**", "main" ]
+  workflow_dispatch:
   pull_request:
     branches: [ "main" ]
 
@@ -18,6 +19,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -32,59 +35,34 @@ jobs:
       - name: Validate Gradle wrapper
         uses: gradle/wrapper-validation-action@v3
 
-      # Decode the stable debug keystore so every CI build is signed with
-      # the same certificate. This allows over-the-air upgrades without
-      # uninstalling the previously installed debug APK.
-      #
-      # Security: the secret is mapped to an env var before the shell sees it.
-      # The shell never receives it as an interpolated string literal.
-      # The build FAILS HARD if the secret is absent — no silent fallback to
-      # an ephemeral random key.
-      - name: Decode stable debug keystore
+      - name: Decode and verify stable debug keystore
+        shell: bash
         env:
           KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
           STORE_PASS: ${{ secrets.DEBUG_STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.DEBUG_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.DEBUG_KEY_PASSWORD }}
         run: |
-          if [ -z "$KEYSTORE_B64" ]; then
-            echo "::error::DEBUG_KEYSTORE_BASE64 secret is not set. \
-          Stable signing is mandatory — a silent fallback to an ephemeral key \
-          would break OTA upgrades. Add the secret to this repository before \
-          triggering another build."
+          for name in KEYSTORE_B64 STORE_PASS KEY_ALIAS KEY_PASS; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::A required Android debug signing secret is missing ($name)."
+              exit 1
+            fi
+          done
+          umask 077
+          keystore="$RUNNER_TEMP/ci-debug.keystore"
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$keystore"
+          keytool -exportcert -keystore "$keystore" -storepass:env STORE_PASS \
+            -alias "$KEY_ALIAS" -file "$RUNNER_TEMP/debug-signing.der" >/dev/null 2>&1 || {
+            echo "::error::Could not read the expected signing alias from the keystore."
             exit 1
-          fi
-
-          # Decode without interpolating the secret into shell source.
-          printf '%s' "$KEYSTORE_B64" | base64 --decode > ci-debug.keystore
-
-          # Verify the decoded keystore carries the expected stable certificate.
-          EXPECTED="3600e8ff78aad20c39a91f50a619cf4b5b1d77265d15328ec1c317be91ebabea"
-          ACTUAL=$(keytool -list -v \
-            -keystore ci-debug.keystore \
-            -storepass "${STORE_PASS:-android}" \
-            -alias "${KEY_ALIAS:-androiddebugkey}" \
-            -noprompt 2>&1 \
-            | grep -i "sha256" \
-            | awk '{print $NF}' \
-            | tr -d ':' \
-            | tr '[:upper:]' '[:lower:]' \
-            | head -1)
-
-          if [ -z "$ACTUAL" ]; then
-            echo "::error::Could not read a certificate fingerprint from the decoded keystore. \
-          Check that DEBUG_KEYSTORE_BASE64 is the correct Base64-encoded keystore."
+          }
+          actual=$(sha256sum "$RUNNER_TEMP/debug-signing.der" | cut -d ' ' -f1)
+          expected=3600e8ff78aad20c39a91f50a619cf4b5b1d77265d15328ec1c317be91ebabea
+          [[ "$actual" == "$expected" ]] || {
+            echo "::error::Debug keystore certificate does not match the approved fingerprint."
             exit 1
-          fi
-
-          if [ "$ACTUAL" != "$EXPECTED" ]; then
-            echo "::error::Keystore SHA-256 mismatch."
-            echo "::error::  Got:      $ACTUAL"
-            echo "::error::  Expected: $EXPECTED"
-            echo "::error::The keystore in DEBUG_KEYSTORE_BASE64 is not the approved stable key."
-            exit 1
-          fi
-
-          echo "✅ Keystore SHA-256 verified: $ACTUAL"
+          }
 
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --no-daemon
@@ -100,63 +78,34 @@ jobs:
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon
         env:
+          REQUIRE_STABLE_DEBUG_SIGNING: "true"
+          DEBUG_KEYSTORE_FILE: ${{ runner.temp }}/ci-debug.keystore
           DEBUG_STORE_PASSWORD: ${{ secrets.DEBUG_STORE_PASSWORD }}
           DEBUG_KEY_ALIAS: ${{ secrets.DEBUG_KEY_ALIAS }}
           DEBUG_KEY_PASSWORD: ${{ secrets.DEBUG_KEY_PASSWORD }}
 
-      # Confirm the APK was signed with the stable keystore, not an ephemeral one.
-      # Uses apksigner (from the build-tools Gradle downloaded) when available;
-      # falls back to keytool -printcert -jarfile (v1 / JAR signature).
-      - name: Verify APK signing certificate
+      - name: Verify APK signing certificate and identity
+        shell: bash
         run: |
-          APK="app/build/outputs/apk/debug/app-debug.apk"
-          EXPECTED="3600e8ff78aad20c39a91f50a619cf4b5b1d77265d15328ec1c317be91ebabea"
-
-          # Prefer apksigner — it reads v2/v3 APK Signature Scheme blocks.
-          APKSIGNER=$(find "${ANDROID_HOME}" -name "apksigner" -type f 2>/dev/null \
-            | sort -V | tail -1)
-
-          if [ -n "$APKSIGNER" ]; then
-            echo "Using apksigner: $APKSIGNER"
-            ACTUAL=$("$APKSIGNER" verify --print-certs "$APK" 2>&1 \
-              | grep -i "sha-256" \
-              | awk '{print $NF}' \
-              | tr -d ':' \
-              | tr '[:upper:]' '[:lower:]' \
-              | head -1)
-          else
-            echo "apksigner not found; falling back to keytool -printcert -jarfile"
-            ACTUAL=$(keytool -printcert -jarfile "$APK" 2>&1 \
-              | grep -i "sha256" \
-              | awk '{print $NF}' \
-              | tr -d ':' \
-              | tr '[:upper:]' '[:lower:]' \
-              | head -1)
-          fi
-
-          if [ -z "$ACTUAL" ]; then
-            echo "::error::Could not read certificate fingerprint from $APK"
-            exit 1
-          fi
-
-          echo "APK certificate SHA-256: $ACTUAL"
-
-          if [ "$ACTUAL" != "$EXPECTED" ]; then
-            echo "::error::APK certificate mismatch."
-            echo "::error::  Got:      $ACTUAL"
-            echo "::error::  Expected: $EXPECTED"
-            echo "::error::The APK was not signed with the stable debug keystore."
-            exit 1
-          fi
-
-          echo "✅ APK signed with stable keystore: $ACTUAL"
+          apk=app/build/outputs/apk/debug/app-debug.apk
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          [[ -n "$apksigner" ]] || { echo "::error::apksigner is unavailable"; exit 1; }
+          certs=$("$apksigner" verify --print-certs "$apk")
+          actual=$(awk -F ': ' '/^Signer #[0-9]+ certificate SHA-256 digest:/ { print tolower($2) }' <<< "$certs")
+          expected=3600e8ff78aad20c39a91f50a619cf4b5b1d77265d15328ec1c317be91ebabea
+          [[ "$actual" == "$expected" ]] || { echo "::error::APK signing fingerprint mismatch"; exit 1; }
+          aapt="$(dirname "$apksigner")/aapt"
+          badging=$("$aapt" dump badging "$apk")
+          grep -m1 "^package: name='com.erthi.amanah.debug' versionCode='2' " <<< "$badging"
+          printf 'APK signing certificate SHA-256: %s\n' "$actual"
 
       # Confirm the official Erthi gold-seal emblem is embedded in the APK.
       # Fails if the fabricated mosque icon or any placeholder was packaged instead.
       - name: Verify official Erthi launcher icon in APK
         run: |
           APK="app/build/outputs/apk/debug/app-debug.apk"
-          if unzip -l "$APK" | grep -q "ic_erthi_seal"; then
+          APK_CONTENTS=$(unzip -Z1 "$APK")
+          if grep -q "ic_erthi_seal" <<< "$APK_CONTENTS"; then
             echo "✅ Official Erthi seal icon found in APK:"
             unzip -l "$APK" | grep "ic_erthi_seal"
           else
@@ -165,6 +114,11 @@ jobs:
             echo "::error::mipmap-anydpi-v26/ic_launcher.xml references @drawable/ic_erthi_seal."
             exit 1
           fi
+
+      - name: Remove runner signing material
+        if: always()
+        shell: bash
+        run: rm -f -- "$RUNNER_TEMP/ci-debug.keystore" "$RUNNER_TEMP/debug-signing.der"
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
