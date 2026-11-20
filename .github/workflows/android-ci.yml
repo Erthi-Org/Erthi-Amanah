@@ -132,12 +132,12 @@ jobs:
           aapt="$(dirname "$apksigner")/aapt"
           if [[ -x "$aapt" ]]; then
             badging=$("$aapt" dump badging "$apk" 2>&1)
-            if ! grep -qm1 "^package: name='com.erthi.amanah.debug' versionCode='2' " <<< "$badging"; then
+            if ! grep -qm1 "^package: name='com.erthi.amanah.debug' versionCode='3' " <<< "$badging"; then
               echo "::error::Package name or versionCode mismatch in APK badging:"
               echo "$badging" | head -5
               exit 1
             fi
-            echo "✅ Package: com.erthi.amanah.debug  versionCode: 2"
+            echo "✅ Package: com.erthi.amanah.debug  versionCode: 3"
           else
             echo "::warning::aapt not found alongside apksigner; skipping badging check."
           fi

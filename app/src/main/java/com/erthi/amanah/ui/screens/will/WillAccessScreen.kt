@@ -104,15 +104,32 @@ fun WillAccessScreen(
         containerColor = GlossyBlack,
         bottomBar = {
             Surface(color = GlossyBlackMid, tonalElevation = 0.dp) {
-                Button(
-                    onClick = { saveSuccess = false; showPinDialog = true },
-                    modifier = Modifier.fillMaxWidth().padding(16.dp).height(52.dp),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = GlossyBlack),
-                ) {
-                    Icon(Icons.Default.Save, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("حفظ إعدادات الوصول", fontWeight = FontWeight.Bold)
+                Column(modifier = Modifier.navigationBarsPadding()) {
+                    Button(
+                        onClick = { saveSuccess = false; showPinDialog = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                            .height(52.dp),
+                        shape = RoundedCornerShape(26.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = GlossyBlack),
+                        enabled = beneficiaries.isNotEmpty(),
+                    ) {
+                        Icon(Icons.Default.Save, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("حفظ إعدادات الوصول", fontWeight = FontWeight.Bold)
+                    }
+                    if (beneficiaries.isEmpty()) {
+                        Text(
+                            "أضف مستفيدين أولاً لتفعيل إعدادات الوصول",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextMuted,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                                .padding(bottom = 8.dp),
+                        )
+                    }
                 }
             }
         },

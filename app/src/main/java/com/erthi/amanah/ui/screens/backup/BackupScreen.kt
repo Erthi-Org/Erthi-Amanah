@@ -199,11 +199,11 @@ fun BackupScreen(
                 Text("استعادة نسخة محمولة", fontWeight = FontWeight.SemiBold)
             }
 
-            // ── Cloud section (future) ─────────────────────────────────────────
-            SectionLabel("مزودو التخزين السحابي (قريباً)")
-            CloudProviderRow("Google Drive", Icons.Default.CloudQueue, DigitalColor, false)
-            CloudProviderRow("Microsoft OneDrive", Icons.Default.Cloud, Color(0xFF0078D4), false)
-            CloudProviderRow("Dropbox", Icons.Default.CloudCircle, Color(0xFF0061FF), false)
+            // ── Cloud section (not yet implemented — explicitly unavailable) ─
+            SectionLabel("مزودو التخزين السحابي")
+            CloudProviderRow("Google Drive", Icons.Default.CloudQueue, DigitalColor)
+            CloudProviderRow("Microsoft OneDrive", Icons.Default.Cloud, Color(0xFF0078D4))
+            CloudProviderRow("Dropbox", Icons.Default.CloudCircle, Color(0xFF0061FF))
 
             Text(
                 "⚠️ النسخة المحلية مرتبطة بهذا الجهاز. للاستعادة على جهاز آخر استخدم النسخة المحمولة واحتفظ بكلمة المرور بأمان.",
@@ -320,23 +320,32 @@ private fun BackupInfoCard(icon: ImageVector, label: String, value: String, icon
 }
 
 @Composable
-private fun CloudProviderRow(name: String, icon: ImageVector, iconColor: Color, connected: Boolean) {
+private fun CloudProviderRow(name: String, icon: ImageVector, iconColor: Color) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = ObsidianCard),
+        colors = CardDefaults.cardColors(containerColor = ObsidianCard.copy(alpha = 0.6f)),
         shape = RoundedCornerShape(10.dp),
-        modifier = Modifier.fillMaxWidth().border(1.dp, MetallicBorder, RoundedCornerShape(10.dp)),
+        modifier = Modifier.fillMaxWidth().border(1.dp, MetallicBorder.copy(alpha = 0.5f), RoundedCornerShape(10.dp)),
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = iconColor, modifier = Modifier.size(20.dp))
+            Icon(icon, null, tint = iconColor.copy(alpha = 0.5f), modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(10.dp))
-            Text(name, style = MaterialTheme.typography.bodyMedium, color = TextPrimary, modifier = Modifier.weight(1f))
             Text(
-                if (connected) "✓ متصل" else "غير متصل",
-                style = MaterialTheme.typography.labelSmall,
-                color = if (connected) SuccessGreenLight else TextMuted,
+                name,
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary.copy(alpha = 0.6f),
+                modifier = Modifier.weight(1f),
             )
-            Spacer(Modifier.width(8.dp))
-            Icon(Icons.Default.ChevronRight, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+            Surface(
+                color = MetallicBorder.copy(alpha = 0.4f),
+                shape = RoundedCornerShape(4.dp),
+            ) {
+                Text(
+                    "قريباً",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextMuted,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                )
+            }
         }
     }
 }
