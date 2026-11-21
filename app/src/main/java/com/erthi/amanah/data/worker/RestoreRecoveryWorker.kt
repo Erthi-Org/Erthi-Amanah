@@ -44,6 +44,8 @@ class RestoreRecoveryWorker @AssistedInject constructor(
                 val entry = filesArr.getJSONObject(i)
                 val staged = File(entry.getString("staged"))
                 val final = File(entry.getString("final"))
+                // expectedSize added in journal v2; 0 means legacy journal (skip size check).
+                val expectedSize = entry.optLong("expectedSize", 0L)
 
                 when {
                     staged.exists() -> {
@@ -52,8 +54,12 @@ class RestoreRecoveryWorker @AssistedInject constructor(
                         val tmpDest = File(final.parentFile, "${final.name}.tmp")
                         try {
                             streamCopy(staged, tmpDest)
-                            if (tmpDest.length() != staged.length()) {
-                                // Copy truncated — discard and retry next time.
+                            val copiedOk = if (expectedSize > 0) {
+                                tmpDest.length() == expectedSize
+                            } else {
+                                tmpDest.length() == staged.length()
+                            }
+                            if (!copiedOk) {
                                 tmpDest.delete()
                                 hasRetriable = true
                                 continue
@@ -71,8 +77,14 @@ class RestoreRecoveryWorker @AssistedInject constructor(
                             hasRetriable = true
                         }
                     }
-                    final.exists() && final.length() > 0 -> {
-                        // Already moved in a previous attempt — nothing to do.
+                    final.exists() -> {
+                        // Destination present — verify size matches expectation before accepting.
+                        val sizeOk = expectedSize <= 0 || final.length() == expectedSize
+                        if (!sizeOk) {
+                            // Destination exists but size is wrong — data may be corrupt; retry.
+                            hasRetriable = true
+                        }
+                        // Otherwise already correctly moved in a previous attempt.
                     }
                     else -> {
                         // Neither staged nor destination exists — data is gone, cannot recover.

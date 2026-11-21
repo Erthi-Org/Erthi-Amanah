@@ -513,12 +513,34 @@ class BackupViewModel @Inject constructor(
         require(fileSize <= MAX_AUDIO_FILE_BYTES) {
             "ملف الصوت ${audioFile.name} حجمه ${fileSize / 1024 / 1024} ميجابايت — يتجاوز الحد"
         }
-        val enc = audioFile.readBytes()
-        require(enc.size >= 20 && String(enc.copyOfRange(0, 8), Charsets.UTF_8) == WASI_AUD_MAGIC) {
-            "ملف الصوت تالف أو بتنسيق غير متوقع: ${audioFile.name}"
+        DataInputStream(audioFile.inputStream().buffered()).use { din ->
+            val magicBytes = ByteArray(8); din.readFully(magicBytes)
+            when (val magic = String(magicBytes, Charsets.UTF_8)) {
+                WASI_AUD_MAGIC -> {
+                    // Legacy single-block format: iv(12) + ciphertext
+                    val ivBytes = ByteArray(12); din.readFully(ivBytes)
+                    val ct = din.readBytes()
+                    val raw = crypto.decrypt(CryptoManager.EncryptedData(ivBytes, ct))
+                    writePortableChunks(raw, key, out)
+                }
+                WASI_AU2_MAGIC -> {
+                    // Chunked format: chunkCount(4) + [iv(12)+ctLen(4)+ct]*N — re-encrypt each chunk
+                    val chunkCount = din.readInt()
+                    require(chunkCount in 1..MAX_CHUNK_COUNT) { "عدد أجزاء الصوت غير صالح: $chunkCount" }
+                    out.writeInt(chunkCount)
+                    repeat(chunkCount) {
+                        val iv = ByteArray(12); din.readFully(iv)
+                        val ctLen = din.readInt()
+                        require(ctLen in 1..MAX_CHUNK_BYTES) { "حجم جزء الصوت غير صالح: $ctLen" }
+                        val ct = ByteArray(ctLen); din.readFully(ct)
+                        val rawChunk = crypto.decrypt(CryptoManager.EncryptedData(iv, ct))
+                        val (piv, pct) = BackupCrypto.encrypt(key, rawChunk)
+                        out.write(piv); out.writeInt(pct.size); out.write(pct)
+                    }
+                }
+                else -> throw IllegalStateException("ملف الصوت بتنسيق غير متوقع: $magic — ${audioFile.name}")
+            }
         }
-        val raw = crypto.decrypt(CryptoManager.EncryptedData(enc.copyOfRange(8, 20), enc.copyOfRange(20, enc.size)))
-        writePortableChunks(raw, key, out)
     }
 
     private fun exportVideoToPortableArchive(videoFile: File, key: SecretKeySpec, out: DataOutputStream) {
@@ -695,22 +717,24 @@ class BackupViewModel @Inject constructor(
         }
     }
 
+    // Writes WASI_AU2: magic(8) + chunkCount(4) + [iv(12)+ctLen(4)+ct]*N
+    // Each portable chunk is decrypted then immediately re-encrypted with the device key,
+    // keeping memory bounded to one chunk at a time regardless of total audio size.
     private fun stageAudioFromPortableArchive(din: DataInputStream, stagingFile: File, key: SecretKeySpec) {
         val chunkCount = din.readInt()
         require(chunkCount in 1..MAX_CHUNK_COUNT) { "عدد أجزاء الصوت غير صالح" }
-        val rawOut = java.io.ByteArrayOutputStream()
-        repeat(chunkCount) {
-            val iv = ByteArray(12); din.readFully(iv)
-            val ctLen = din.readInt()
-            require(ctLen in 1..MAX_CHUNK_BYTES) { "حجم جزء الصوت غير صالح: $ctLen" }
-            val ct = ByteArray(ctLen); din.readFully(ct)
-            rawOut.write(BackupCrypto.decrypt(key, iv, ct))
-        }
-        val enc = crypto.encrypt(rawOut.toByteArray())
-        stagingFile.outputStream().use { out ->
-            out.write(WASI_AUD_MAGIC.toByteArray(Charsets.UTF_8))
-            out.write(enc.iv)
-            out.write(enc.ciphertext)
+        DataOutputStream(stagingFile.outputStream().buffered()).use { out ->
+            out.write(WASI_AU2_MAGIC.toByteArray(Charsets.UTF_8))
+            out.writeInt(chunkCount)
+            repeat(chunkCount) {
+                val iv = ByteArray(12); din.readFully(iv)
+                val ctLen = din.readInt()
+                require(ctLen in 1..MAX_CHUNK_BYTES) { "حجم جزء الصوت غير صالح: $ctLen" }
+                val ct = ByteArray(ctLen); din.readFully(ct)
+                val rawChunk = BackupCrypto.decrypt(key, iv, ct)
+                val enc = crypto.encrypt(rawChunk)
+                out.write(enc.iv); out.writeInt(enc.ciphertext.size); out.write(enc.ciphertext)
+            }
         }
     }
 
@@ -759,11 +783,15 @@ class BackupViewModel @Inject constructor(
             val w = willsArr.getJSONObject(i)
             val audioFid = w.optString("audioFileId", "")
             val videoFid = w.optString("videoFileId", "")
-            if (audioFid.isNotEmpty()) stagedByFileId[audioFid]?.let {
-                stagedFiles.add(StagedFile(it, File(audioDir, "$audioFid.wasi_audio")))
+            if (audioFid.isNotEmpty()) {
+                val stagedAudio = stagedByFileId[audioFid]
+                    ?: throw IllegalStateException("ملف الصوت مرجعه في البيانات لكنه غائب من الأرشيف: $audioFid")
+                stagedFiles.add(StagedFile(stagedAudio, File(audioDir, "$audioFid.wasi_audio")))
             }
-            if (videoFid.isNotEmpty()) stagedByFileId[videoFid]?.let {
-                stagedFiles.add(StagedFile(it, File(videoDir, "$videoFid.wasi_video")))
+            if (videoFid.isNotEmpty()) {
+                val stagedVideo = stagedByFileId[videoFid]
+                    ?: throw IllegalStateException("ملف الفيديو مرجعه في البيانات لكنه غائب من الأرشيف: $videoFid")
+                stagedFiles.add(StagedFile(stagedVideo, File(videoDir, "$videoFid.wasi_video")))
             }
         }
         val docsArr = metaJson.optJSONArray("documents") ?: JSONArray()
@@ -773,9 +801,9 @@ class BackupViewModel @Inject constructor(
             val fileName = doc.optString("fileName", "")
             if (fid.isNotEmpty() && fileName.isNotEmpty()) {
                 validateFileId(fileName)
-                stagedByFileId[fid]?.let {
-                    stagedFiles.add(StagedFile(it, File(docsDir, fileName)))
-                }
+                val stagedDoc = stagedByFileId[fid]
+                    ?: throw IllegalStateException("ملف المستند مرجعه في البيانات لكنه غائب من الأرشيف: $fid")
+                stagedFiles.add(StagedFile(stagedDoc, File(docsDir, fileName)))
             }
         }
     }
@@ -793,6 +821,7 @@ class BackupViewModel @Inject constructor(
             JSONObject().apply {
                 put("staged", sf.staged.absolutePath)
                 put("final", sf.final.absolutePath)
+                put("expectedSize", sf.staged.length())
             }
         }).toString()
 
@@ -1203,6 +1232,7 @@ class BackupViewModel @Inject constructor(
 
     private companion object {
         const val WASI_AUD_MAGIC = "WASI_AUD"
+        const val WASI_AU2_MAGIC = "WASI_AU2"  // chunked device-encrypted audio (bounded memory)
         const val WASI_BAK2_MAGIC = "WASI_BAK2"
         const val WASI_BAK3_MAGIC = "WASI_BAK3"
         const val WASI_BAK4_MAGIC = "WASI_BAK4"

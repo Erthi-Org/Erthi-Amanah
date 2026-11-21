@@ -31,18 +31,35 @@ class AudioWillViewModel @Inject constructor(
     }
 
     // Decrypts an encrypted .wasi_audio file to a temp .3gp in cacheDir for playback.
+    // Handles both WASI_AUD (legacy single-block) and WASI_AU2 (chunked) formats.
     // Caller must delete the temp file after MediaPlayer completes.
     suspend fun decryptAudioToTemp(encFile: File, cacheDir: File): File? = withContext(Dispatchers.IO) {
         try {
-            val raw = encFile.readBytes()
-            if (raw.size < 20) return@withContext null
-            val magic = "WASI_AUD"
-            if (String(raw.copyOfRange(0, 8), Charsets.UTF_8) != magic) return@withContext null
-            val iv = raw.copyOfRange(8, 20)
-            val ct = raw.copyOfRange(20, raw.size)
-            val plainBytes = crypto.decrypt(CryptoManager.EncryptedData(iv, ct))
             val tmp = File(cacheDir, "tmp_playback_${System.currentTimeMillis()}.3gp")
-            tmp.writeBytes(plainBytes)
+            java.io.DataInputStream(encFile.inputStream().buffered()).use { din ->
+                val magicBytes = ByteArray(8); din.readFully(magicBytes)
+                when (String(magicBytes, Charsets.UTF_8)) {
+                    "WASI_AUD" -> {
+                        val iv = ByteArray(12); din.readFully(iv)
+                        val ct = din.readBytes()
+                        tmp.writeBytes(crypto.decrypt(CryptoManager.EncryptedData(iv, ct)))
+                    }
+                    "WASI_AU2" -> {
+                        val chunkCount = din.readInt()
+                        if (chunkCount < 1) return@withContext null
+                        tmp.outputStream().buffered().use { out ->
+                            repeat(chunkCount) {
+                                val iv = ByteArray(12); din.readFully(iv)
+                                val ctLen = din.readInt()
+                                if (ctLen < 1) return@withContext null
+                                val ct = ByteArray(ctLen); din.readFully(ct)
+                                out.write(crypto.decrypt(CryptoManager.EncryptedData(iv, ct)))
+                            }
+                        }
+                    }
+                    else -> return@withContext null
+                }
+            }
             tmp
         } catch (_: Exception) {
             null
