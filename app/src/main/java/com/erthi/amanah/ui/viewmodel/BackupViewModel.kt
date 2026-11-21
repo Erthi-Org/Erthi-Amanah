@@ -31,6 +31,8 @@ import org.json.JSONObject
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.security.SecureRandom
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -205,6 +207,10 @@ class BackupViewModel @Inject constructor(
                 val tmpFile = File(context.cacheDir, "drive_tmp_${System.currentTimeMillis()}")
                 try {
                     withContext(Dispatchers.IO) { buildPortableStreamingArchive(key, salt, tmpFile) }
+                    val archiveSize = tmpFile.length()
+                    require(archiveSize <= MAX_DRIVE_UPLOAD_BYTES) {
+                        "حجم النسخة ${archiveSize / 1024 / 1024} ميجابايت يتجاوز حد الرفع (${MAX_DRIVE_UPLOAD_BYTES / 1024 / 1024} ميجابايت)"
+                    }
                     val dateStr = SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault()).format(Date())
                     val driveFileId = driveManager.uploadBackup(tmpFile.readBytes(), "wasiyyati_drive_$dateStr.wasi3bak")
                     _driveState.value = DriveState.Success("✅ تم رفع النسخة بنجاح إلى Google Drive ($driveFileId)")
@@ -224,28 +230,30 @@ class BackupViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = BackupState.InProgress
             try {
-                val raw = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                    ?: throw IllegalStateException("لا يمكن قراءة الملف")
-                require(raw.size >= 9) { "ملف النسخة تالف أو غير صالح" }
-                val magic9 = String(raw.copyOfRange(0, 9), Charsets.UTF_8)
-                val magic8 = String(raw.copyOfRange(0, 8), Charsets.UTF_8)
                 withContext(Dispatchers.IO) {
-                    when {
-                        magic9 == WASI_BAK4_MAGIC -> restoreFromDeviceArchive(raw)
-                        magic9 == WASI_BAK3_MAGIC ->
-                            throw IllegalArgumentException("هذه نسخة محمولة. استخدم «استعادة نسخة محمولة».")
-                        magic8 == "WASI_BAK" -> {
-                            require(raw.size >= 40) { "ملف النسخة تالف" }
-                            val ivLen = ((raw[8].toInt() and 0xFF) shl 24) or
-                                    ((raw[9].toInt() and 0xFF) shl 16) or
-                                    ((raw[10].toInt() and 0xFF) shl 8) or (raw[11].toInt() and 0xFF)
-                            require(ivLen == 12) { "ترويسة التشفير غير صالحة" }
-                            val iv = raw.copyOfRange(12, 24)
-                            val ct = raw.copyOfRange(24, raw.size)
-                            val plain = crypto.decrypt(CryptoManager.EncryptedData(iv, ct))
-                            restoreAllStaged(String(plain, Charsets.UTF_8), reEncrypt = false)
+                    val bis = context.contentResolver.openInputStream(uri)?.buffered()
+                        ?: throw IllegalStateException("لا يمكن قراءة الملف")
+                    DataInputStream(bis).use { din ->
+                        val magic9 = ByteArray(9).also { din.readFully(it) }
+                        val magic9Str = String(magic9, Charsets.UTF_8)
+                        val magic8Str = String(magic9, 0, 8, Charsets.UTF_8)
+                        when {
+                            magic9Str == WASI_BAK4_MAGIC -> restoreFromDeviceArchive(din)
+                            magic9Str == WASI_BAK3_MAGIC ->
+                                throw IllegalArgumentException("هذه نسخة محمولة. استخدم «استعادة نسخة محمولة».")
+                            magic8Str == "WASI_BAK" -> {
+                                // Last byte of magic9 is the first byte of the 4-byte ivLen
+                                val ivLen = ((magic9[8].toInt() and 0xFF) shl 24) or
+                                        ((din.read() and 0xFF) shl 16) or
+                                        ((din.read() and 0xFF) shl 8) or (din.read() and 0xFF)
+                                require(ivLen == 12) { "ترويسة التشفير غير صالحة" }
+                                val iv = ByteArray(12).also { din.readFully(it) }
+                                val ct = din.readBoundedBytes(MAX_LEGACY_ARCHIVE_BYTES)
+                                val plain = crypto.decrypt(CryptoManager.EncryptedData(iv, ct))
+                                restoreAllStaged(String(plain, Charsets.UTF_8), reEncrypt = false)
+                            }
+                            else -> throw IllegalArgumentException("الملف غير صالح أو تالف")
                         }
-                        else -> throw IllegalArgumentException("الملف غير صالح أو تالف")
                     }
                 }
                 _state.value = BackupState.Success("✅ تمت الاستعادة بنجاح")
@@ -261,24 +269,25 @@ class BackupViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = BackupState.InProgress
             try {
-                val raw = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                    ?: throw IllegalStateException("لا يمكن قراءة الملف")
-                require(raw.size >= 9) { "ملف النسخة تالف أو غير صالح" }
-                val magic9 = String(raw.copyOfRange(0, 9), Charsets.UTF_8)
                 withContext(Dispatchers.IO) {
-                    when (magic9) {
-                        WASI_BAK3_MAGIC -> restoreFromPortableArchive(raw, passphrase)
-                        WASI_BAK2_MAGIC -> {
-                            require(raw.size >= 69) { "ملف النسخة تالف" }
-                            val salt = raw.copyOfRange(9, 41)
-                            val iv = raw.copyOfRange(41, 53)
-                            val ct = raw.copyOfRange(53, raw.size)
-                            val key = BackupCrypto.pbkdf2Key(passphrase, salt)
-                            val plain = try { BackupCrypto.decrypt(key, iv, ct) }
-                            catch (_: Exception) { throw IllegalArgumentException("كلمة المرور خاطئة أو الملف تالف") }
-                            restoreAllStaged(String(plain, Charsets.UTF_8), reEncrypt = true)
+                    val bis = context.contentResolver.openInputStream(uri)?.buffered()
+                        ?: throw IllegalStateException("لا يمكن قراءة الملف")
+                    DataInputStream(bis).use { din ->
+                        val magic9 = ByteArray(9).also { din.readFully(it) }
+                        val magic9Str = String(magic9, Charsets.UTF_8)
+                        when (magic9Str) {
+                            WASI_BAK3_MAGIC -> restoreFromPortableArchive(din, passphrase)
+                            WASI_BAK2_MAGIC -> {
+                                val salt = ByteArray(32).also { din.readFully(it) }
+                                val iv = ByteArray(12).also { din.readFully(it) }
+                                val ct = din.readBoundedBytes(MAX_LEGACY_ARCHIVE_BYTES)
+                                val key = BackupCrypto.pbkdf2Key(passphrase, salt)
+                                val plain = try { BackupCrypto.decrypt(key, iv, ct) }
+                                catch (_: Exception) { throw IllegalArgumentException("كلمة المرور خاطئة أو الملف تالف") }
+                                restoreAllStaged(String(plain, Charsets.UTF_8), reEncrypt = true)
+                            }
+                            else -> throw IllegalArgumentException("ملف النسخة ليس نسخة محمولة صالحة")
                         }
-                        else -> throw IllegalArgumentException("ملف النسخة ليس نسخة محمولة صالحة")
                     }
                 }
                 _state.value = BackupState.Success("✅ تمت الاستعادة المحمولة بنجاح")
@@ -296,21 +305,23 @@ class BackupViewModel @Inject constructor(
             try {
                 val raw = driveManager.downloadBackup(fileId)
                 require(raw.size >= 9) { "ملف النسخة تالف أو غير صالح" }
-                val magic9 = String(raw.copyOfRange(0, 9), Charsets.UTF_8)
+                require(raw.size <= MAX_DRIVE_DOWNLOAD_BYTES) { "حجم ملف Drive يتجاوز الحد المسموح به" }
                 withContext(Dispatchers.IO) {
-                    when (magic9) {
-                        WASI_BAK3_MAGIC -> restoreFromPortableArchive(raw, passphrase)
-                        WASI_BAK2_MAGIC -> {
-                            require(raw.size >= 69) { "ملف النسخة تالف" }
-                            val salt = raw.copyOfRange(9, 41)
-                            val iv = raw.copyOfRange(41, 53)
-                            val ct = raw.copyOfRange(53, raw.size)
-                            val key = BackupCrypto.pbkdf2Key(passphrase, salt)
-                            val plain = try { BackupCrypto.decrypt(key, iv, ct) }
-                            catch (_: Exception) { throw IllegalArgumentException("كلمة المرور خاطئة أو الملف تالف") }
-                            restoreAllStaged(String(plain, Charsets.UTF_8), reEncrypt = true)
+                    DataInputStream(raw.inputStream()).use { din ->
+                        val magic9 = ByteArray(9).also { din.readFully(it) }
+                        when (String(magic9, Charsets.UTF_8)) {
+                            WASI_BAK3_MAGIC -> restoreFromPortableArchive(din, passphrase)
+                            WASI_BAK2_MAGIC -> {
+                                val salt = ByteArray(32).also { din.readFully(it) }
+                                val iv = ByteArray(12).also { din.readFully(it) }
+                                val ct = din.readBoundedBytes(MAX_LEGACY_ARCHIVE_BYTES)
+                                val key = BackupCrypto.pbkdf2Key(passphrase, salt)
+                                val plain = try { BackupCrypto.decrypt(key, iv, ct) }
+                                catch (_: Exception) { throw IllegalArgumentException("كلمة المرور خاطئة أو الملف تالف") }
+                                restoreAllStaged(String(plain, Charsets.UTF_8), reEncrypt = true)
+                            }
+                            else -> throw IllegalArgumentException("ملف النسخة تالف أو غير صالح")
                         }
-                        else -> throw IllegalArgumentException("ملف النسخة تالف أو غير صالح")
                     }
                 }
                 _driveState.value = DriveState.Success("✅ تمت الاستعادة من Google Drive بنجاح")
@@ -339,6 +350,7 @@ class BackupViewModel @Inject constructor(
             digitalAccounts, documents, vaultItems, mediaFiles, portable = false,
         )
         val metaBytes = metaJson.toByteArray(Charsets.UTF_8)
+        require(metaBytes.size <= MAX_METADATA_BYTES) { "حجم بيانات التعريف يتجاوز الحد" }
         val encMeta = crypto.encrypt(metaBytes)
         DataOutputStream(tmpFile.outputStream().buffered()).use { out ->
             out.write(WASI_BAK4_MAGIC.toByteArray(Charsets.UTF_8))
@@ -370,6 +382,7 @@ class BackupViewModel @Inject constructor(
             digitalAccounts, documents, vaultItems, mediaFiles, portable = true,
         )
         val metaBytes = metaJson.toByteArray(Charsets.UTF_8)
+        require(metaBytes.size <= MAX_METADATA_BYTES) { "حجم بيانات التعريف يتجاوز الحد" }
         val (metaIv, metaCt) = BackupCrypto.encrypt(key, metaBytes)
         DataOutputStream(tmpFile.outputStream().buffered()).use { out ->
             out.write(WASI_BAK3_MAGIC.toByteArray(Charsets.UTF_8))
@@ -496,6 +509,10 @@ class BackupViewModel @Inject constructor(
     // ── BAK3 export helpers ───────────────────────────────────────────────
 
     private fun exportAudioToPortableArchive(audioFile: File, key: SecretKeySpec, out: DataOutputStream) {
+        val fileSize = audioFile.length()
+        require(fileSize <= MAX_AUDIO_FILE_BYTES) {
+            "ملف الصوت ${audioFile.name} حجمه ${fileSize / 1024 / 1024} ميجابايت — يتجاوز الحد"
+        }
         val enc = audioFile.readBytes()
         require(enc.size >= 20 && String(enc.copyOfRange(0, 8), Charsets.UTF_8) == WASI_AUD_MAGIC) {
             "ملف الصوت تالف أو بتنسيق غير متوقع: ${audioFile.name}"
@@ -507,15 +524,15 @@ class BackupViewModel @Inject constructor(
     private fun exportVideoToPortableArchive(videoFile: File, key: SecretKeySpec, out: DataOutputStream) {
         DataInputStream(videoFile.inputStream().buffered()).use { din ->
             val magic = ByteArray(8); din.readFully(magic)
-            val magicStr = String(magic, Charsets.UTF_8)
-            when (magicStr) {
+            when (val magicStr = String(magic, Charsets.UTF_8)) {
                 "WASI_VD2" -> {
                     val chunkCount = din.readInt()
-                    require(chunkCount in 1..1_000_000) { "عدد أجزاء الفيديو غير صالح" }
+                    require(chunkCount in 1..MAX_CHUNK_COUNT) { "عدد أجزاء الفيديو غير صالح: $chunkCount" }
                     out.writeInt(chunkCount)
                     repeat(chunkCount) {
                         val iv = ByteArray(12); din.readFully(iv)
                         val ctLen = din.readInt()
+                        require(ctLen in 1..MAX_CHUNK_BYTES) { "حجم جزء الفيديو غير صالح: $ctLen" }
                         val ct = ByteArray(ctLen); din.readFully(ct)
                         val rawChunk = crypto.decrypt(CryptoManager.EncryptedData(iv, ct))
                         val (piv, pct) = BackupCrypto.encrypt(key, rawChunk)
@@ -523,9 +540,15 @@ class BackupViewModel @Inject constructor(
                     }
                 }
                 WASI_VID_MAGIC -> {
+                    // Legacy single-block video — bounded load
+                    val fileSize = videoFile.length()
+                    require(fileSize <= MAX_LEGACY_SINGLE_BLOCK_BYTES) {
+                        "الفيديو القديم حجمه ${fileSize / 1024 / 1024} ميجابايت — يتجاوز حد المعالجة في الذاكرة"
+                    }
                     val iv = ByteArray(12); din.readFully(iv)
-                    val remaining = videoFile.length() - 20
-                    val ct = ByteArray(remaining.toInt()); din.readFully(ct)
+                    val ctSize = (fileSize - 20).toInt()
+                    require(ctSize > 0) { "بيانات الفيديو القديم تالفة" }
+                    val ct = ByteArray(ctSize); din.readFully(ct)
                     val raw = crypto.decrypt(CryptoManager.EncryptedData(iv, ct))
                     writePortableChunks(raw, key, out)
                 }
@@ -573,13 +596,12 @@ class BackupViewModel @Inject constructor(
         }
     }
 
-    // ── BAK4 restore ──────────────────────────────────────────────────────
+    // ── BAK4 restore (streaming) ───────────────────────────────────────────
 
-    private suspend fun restoreFromDeviceArchive(raw: ByteArray) {
-        val din = DataInputStream(raw.inputStream())
-        din.skipBytes(9)
+    private suspend fun restoreFromDeviceArchive(din: DataInputStream) {
         val metaIv = ByteArray(12); din.readFully(metaIv)
         val metaCtLen = din.readInt()
+        require(metaCtLen in 1..MAX_METADATA_BYTES) { "حجم بيانات التعريف غير صالح" }
         val metaCt = ByteArray(metaCtLen); din.readFully(metaCt)
         val metaBytes = crypto.decrypt(CryptoManager.EncryptedData(metaIv, metaCt))
         val metaJson = JSONObject(String(metaBytes, Charsets.UTF_8))
@@ -587,11 +609,16 @@ class BackupViewModel @Inject constructor(
         val stagedFiles = mutableListOf<StagedFile>()
         try {
             val fileCount = din.readInt()
+            require(fileCount in 0..MAX_ARCHIVE_FILE_COUNT) { "عدد الملفات في النسخة غير صالح: $fileCount" }
+            val seenIds = mutableSetOf<String>()
             val stagedByFileId = mutableMapOf<String, File>()
             repeat(fileCount) {
                 val idLen = din.readUnsignedShort()
+                require(idLen in 1..MAX_FILE_ID_LEN) { "طول معرف الملف غير صالح: $idLen" }
                 val idBytes = ByteArray(idLen); din.readFully(idBytes)
                 val fileId = String(idBytes, Charsets.UTF_8)
+                validateFileId(fileId)
+                require(seenIds.add(fileId)) { "معرف ملف مكرر في النسخة: $fileId" }
                 val stagingFile = File(stagingDir, fileId)
                 stageFileFromDeviceArchive(din, stagingFile)
                 stagedByFileId[fileId] = stagingFile
@@ -606,23 +633,24 @@ class BackupViewModel @Inject constructor(
 
     private fun stageFileFromDeviceArchive(din: DataInputStream, stagingFile: File) {
         val chunkCount = din.readInt()
+        require(chunkCount in 1..MAX_CHUNK_COUNT) { "عدد الأجزاء غير صالح: $chunkCount" }
         stagingFile.outputStream().buffered().use { out ->
             repeat(chunkCount) {
                 val rawLen = din.readInt()
+                require(rawLen in 0..MAX_CHUNK_BYTES) { "حجم الجزء غير صالح: $rawLen" }
                 val raw = ByteArray(rawLen); din.readFully(raw)
                 out.write(raw)
             }
         }
     }
 
-    // ── BAK3 restore ──────────────────────────────────────────────────────
+    // ── BAK3 restore (streaming) ──────────────────────────────────────────
 
-    private suspend fun restoreFromPortableArchive(raw: ByteArray, passphrase: String) {
-        val din = DataInputStream(raw.inputStream())
-        din.skipBytes(9)
+    private suspend fun restoreFromPortableArchive(din: DataInputStream, passphrase: String) {
         val salt = ByteArray(32); din.readFully(salt)
         val metaIv = ByteArray(12); din.readFully(metaIv)
         val metaCtLen = din.readInt()
+        require(metaCtLen in 1..MAX_METADATA_BYTES) { "حجم بيانات التعريف غير صالح" }
         val metaCt = ByteArray(metaCtLen); din.readFully(metaCt)
         val key = BackupCrypto.pbkdf2Key(passphrase, salt)
         val metaBytes = try { BackupCrypto.decrypt(key, metaIv, metaCt) }
@@ -632,11 +660,16 @@ class BackupViewModel @Inject constructor(
         val stagedFiles = mutableListOf<StagedFile>()
         try {
             val fileCount = din.readInt()
+            require(fileCount in 0..MAX_ARCHIVE_FILE_COUNT) { "عدد الملفات غير صالح: $fileCount" }
+            val seenIds = mutableSetOf<String>()
             val stagedByFileId = mutableMapOf<String, File>()
             repeat(fileCount) {
                 val idLen = din.readUnsignedShort()
+                require(idLen in 1..MAX_FILE_ID_LEN) { "طول معرف الملف غير صالح: $idLen" }
                 val idBytes = ByteArray(idLen); din.readFully(idBytes)
                 val fileId = String(idBytes, Charsets.UTF_8)
+                validateFileId(fileId)
+                require(seenIds.add(fileId)) { "معرف ملف مكرر: $fileId" }
                 val stagingFile = File(stagingDir, fileId)
                 when {
                     fileId.startsWith("audio_will_") -> stageAudioFromPortableArchive(din, stagingFile, key)
@@ -655,10 +688,12 @@ class BackupViewModel @Inject constructor(
 
     private fun stageAudioFromPortableArchive(din: DataInputStream, stagingFile: File, key: SecretKeySpec) {
         val chunkCount = din.readInt()
+        require(chunkCount in 1..MAX_CHUNK_COUNT) { "عدد أجزاء الصوت غير صالح" }
         val rawOut = java.io.ByteArrayOutputStream()
         repeat(chunkCount) {
             val iv = ByteArray(12); din.readFully(iv)
             val ctLen = din.readInt()
+            require(ctLen in 1..MAX_CHUNK_BYTES) { "حجم جزء الصوت غير صالح: $ctLen" }
             val ct = ByteArray(ctLen); din.readFully(ct)
             rawOut.write(BackupCrypto.decrypt(key, iv, ct))
         }
@@ -672,12 +707,14 @@ class BackupViewModel @Inject constructor(
 
     private fun stageVideoFromPortableArchive(din: DataInputStream, stagingFile: File, key: SecretKeySpec) {
         val chunkCount = din.readInt()
+        require(chunkCount in 1..MAX_CHUNK_COUNT) { "عدد أجزاء الفيديو غير صالح: $chunkCount" }
         DataOutputStream(stagingFile.outputStream().buffered()).use { out ->
             out.write("WASI_VD2".toByteArray(Charsets.UTF_8))
             out.writeInt(chunkCount)
             repeat(chunkCount) {
                 val iv = ByteArray(12); din.readFully(iv)
                 val ctLen = din.readInt()
+                require(ctLen in 1..MAX_CHUNK_BYTES) { "حجم جزء الفيديو غير صالح: $ctLen" }
                 val ct = ByteArray(ctLen); din.readFully(ct)
                 val rawChunk = BackupCrypto.decrypt(key, iv, ct)
                 val enc = crypto.encrypt(rawChunk)
@@ -688,10 +725,12 @@ class BackupViewModel @Inject constructor(
 
     private fun stageDocumentFromPortableArchive(din: DataInputStream, stagingFile: File, key: SecretKeySpec) {
         val chunkCount = din.readInt()
+        require(chunkCount in 1..MAX_CHUNK_COUNT) { "عدد أجزاء المستند غير صالح: $chunkCount" }
         stagingFile.outputStream().buffered().use { out ->
             repeat(chunkCount) {
                 val iv = ByteArray(12); din.readFully(iv)
                 val ctLen = din.readInt()
+                require(ctLen in 1..MAX_CHUNK_BYTES) { "حجم جزء المستند غير صالح: $ctLen" }
                 val ct = ByteArray(ctLen); din.readFully(ct)
                 out.write(BackupCrypto.decrypt(key, iv, ct))
             }
@@ -723,8 +762,11 @@ class BackupViewModel @Inject constructor(
             val doc = docsArr.getJSONObject(i)
             val fid = doc.optString("fileId", "")
             val fileName = doc.optString("fileName", "")
-            if (fid.isNotEmpty() && fileName.isNotEmpty()) stagedByFileId[fid]?.let {
-                stagedFiles.add(StagedFile(it, File(docsDir, fileName)))
+            if (fid.isNotEmpty() && fileName.isNotEmpty()) {
+                validateFileId(fileName)
+                stagedByFileId[fid]?.let {
+                    stagedFiles.add(StagedFile(it, File(docsDir, fileName)))
+                }
             }
         }
     }
@@ -765,7 +807,6 @@ class BackupViewModel @Inject constructor(
                 restoreDigitalAccounts(metaJson)
                 restoreDocumentsFromStaged(docsArr, stagedFiles)
                 restoreVaultItems(metaJson, reEncrypt)
-                // Journal inserted atomically — if DB rolls back, no journal remains
                 restoreJournalDao.insertJournal(
                     RestoreJournalEntity(sessionId, journalJson, stagingDir.absolutePath)
                 )
@@ -778,20 +819,37 @@ class BackupViewModel @Inject constructor(
         // DB committed and journal is in Room — complete file moves
         val failedMoves = mutableListOf<String>()
         for (sf in stagedFiles) {
-            if (!sf.staged.exists()) continue
-            sf.final.parentFile?.mkdirs()
-            if (!sf.staged.renameTo(sf.final)) {
-                runCatching { sf.final.writeBytes(sf.staged.readBytes()); sf.staged.delete() }
-                    .onFailure { failedMoves += sf.final.name }
+            if (!sf.staged.exists()) {
+                // If destination exists with correct size, treat as already moved
+                if (sf.final.exists() && sf.final.length() > 0) continue
+                failedMoves += sf.final.name
+                continue
             }
+            sf.final.parentFile?.mkdirs()
+            val tmpDest = File(sf.final.parentFile, "${sf.final.name}.tmp")
+            var moved = false
+            try {
+                streamCopyFile(sf.staged, tmpDest)
+                if (tmpDest.renameTo(sf.final)) {
+                    sf.staged.delete()
+                    moved = true
+                } else if (sf.staged.renameTo(sf.final)) {
+                    tmpDest.delete()
+                    moved = true
+                }
+            } catch (_: Exception) {}
+            if (!moved) failedMoves += sf.final.name
         }
-        stagingDir.deleteRecursively()
-        restoreJournalDao.deleteJournal(sessionId)
+
         if (failedMoves.isNotEmpty()) {
+            // Keep staging and journal for WorkManager recovery
             throw IllegalStateException(
-                "تمت الاستعادة جزئياً — فشل نقل ${failedMoves.size} ملف. أعد المحاولة: ${failedMoves.take(2).joinToString()}"
+                "تمت الاستعادة جزئياً — فشل نقل ${failedMoves.size} ملف. سيتم إعادة المحاولة عند إعادة تشغيل التطبيق."
             )
         }
+        // All moves verified — clean up
+        stagingDir.deleteRecursively()
+        restoreJournalDao.deleteJournal(sessionId)
     }
 
     // ── Legacy BAK/BAK2 restore ───────────────────────────────────────────
@@ -805,7 +863,6 @@ class BackupViewModel @Inject constructor(
         val requiredKeys = listOf("wills", "debts", "assets", "entrusted",
             "beneficiaries", "digitalAccounts", "documents", "vaultItems")
         for (key in requiredKeys) require(root.has(key)) { "بيانات ناقصة: $key" }
-
         val stagingDir = File(context.cacheDir, "restore_staging_${System.currentTimeMillis()}").also { it.mkdirs() }
         val stagedFiles = mutableListOf<StagedFile>()
         try {
@@ -843,7 +900,6 @@ class BackupViewModel @Inject constructor(
             stagingFile.writeBytes(stagingBytes)
             staged.add(StagedFile(stagingFile, File(finalDir, finalFileName)))
         }
-
         val videoFileName = w.optString("videoFileName", "")
         val videoDataB64 = w.optString("videoData", "")
         val videoSkipped = w.optBoolean("videoSkipped", false)
@@ -892,7 +948,6 @@ class BackupViewModel @Inject constructor(
             val videoFileName = w.optString("videoFileName", "")
             val videoDataB64 = w.optString("videoData", "")
             val videoSkipped = w.optBoolean("videoSkipped", false)
-
             val restoredAudioPath: String? = when {
                 audioFileId.isNotEmpty() -> File(audioDir, "$audioFileId.wasi_audio").absolutePath
                 audioFileName.isNotEmpty() && audioDataB64.isNotEmpty() -> {
@@ -1098,6 +1153,40 @@ class BackupViewModel @Inject constructor(
         }
     })
 
+    // ── Validation helpers ────────────────────────────────────────────────
+
+    private fun validateFileId(id: String) {
+        require(id.length <= MAX_FILE_ID_LEN) { "معرف الملف طويل جداً" }
+        require(!id.contains('/') && !id.contains('\\') && !id.contains("..")) {
+            "معرف الملف يحتوي على محارف غير مسموح بها: $id"
+        }
+        require(id.none { it < ' ' }) { "معرف الملف يحتوي على محارف تحكم" }
+    }
+
+    private fun streamCopyFile(src: File, dst: File) {
+        val buf = ByteArray(STREAM_COPY_BUF)
+        FileInputStream(src).use { ins ->
+            FileOutputStream(dst).use { out ->
+                var n: Int
+                while (ins.read(buf).also { n = it } != -1) out.write(buf, 0, n)
+                out.flush()
+            }
+        }
+    }
+
+    private fun DataInputStream.readBoundedBytes(limit: Int): ByteArray {
+        val buf = java.io.ByteArrayOutputStream()
+        val tmp = ByteArray(STREAM_COPY_BUF)
+        var total = 0
+        var n: Int
+        while (read(tmp).also { n = it } != -1) {
+            total += n
+            require(total <= limit) { "الأرشيف أكبر من الحد المسموح به ($limit بايت)" }
+            buf.write(tmp, 0, n)
+        }
+        return buf.toByteArray()
+    }
+
     private data class MediaFile(val fileId: String, val file: File, val type: MediaType)
     private enum class MediaType { AUDIO, VIDEO, DOCUMENT }
 
@@ -1107,5 +1196,16 @@ class BackupViewModel @Inject constructor(
         const val WASI_BAK3_MAGIC = "WASI_BAK3"
         const val WASI_BAK4_MAGIC = "WASI_BAK4"
         const val BACKUP_CHUNK_SIZE = 4 * 1024 * 1024
+        const val STREAM_COPY_BUF = 256 * 1024
+        const val MAX_METADATA_BYTES = 10 * 1024 * 1024        // 10 MB metadata
+        const val MAX_CHUNK_BYTES = 5 * 1024 * 1024            // 5 MB per encrypted chunk
+        const val MAX_CHUNK_COUNT = 500_000                    // ~2 TB at 4MB chunks
+        const val MAX_ARCHIVE_FILE_COUNT = 10_000
+        const val MAX_FILE_ID_LEN = 128
+        const val MAX_LEGACY_ARCHIVE_BYTES = 200 * 1024 * 1024  // 200 MB legacy BAK/BAK2
+        const val MAX_LEGACY_SINGLE_BLOCK_BYTES = 200 * 1024 * 1024L
+        const val MAX_AUDIO_FILE_BYTES = 100 * 1024 * 1024L    // 100 MB per audio (voice memos)
+        const val MAX_DRIVE_UPLOAD_BYTES = 500 * 1024 * 1024L  // 500 MB Drive upload limit
+        const val MAX_DRIVE_DOWNLOAD_BYTES = 500 * 1024 * 1024 // 500 MB Drive download limit
     }
 }

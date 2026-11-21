@@ -63,7 +63,6 @@ object DatabaseModule {
             "erthi_vault.db",
         )
             .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
-            .fallbackToDestructiveMigration()
             .build()
     }
 
