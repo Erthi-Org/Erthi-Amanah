@@ -20,8 +20,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.security.SecureRandom
@@ -33,7 +35,8 @@ import javax.inject.Inject
 sealed class BackupState {
     data object Idle : BackupState()
     data object InProgress : BackupState()
-    data class Success(val message: String) : BackupState()
+    /** [warnings] lists media files that were skipped (e.g., video > 100 MB). */
+    data class Success(val message: String, val warnings: List<String> = emptyList()) : BackupState()
     data class Error(val message: String) : BackupState()
 }
 
@@ -79,6 +82,11 @@ class BackupViewModel @Inject constructor(
     private val _driveBackups = MutableStateFlow<List<DriveBackupFile>>(emptyList())
     val driveBackups: StateFlow<List<DriveBackupFile>> = _driveBackups.asStateFlow()
 
+    init {
+        // Fix 4: resume or clean up any interrupted restore on ViewModel creation
+        viewModelScope.launch(Dispatchers.IO) { checkAndCompleteInterruptedRestore() }
+    }
+
     fun driveSignInIntent(): Intent = driveManager.buildSignInIntent()
 
     fun handleDriveSignInResult(data: Intent?) {
@@ -120,8 +128,8 @@ class BackupViewModel @Inject constructor(
         viewModelScope.launch {
             _driveState.value = DriveState.InProgress
             try {
-                val json = buildPortableBackupJson()
-                val plainBytes = json.toByteArray(Charsets.UTF_8)
+                val result = buildPortableBackupJson()
+                val plainBytes = result.json.toByteArray(Charsets.UTF_8)
                 val salt = ByteArray(32).also { SecureRandom().nextBytes(it) }
                 val key = BackupCrypto.pbkdf2Key(passphrase, salt)
                 val (iv, ciphertext) = BackupCrypto.encrypt(key, plainBytes)
@@ -129,6 +137,10 @@ class BackupViewModel @Inject constructor(
                 val dateStr = SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault()).format(Date())
                 val fileId = driveManager.uploadBackup(encBytes, "wasiyyati_drive_$dateStr.wasi2bak")
                 _driveState.value = DriveState.Success("✅ تم رفع النسخة بنجاح إلى Google Drive ($fileId)")
+                // Surface any media-skip warnings to the backup state channel
+                if (result.warnings.isNotEmpty()) {
+                    _state.value = BackupState.Success("تحذيرات من النسخة المرفوعة", result.warnings)
+                }
                 loadDriveBackups()
             } catch (e: Exception) {
                 _driveState.value = DriveState.Error("❌ فشل الرفع إلى Drive: ${e.localizedMessage}")
@@ -197,8 +209,8 @@ class BackupViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = BackupState.InProgress
             try {
-                val json = buildBackupJson()
-                val plainBytes = json.toByteArray(Charsets.UTF_8)
+                val result = buildBackupJson()
+                val plainBytes = result.json.toByteArray(Charsets.UTF_8)
                 val encData = crypto.encrypt(plainBytes)
                 val ivBytes = encData.iv
                 val ctBytes = encData.ciphertext
@@ -207,7 +219,10 @@ class BackupViewModel @Inject constructor(
                 val stream = context.contentResolver.openOutputStream(uri)
                     ?: throw IllegalStateException("تعذر فتح ملف النسخة للكتابة")
                 stream.use { it.write(output) }
-                _state.value = BackupState.Success("✅ تم تصدير النسخة الاحتياطية بنجاح — ${plainBytes.size / 1024} كيلوبايت")
+                _state.value = BackupState.Success(
+                    "✅ تم تصدير النسخة الاحتياطية بنجاح — ${plainBytes.size / 1024} كيلوبايت",
+                    result.warnings,
+                )
             } catch (e: Exception) {
                 _state.value = BackupState.Error("❌ فشل التصدير: ${e.localizedMessage}")
             }
@@ -247,8 +262,8 @@ class BackupViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = BackupState.InProgress
             try {
-                val json = buildPortableBackupJson()
-                val plainBytes = json.toByteArray(Charsets.UTF_8)
+                val result = buildPortableBackupJson()
+                val plainBytes = result.json.toByteArray(Charsets.UTF_8)
                 val salt = ByteArray(32).also { SecureRandom().nextBytes(it) }
                 val key = BackupCrypto.pbkdf2Key(passphrase, salt)
                 val (iv, ciphertext) = BackupCrypto.encrypt(key, plainBytes)
@@ -256,7 +271,10 @@ class BackupViewModel @Inject constructor(
                 val stream = context.contentResolver.openOutputStream(uri)
                     ?: throw IllegalStateException("تعذر فتح ملف النسخة للكتابة")
                 stream.use { it.write(output) }
-                _state.value = BackupState.Success("✅ تم تصدير النسخة المحمولة — ${plainBytes.size / 1024} كيلوبايت")
+                _state.value = BackupState.Success(
+                    "✅ تم تصدير النسخة المحمولة — ${plainBytes.size / 1024} كيلوبايت",
+                    result.warnings,
+                )
             } catch (e: Exception) {
                 _state.value = BackupState.Error("❌ فشل التصدير المحمول: ${e.localizedMessage}")
             }
@@ -291,9 +309,13 @@ class BackupViewModel @Inject constructor(
         }
     }
 
+    // ── Fix 3: result type that surfaces skipped-media warnings ─────────────
+
+    private data class BackupJsonResult(val json: String, val warnings: List<String>)
+
     // ── Build JSON (device-bound) ─────────────────────────────────────────
 
-    private suspend fun buildBackupJson(): String {
+    private suspend fun buildBackupJson(): BackupJsonResult {
         val wills = willDao.getAllWills().first()
         val debts = debtDao.getAllDebts().first()
         val assets = assetDao.getAllAssets().first()
@@ -303,7 +325,9 @@ class BackupViewModel @Inject constructor(
         val documents = documentDao.getAllDocuments().first()
         val vaultItems = vaultItemDao.getAllItems().first()
 
-        return JSONObject().apply {
+        // Fix 3: collect skipped-media warnings to surface in BackupState.Success
+        val warnings = mutableListOf<String>()
+        val json = JSONObject().apply {
             put("version", 2)
             put("appName", "وصيتي")
             put("exportDate", System.currentTimeMillis())
@@ -319,7 +343,8 @@ class BackupViewModel @Inject constructor(
                             put("audioData", Base64.encodeToString(f.readBytes(), Base64.NO_WRAP))
                         } else if (f.exists()) {
                             put("audioFileName", f.name)
-                            // File too large to inline — device backup only stores the path
+                            put("audioTooLarge", true)
+                            warnings.add("تحذير: تسجيل الصوت للوصية «${w.title}» حجمه أكبر من 100 ميجابايت — محفوظ كمسار فقط.")
                         }
                     }
                     w.videoPath?.let { path ->
@@ -328,7 +353,10 @@ class BackupViewModel @Inject constructor(
                             put("videoFileName", f.name)
                             put("videoData", Base64.encodeToString(f.readBytes(), Base64.NO_WRAP))
                         } else if (f.exists()) {
+                            // Fix 3: explicitly flag large videos, never silently omit
                             put("videoFileName", f.name)
+                            put("videoTooLarge", true)
+                            warnings.add("تحذير: فيديو الوصية «${w.title}» حجمه ${f.length() / 1024 / 1024} ميجابايت — غير مُدرج في هذه النسخة. استخدم النسخة المحمولة (WASI_BAK2) لأجهزة مختلفة.")
                         }
                     }
                 }
@@ -352,11 +380,12 @@ class BackupViewModel @Inject constructor(
                 }
             }))
         }.toString()
+        return BackupJsonResult(json, warnings)
     }
 
     // ── Build JSON (portable: Keystore-decrypt audio/video before archiving) ─
 
-    private suspend fun buildPortableBackupJson(): String {
+    private suspend fun buildPortableBackupJson(): BackupJsonResult {
         val wills = willDao.getAllWills().first()
         val debts = debtDao.getAllDebts().first()
         val assets = assetDao.getAllAssets().first()
@@ -366,7 +395,9 @@ class BackupViewModel @Inject constructor(
         val documents = documentDao.getAllDocuments().first()
         val vaultItems = vaultItemDao.getAllItems().first()
 
-        return JSONObject().apply {
+        // Fix 3: collect warnings for skipped media
+        val warnings = mutableListOf<String>()
+        val json = JSONObject().apply {
             put("version", 2)
             put("appName", "وصيتي")
             put("exportDate", System.currentTimeMillis())
@@ -376,9 +407,6 @@ class BackupViewModel @Inject constructor(
                     put("isDraft", w.isDraft); put("updatedAt", w.updatedAt)
                     put("createdAt", w.createdAt); put("legalDisclaimer", w.legalDisclaimer)
 
-                    // Audio: decrypt WASI_AUD from Keystore and embed raw bytes.
-                    // FAIL the entire backup if an existing audio file cannot be read/decrypted —
-                    // never produce a silent partial backup.
                     w.audioPath?.let { path ->
                         val f = java.io.File(path)
                         if (f.exists()) {
@@ -402,37 +430,36 @@ class BackupViewModel @Inject constructor(
                                     "ملف الصوت للوصية «${w.title}» تالف أو بتنسيق غير متوقع.")
                             }
                         }
-                        // If file doesn't exist at the path, the DB record is stale — log but skip.
                     }
 
-                    // Video: decrypt WASI_VID from Keystore and embed raw bytes.
-                    // Skip (with annotation) if file exceeds MAX_INLINE_FILE_BYTES.
+                    // Fix 3: skip large video with explicit warning, never silently omit
                     w.videoPath?.let { path ->
                         val f = java.io.File(path)
                         if (f.exists()) {
                             if (f.length() > MAX_INLINE_FILE_BYTES) {
                                 put("videoFileName", f.name)
                                 put("videoSkipped", true)
-                                put("videoSkipReason", "الحجم أكبر من ${MAX_INLINE_FILE_BYTES / 1024 / 1024} ميجابايت")
+                                put("videoSkipReason", "الحجم ${f.length() / 1024 / 1024} ميجابايت — يتجاوز الحد الأقصى")
+                                warnings.add("تحذير: فيديو الوصية «${w.title}» حجمه ${f.length() / 1024 / 1024} ميجابايت — غير مُدرج في هذه النسخة المحمولة. الفيديو لا يزال مشفراً على هذا الجهاز.")
                             } else {
                                 val encBytes = f.readBytes()
-                                if (encBytes.size >= 20 &&
-                                    String(encBytes.copyOfRange(0, 8), Charsets.UTF_8) == WASI_VID_MAGIC) {
-                                    val rawVideo = try {
-                                        crypto.decrypt(CryptoManager.EncryptedData(
+                                val magic = if (encBytes.size >= 8)
+                                    String(encBytes.copyOfRange(0, 8), Charsets.UTF_8) else ""
+                                val rawVideo = try {
+                                    when (magic) {
+                                        WASI_VID_MAGIC -> crypto.decrypt(CryptoManager.EncryptedData(
                                             encBytes.copyOfRange(8, 20),
                                             encBytes.copyOfRange(20, encBytes.size)))
-                                    } catch (e: Exception) {
-                                        throw IllegalStateException(
-                                            "فشل فك تشفير الفيديو للوصية «${w.title}» — " +
-                                            "لا يمكن إنشاء نسخة محمولة كاملة.")
+                                        "WASI_VD2" -> decryptChunkedBytes(encBytes)
+                                        else -> throw IllegalStateException("تنسيق فيديو غير متوقع: $magic")
                                     }
-                                    put("videoFileName", f.nameWithoutExtension + ".mp4")
-                                    put("videoData", Base64.encodeToString(rawVideo, Base64.NO_WRAP))
-                                } else {
+                                } catch (e: Exception) {
                                     throw IllegalStateException(
-                                        "ملف الفيديو للوصية «${w.title}» تالف أو بتنسيق غير متوقع.")
+                                        "فشل فك تشفير الفيديو للوصية «${w.title}» — " +
+                                        "لا يمكن إنشاء نسخة محمولة كاملة.")
                                 }
+                                put("videoFileName", f.nameWithoutExtension + ".mp4")
+                                put("videoData", Base64.encodeToString(rawVideo, Base64.NO_WRAP))
                             }
                         }
                     }
@@ -457,6 +484,23 @@ class BackupViewModel @Inject constructor(
                 }
             }))
         }.toString()
+        return BackupJsonResult(json, warnings)
+    }
+
+    // Fix 3: helper to decrypt WASI_VD2 chunked format for portable backup embedding
+    private fun decryptChunkedBytes(encBytes: ByteArray): ByteArray {
+        val din = java.io.DataInputStream(encBytes.inputStream())
+        din.skipBytes(8) // skip magic
+        val chunkCount = din.readInt()
+        require(chunkCount in 1..100_000) { "عدد أجزاء غير صالح" }
+        val out = java.io.ByteArrayOutputStream()
+        repeat(chunkCount) {
+            val iv = ByteArray(12); din.readFully(iv)
+            val ctLen = din.readInt()
+            val ct = ByteArray(ctLen); din.readFully(ct)
+            out.write(crypto.decrypt(CryptoManager.EncryptedData(iv, ct)))
+        }
+        return out.toByteArray()
     }
 
     // ── Shared array builders ─────────────────────────────────────────────
@@ -556,6 +600,20 @@ class BackupViewModel @Inject constructor(
                 stageDocumentFile(doc, i, stagingDir, stagedFiles)
             }
 
+            // Fix 4: write journal before DB transaction so a crash can be detected on restart
+            val journalFile = java.io.File(context.cacheDir, "restore_journal.json")
+            val journalArr = JSONArray(stagedFiles.map { sf ->
+                JSONObject().apply {
+                    put("staged", sf.staged.absolutePath)
+                    put("final", sf.final.absolutePath)
+                }
+            })
+            journalFile.writeText(JSONObject().apply {
+                put("phase", "pre_db")
+                put("stagingDir", stagingDir.absolutePath)
+                put("files", journalArr)
+            }.toString())
+
             // Phase 2: DB transaction — delete old data and insert new records
             db.withTransaction {
                 willDao.deleteAllWills()
@@ -575,6 +633,13 @@ class BackupViewModel @Inject constructor(
                 restoreDocumentsFromStaged(docsArr, stagedFiles)
                 restoreVaultItems(root, reEncrypt)
             }
+
+            // Fix 4: DB committed — advance journal phase so recovery knows DB is consistent
+            journalFile.writeText(JSONObject().apply {
+                put("phase", "post_db")
+                put("stagingDir", stagingDir.absolutePath)
+                put("files", journalArr)
+            }.toString())
 
             // Phase 3: DB committed — move staged files to final locations
             val failedMoves = mutableListOf<String>()
@@ -600,10 +665,61 @@ class BackupViewModel @Inject constructor(
         } catch (e: Exception) {
             // Clean up staging directory to leave no orphans
             stagingDir.deleteRecursively()
+            // If journal is still in pre_db phase, delete it — no DB change was committed
+            val journalOnError = java.io.File(context.cacheDir, "restore_journal.json")
+            if (journalOnError.exists()) {
+                runCatching {
+                    val j = JSONObject(journalOnError.readText())
+                    if (j.optString("phase") == "pre_db") journalOnError.delete()
+                }
+            }
             throw e
         }
+        // Fix 4: all moves succeeded — journal is no longer needed
+        java.io.File(context.cacheDir, "restore_journal.json").delete()
         // Success: clean up any leftover staging files
         stagingDir.deleteRecursively()
+    }
+
+    // Fix 4: called on ViewModel init — resumes file moves if DB committed but app was killed
+    private suspend fun checkAndCompleteInterruptedRestore() {
+        val journalFile = java.io.File(context.cacheDir, "restore_journal.json")
+        if (!journalFile.exists()) return
+        try {
+            val j = JSONObject(journalFile.readText())
+            val phase = j.optString("phase")
+            val filesArr = j.optJSONArray("files") ?: JSONArray()
+            val stagingDir = j.optString("stagingDir").let {
+                if (it.isNotEmpty()) java.io.File(it) else null
+            }
+            when (phase) {
+                "pre_db" -> {
+                    // DB was never committed — delete staged files and journal
+                    stagingDir?.deleteRecursively()
+                    journalFile.delete()
+                }
+                "post_db" -> {
+                    // DB committed — complete any pending file moves
+                    for (i in 0 until filesArr.length()) {
+                        val entry = filesArr.getJSONObject(i)
+                        val staged = java.io.File(entry.getString("staged"))
+                        val final = java.io.File(entry.getString("final"))
+                        if (!staged.exists()) continue  // already moved
+                        if (final.exists()) { staged.delete(); continue }
+                        final.parentFile?.mkdirs()
+                        if (!staged.renameTo(final)) {
+                            runCatching { final.writeBytes(staged.readBytes()); staged.delete() }
+                        }
+                    }
+                    stagingDir?.deleteRecursively()
+                    journalFile.delete()
+                }
+                else -> journalFile.delete()
+            }
+        } catch (_: Exception) {
+            // Corrupt journal — delete it; next backup attempt will start clean
+            journalFile.delete()
+        }
     }
 
     // ── Stage media files (called BEFORE DB transaction) ──────────────────

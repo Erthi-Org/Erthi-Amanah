@@ -2,8 +2,6 @@ package com.erthi.amanah.ui.screens.will
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.util.Size
-import android.view.Surface
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -25,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,14 +30,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.erthi.amanah.ui.components.ErthiTopBar
 import com.erthi.amanah.ui.theme.*
 import com.erthi.amanah.ui.viewmodel.VideoWillState
 import com.erthi.amanah.ui.viewmodel.VideoWillViewModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.io.File
-import java.util.concurrent.Executors
 
 @Composable
 fun VideoWillScreen(
@@ -49,10 +45,9 @@ fun VideoWillScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
     val state by viewModel.state.collectAsState()
 
-    // Permissions
+    // ── Permissions ──────────────────────────────────────────────────────────
     var hasCameraPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
             == PackageManager.PERMISSION_GRANTED)
@@ -65,87 +60,90 @@ fun VideoWillScreen(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { results ->
         hasCameraPermission = results[Manifest.permission.CAMERA] == true
-        hasMicPermission = results[Manifest.permission.RECORD_AUDIO] == true
+        hasMicPermission   = results[Manifest.permission.RECORD_AUDIO] == true
     }
 
-    // Recording state
-    var isRecording by remember { mutableStateOf(false) }
-    var recordingDurationSec by remember { mutableStateOf(0) }
-    var currentRecording by remember { mutableStateOf<Recording?>(null) }
-    var recordedTempFile by remember { mutableStateOf<File?>(null) }
-    var cameraFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_FRONT) }
-    var showCancelConfirm by remember { mutableStateOf(false) }
-    var showSaveDialog by remember { mutableStateOf(false) }
-    var saveTitle by remember { mutableStateOf("") }
-    var videoCapture by remember { mutableStateOf<VideoCapture<Recorder>?>(null) }
-    var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
-    val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
+    // ── Recording state ───────────────────────────────────────────────────────
+    var isRecording        by remember { mutableStateOf(false) }
+    var durationSec        by remember { mutableStateOf(0) }
+    var currentRecording   by remember { mutableStateOf<Recording?>(null) }
+    var recordedTempFile   by remember { mutableStateOf<File?>(null) }
+    var cameraFacing       by remember { mutableStateOf(CameraSelector.LENS_FACING_FRONT) }
+    var showCancelConfirm  by remember { mutableStateOf(false) }
+    var showSaveDialog     by remember { mutableStateOf(false) }
+    var saveTitle          by remember { mutableStateOf("") }
+    var videoCapture       by remember { mutableStateOf<VideoCapture<Recorder>?>(null) }
+    var cameraProvider     by remember { mutableStateOf<ProcessCameraProvider?>(null) }
 
-    // Duration timer
+    // Fix 5: store PreviewView ref so LaunchedEffect can bind camera without re-entering update{}
+    var previewViewRef     by remember { mutableStateOf<PreviewView?>(null) }
+
+    val availableMb = remember { context.filesDir.freeSpace / (1024 * 1024) }
+
+    // Duration counter — only increments while recording
     LaunchedEffect(isRecording) {
         if (isRecording) {
-            recordingDurationSec = 0
-            while (isRecording) {
-                delay(1000)
-                recordingDurationSec++
-            }
+            durationSec = 0
+            while (isRecording) { delay(1000L); durationSec++ }
         }
     }
 
-    // Check available storage (warn if < 200MB)
-    val availableMb = remember {
-        context.filesDir.freeSpace / (1024 * 1024)
-    }
+    // Cleanup stale temp files from previous sessions
+    LaunchedEffect(Unit) { viewModel.cleanupTempFiles() }
 
-    // Cleanup temp files on first enter
-    LaunchedEffect(Unit) {
-        viewModel.cleanupTempFiles()
-    }
-
-    fun stopRecording() {
-        currentRecording?.stop()
-        currentRecording = null
-        isRecording = false
-    }
-
-    fun bindCamera(previewView: PreviewView) {
-        val providerFuture = ProcessCameraProvider.getInstance(context)
-        providerFuture.addListener({
-            val provider = providerFuture.get()
+    // Fix 5: bind camera only when facing or permissions change, NOT on every recomposition
+    LaunchedEffect(cameraFacing, hasCameraPermission, hasMicPermission) {
+        val pv = previewViewRef ?: return@LaunchedEffect
+        if (!hasCameraPermission || !hasMicPermission) return@LaunchedEffect
+        // Guard: don't unbind while recording is active (would abort the recording)
+        if (isRecording) return@LaunchedEffect
+        val future = ProcessCameraProvider.getInstance(context)
+        future.addListener({
+            val provider = future.get()
             cameraProvider = provider
-            val preview = Preview.Builder().build().also {
-                it.setSurfaceProvider(previewView.surfaceProvider)
-            }
+            val preview = Preview.Builder().build().also { it.setSurfaceProvider(pv.surfaceProvider) }
             val recorder = Recorder.Builder()
                 .setQualitySelector(QualitySelector.fromOrderedList(
-                    listOf(Quality.HD, Quality.FHD, Quality.SD),
+                    listOf(Quality.FHD, Quality.HD, Quality.SD),
                     FallbackStrategy.lowerQualityOrHigherThan(Quality.SD)))
                 .build()
             val vc = VideoCapture.withOutput(recorder)
             videoCapture = vc
-            val selector = CameraSelector.Builder()
-                .requireLensFacing(cameraFacing).build()
+            val selector = CameraSelector.Builder().requireLensFacing(cameraFacing).build()
             try {
                 provider.unbindAll()
                 provider.bindToLifecycle(lifecycleOwner, selector, preview, vc)
-            } catch (e: Exception) {
-                // Camera unavailable or already in use — handled by showing error state
+            } catch (_: Exception) {
+                // Camera unavailable — user sees no preview; they can retry
             }
         }, ContextCompat.getMainExecutor(context))
     }
 
-    // Cancel confirmation dialog
+    // Fix 5: release camera resources when this composable leaves the composition
+    DisposableEffect(Unit) {
+        onDispose {
+            cameraProvider?.unbindAll()
+        }
+    }
+
+    // Fix 5: helper — request stop without touching isRecording (Finalize event sets it)
+    fun requestStopRecording() {
+        currentRecording?.stop()
+        // isRecording is set to false inside VideoRecordEvent.Finalize, not here
+        currentRecording = null
+    }
+
+    // ── Cancel confirmation dialog ────────────────────────────────────────────
     if (showCancelConfirm) {
         AlertDialog(
             onDismissRequest = { showCancelConfirm = false },
             containerColor = NavyCard,
             title = { Text("إلغاء التسجيل", color = TextPrimary, fontWeight = FontWeight.Bold) },
-            text = { Text("هل تريد إلغاء التسجيل وحذف هذا الفيديو؟", color = TextSecondary) },
+            text  = { Text("هل تريد إلغاء التسجيل وحذف هذا الفيديو؟", color = TextSecondary) },
             confirmButton = {
                 TextButton(onClick = {
-                    stopRecording()
-                    recordedTempFile?.delete()
-                    recordedTempFile = null
+                    requestStopRecording()
+                    recordedTempFile?.delete(); recordedTempFile = null
                     showCancelConfirm = false
                     onBack()
                 }) { Text("إلغاء وحذف", color = EmergencyRed, fontWeight = FontWeight.Bold) }
@@ -156,7 +154,7 @@ fun VideoWillScreen(
         )
     }
 
-    // Save dialog
+    // Fix 1: Save dialog calls encryptAndSave — Room only ever receives the encrypted path
     if (showSaveDialog) {
         AlertDialog(
             onDismissRequest = { showSaveDialog = false },
@@ -176,7 +174,7 @@ fun VideoWillScreen(
                         singleLine = true,
                         placeholder = { Text("مثال: وصيتي لأبنائي", color = TextMuted) },
                     )
-                    Text("سيتم تشفير الفيديو وحفظه بأمان على هذا الجهاز.",
+                    Text("سيتم تشفير الفيديو بأمان قبل الحفظ.",
                         style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                 }
             },
@@ -185,14 +183,15 @@ fun VideoWillScreen(
                     onClick = {
                         val tempFile = recordedTempFile
                         if (tempFile != null) {
-                            viewModel.saveVideoWill(saveTitle.ifBlank { "وصية مصورة" }, tempFile.absolutePath)
-                            // encryptVideo is called after saving to persist the encrypted path in the DB
-                            viewModel.encryptVideo(tempFile, willId = null)
+                            // Fix 1: encrypt first → then insert Room record with encrypted path
+                            viewModel.encryptAndSave(
+                                title = saveTitle.ifBlank { "وصية مصورة" },
+                                sourceFile = tempFile,
+                            )
                         }
                         showSaveDialog = false
                         recordedTempFile = null
                     },
-                    enabled = saveTitle.isNotBlank() || true,
                 ) { Text("حفظ وتشفير", color = WillColor, fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
@@ -208,8 +207,9 @@ fun VideoWillScreen(
         containerColor = Color.Black,
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+
+            // ── Permission screen ─────────────────────────────────────────────
             if (!hasCameraPermission || !hasMicPermission) {
-                // Permission request screen
                 Column(
                     modifier = Modifier.fillMaxSize().padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -221,13 +221,14 @@ fun VideoWillScreen(
                         style = MaterialTheme.typography.headlineSmall,
                         color = TextPrimary, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(8.dp))
-                    Text("يحتاج التطبيق إلى إذن الكاميرا والميكروفون لتسجيل وصيتك.",
+                    Text("يحتاج التطبيق إلى إذن الكاميرا والميكروفون.",
                         color = TextSecondary, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(24.dp))
                     Button(
                         onClick = {
                             permissionsLauncher.launch(arrayOf(
-                                Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO))
+                                Manifest.permission.CAMERA,
+                                Manifest.permission.RECORD_AUDIO))
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = WillColor),
                         modifier = Modifier.fillMaxWidth(),
@@ -236,21 +237,21 @@ fun VideoWillScreen(
                 return@Scaffold
             }
 
-            // Camera preview
+            // Fix 5: AndroidView factory only sets up the PreviewView; binding happens in
+            // LaunchedEffect(cameraFacing) above — never inside update{} to avoid
+            // unbindAll() on every recomposition (which would abort an active recording).
             AndroidView(
                 factory = { ctx ->
-                    PreviewView(ctx).also { previewView ->
-                        previewView.scaleType = PreviewView.ScaleType.FILL_CENTER
-                        bindCamera(previewView)
+                    PreviewView(ctx).also { pv ->
+                        pv.scaleType = PreviewView.ScaleType.FILL_CENTER
+                        previewViewRef = pv
                     }
                 },
-                update = { previewView ->
-                    bindCamera(previewView)
-                },
+                // update{} intentionally empty — camera binding is managed by LaunchedEffect
                 modifier = Modifier.fillMaxSize(),
             )
 
-            // Top overlay: duration + storage warning
+            // ── Top overlay: duration + storage warning ───────────────────────
             Column(
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -262,14 +263,10 @@ fun VideoWillScreen(
                             .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(20.dp))
                             .padding(horizontal = 16.dp, vertical = 6.dp),
                     ) {
-                        Box(
-                            modifier = Modifier.size(10.dp).background(EmergencyRed, CircleShape)
-                        )
+                        Box(Modifier.size(10.dp).background(EmergencyRed, CircleShape))
                         Spacer(Modifier.width(8.dp))
-                        Text(
-                            formatDuration(recordingDurationSec),
-                            color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp,
-                        )
+                        Text(formatDuration(durationSec),
+                            color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     }
                 }
                 if (availableMb < 200) {
@@ -285,13 +282,11 @@ fun VideoWillScreen(
                 }
             }
 
-            // State overlay (encrypting, error)
+            // ── State overlays (encrypting, done, error) ─────────────────────
             when (val s = state) {
                 is VideoWillState.Encrypting -> {
-                    Box(
-                        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)),
+                        contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator(color = WillColor)
                             Spacer(Modifier.height(12.dp))
@@ -300,14 +295,14 @@ fun VideoWillScreen(
                     }
                 }
                 is VideoWillState.Ready -> {
-                    Box(
-                        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)),
+                        contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.CheckCircle, null, tint = SuccessGreenLight, modifier = Modifier.size(64.dp))
+                            Icon(Icons.Default.CheckCircle, null,
+                                tint = SuccessGreenLight, modifier = Modifier.size(64.dp))
                             Spacer(Modifier.height(12.dp))
-                            Text("تم حفظ الوصية المصورة بأمان", color = TextPrimary, fontSize = 16.sp, textAlign = TextAlign.Center)
+                            Text("تم حفظ الوصية المصورة بأمان",
+                                color = TextPrimary, fontSize = 16.sp, textAlign = TextAlign.Center)
                             Spacer(Modifier.height(16.dp))
                             Button(
                                 onClick = { viewModel.resetState(); onBack() },
@@ -317,38 +312,38 @@ fun VideoWillScreen(
                     }
                 }
                 is VideoWillState.Error -> {
-                    Box(
-                        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
-                            Icon(Icons.Default.Error, null, tint = EmergencyRed, modifier = Modifier.size(48.dp))
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)),
+                        contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(32.dp)) {
+                            Icon(Icons.Default.Error, null,
+                                tint = EmergencyRed, modifier = Modifier.size(48.dp))
                             Spacer(Modifier.height(12.dp))
                             Text(s.message, color = TextPrimary, textAlign = TextAlign.Center)
                             Spacer(Modifier.height(16.dp))
-                            Button(
-                                onClick = { viewModel.resetState() },
-                                colors = ButtonDefaults.buttonColors(containerColor = EmergencyRed),
-                            ) { Text("إعادة المحاولة") }
+                            Button(onClick = { viewModel.resetState() },
+                                colors = ButtonDefaults.buttonColors(containerColor = EmergencyRed)) {
+                                Text("إعادة المحاولة")
+                            }
                         }
                     }
                 }
                 else -> {}
             }
 
-            // Bottom controls (only when no overlay active)
+            // ── Bottom controls ───────────────────────────────────────────────
             if (state is VideoWillState.Idle) {
                 Column(
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 32.dp, start = 24.dp, end = 24.dp),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 32.dp, start = 24.dp, end = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     if (recordedTempFile != null) {
-                        // After recording — show Save / Discard
+                        // After recording: Save or Discard
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             OutlinedButton(
-                                onClick = {
-                                    recordedTempFile?.delete(); recordedTempFile = null
-                                },
+                                onClick = { recordedTempFile?.delete(); recordedTempFile = null },
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = EmergencyRed),
                                 border = androidx.compose.foundation.BorderStroke(1.dp, EmergencyRed),
                                 modifier = Modifier.weight(1f),
@@ -360,54 +355,51 @@ fun VideoWillScreen(
                             ) { Text("حفظ وتشفير", fontWeight = FontWeight.Bold) }
                         }
                     } else {
-                        // Camera switch (only when not recording)
                         if (!isRecording) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End,
-                            ) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                                 IconButton(
                                     onClick = {
-                                        cameraFacing = if (cameraFacing == CameraSelector.LENS_FACING_FRONT)
-                                            CameraSelector.LENS_FACING_BACK
-                                        else CameraSelector.LENS_FACING_FRONT
+                                        // Fix 5: guard camera switch during recording
+                                        if (!isRecording) {
+                                            cameraFacing = if (cameraFacing == CameraSelector.LENS_FACING_FRONT)
+                                                CameraSelector.LENS_FACING_BACK
+                                            else CameraSelector.LENS_FACING_FRONT
+                                        }
                                     },
                                     modifier = Modifier
                                         .size(48.dp)
                                         .background(Color.Black.copy(alpha = 0.5f), CircleShape),
                                 ) {
-                                    Icon(Icons.Default.Cameraswitch, null, tint = Color.White, modifier = Modifier.size(24.dp))
+                                    Icon(Icons.Default.Cameraswitch, null,
+                                        tint = Color.White, modifier = Modifier.size(24.dp))
                                 }
                             }
                             Spacer(Modifier.height(16.dp))
                         }
 
-                        // Record / Stop button
                         Box(contentAlignment = Alignment.Center) {
                             if (isRecording) {
-                                // Pulsing ring for recording indicator
-                                Box(
-                                    modifier = Modifier.size(88.dp)
-                                        .border(3.dp, EmergencyRed.copy(alpha = 0.5f), CircleShape)
-                                )
+                                Box(Modifier.size(88.dp).border(3.dp,
+                                    EmergencyRed.copy(alpha = 0.5f), CircleShape))
                             }
                             IconButton(
                                 onClick = {
                                     if (isRecording) {
-                                        stopRecording()
+                                        // Fix 5: don't set isRecording=false here — Finalize event does it
+                                        requestStopRecording()
                                     } else {
-                                        // Start recording
                                         val vc = videoCapture ?: return@IconButton
                                         val tempFile = viewModel.createTempRecordingFile()
                                         recordedTempFile = tempFile
-                                        val outputOptions = FileOutputOptions.Builder(tempFile).build()
                                         currentRecording = vc.output
-                                            .prepareRecording(context, outputOptions)
+                                            .prepareRecording(context, FileOutputOptions.Builder(tempFile).build())
                                             .withAudioEnabled()
                                             .start(ContextCompat.getMainExecutor(context)) { event ->
                                                 when (event) {
+                                                    // Fix 5: set isRecording=true only on confirmed Start
                                                     is VideoRecordEvent.Start -> { isRecording = true }
                                                     is VideoRecordEvent.Finalize -> {
+                                                        // Fix 5: set isRecording=false here, not in stopRecording()
                                                         isRecording = false
                                                         if (event.hasError()) {
                                                             tempFile.delete()
@@ -421,25 +413,20 @@ fun VideoWillScreen(
                                 },
                                 modifier = Modifier
                                     .size(72.dp)
-                                    .background(
-                                        if (isRecording) EmergencyRed else WillColor,
-                                        CircleShape,
-                                    )
+                                    .background(if (isRecording) EmergencyRed else WillColor, CircleShape)
                                     .clip(CircleShape),
                             ) {
                                 Icon(
                                     if (isRecording) Icons.Default.Stop else Icons.Default.FiberManualRecord,
                                     contentDescription = if (isRecording) "إيقاف التسجيل" else "بدء التسجيل",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(36.dp),
+                                    tint = Color.White, modifier = Modifier.size(36.dp),
                                 )
                             }
                         }
                         Spacer(Modifier.height(8.dp))
                         Text(
                             if (isRecording) "اضغط لإيقاف التسجيل" else "اضغط لبدء التسجيل",
-                            color = Color.White,
-                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White, style = MaterialTheme.typography.labelMedium,
                         )
                     }
                 }
@@ -448,8 +435,5 @@ fun VideoWillScreen(
     }
 }
 
-private fun formatDuration(seconds: Int): String {
-    val m = seconds / 60
-    val s = seconds % 60
-    return "%02d:%02d".format(m, s)
-}
+private fun formatDuration(seconds: Int): String =
+    "%02d:%02d".format(seconds / 60, seconds % 60)
