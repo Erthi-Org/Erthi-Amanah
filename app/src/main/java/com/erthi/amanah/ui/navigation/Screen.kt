@@ -32,4 +32,9 @@ sealed class Screen(val route: String) {
     data object Feedback : Screen("feedback")
     // Audio will recording
     data object AudioWill : Screen("audio_will")
+    // Video will recording
+    data object VideoWill : Screen("video_will")
+    data class VideoWillPlayer(val path: String) : Screen("video_will_player/{path}") {
+        companion object { const val ROUTE = "video_will_player/{path}" }
+    }
 }

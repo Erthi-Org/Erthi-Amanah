@@ -31,6 +31,8 @@ fun WillScreen(
     onEditWill: () -> Unit,
     onWillAccess: () -> Unit = {},
     onAudioWill: () -> Unit = {},
+    onVideoWill: () -> Unit = {},
+    onPlayVideo: (String) -> Unit = {},
     viewModel: WillViewModel = hiltViewModel(),
 ) {
     val wills by viewModel.wills.collectAsState()
@@ -63,6 +65,7 @@ fun WillScreen(
             }
             item { WillOptionItem(icon = Icons.Default.Edit, label = "كتابة وصية جديدة", onClick = onEditWill) }
             item { WillOptionItem(icon = Icons.Default.Mic, label = "تسجيل وصية صوتية", onClick = onAudioWill) }
+            item { WillOptionItem(icon = Icons.Default.Videocam, label = "تسجيل وصية مصورة", onClick = onVideoWill) }
             item { WillOptionItem(icon = Icons.Default.Key, label = "إعدادات الوصول", onClick = onWillAccess) }
             item {
                 Card(
@@ -86,7 +89,7 @@ fun WillScreen(
                     Text("الوصايا المحفوظة (${wills.size})", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = SilverBlue, modifier = Modifier.padding(bottom = 4.dp))
                 }
                 items(wills, key = { it.id }) { will ->
-                    WillCard(will = will, onDelete = { viewModel.deleteWill(will) })
+                    WillCard(will = will, onDelete = { viewModel.deleteWill(will) }, onPlayVideo = onPlayVideo)
                 }
             }
             item { Spacer(Modifier.height(24.dp)) }
@@ -95,7 +98,7 @@ fun WillScreen(
 }
 
 @Composable
-private fun WillCard(will: WillEntity, onDelete: () -> Unit) {
+private fun WillCard(will: WillEntity, onDelete: () -> Unit, onPlayVideo: ((String) -> Unit)? = null) {
     val dateStr = remember(will.updatedAt) {
         SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(will.updatedAt))
     }
@@ -124,6 +127,17 @@ private fun WillCard(will: WillEntity, onDelete: () -> Unit) {
                             Text("مسودة", modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, color = SilverBlue)
                         }
                     }
+                    if (will.videoPath != null) {
+                        Spacer(Modifier.width(8.dp))
+                        Surface(shape = RoundedCornerShape(4.dp), color = WillColor.copy(alpha = 0.2f)) {
+                            Text("مصورة", modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, color = WillColor)
+                        }
+                    }
+                }
+            }
+            if (will.videoPath != null && onPlayVideo != null) {
+                IconButton(onClick = { onPlayVideo(will.videoPath!!) }) {
+                    Icon(Icons.Default.PlayCircle, null, tint = WillColor, modifier = Modifier.size(24.dp))
                 }
             }
             IconButton(onClick = onDelete) {

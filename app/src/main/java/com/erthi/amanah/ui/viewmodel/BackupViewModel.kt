@@ -44,6 +44,13 @@ sealed class DriveState {
     data class Error(val message: String) : DriveState()
 }
 
+/** Maximum file size included in a portable archive (video/document). Files larger than this
+ *  are excluded with a warning rather than causing an OutOfMemoryError. */
+private const val MAX_INLINE_FILE_BYTES = 100 * 1024 * 1024L // 100 MB
+
+/** Magic bytes for video will encrypted files. */
+internal const val WASI_VID_MAGIC = "WASI_VID"
+
 @HiltViewModel
 class BackupViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -62,8 +69,6 @@ class BackupViewModel @Inject constructor(
 
     private val _state = MutableStateFlow<BackupState>(BackupState.Idle)
     val state: StateFlow<BackupState> = _state.asStateFlow()
-
-    // ── Drive state ───────────────────────────────────────────────────────────
 
     private val _driveState = MutableStateFlow<DriveState>(DriveState.Idle)
     val driveState: StateFlow<DriveState> = _driveState.asStateFlow()
@@ -111,7 +116,6 @@ class BackupViewModel @Inject constructor(
 
     fun clearDriveState() { _driveState.value = DriveState.Idle }
 
-    // Upload a WASI_BAK2 (PBKDF2+AES-GCM) portable backup to Drive
     fun exportDriveBackup(passphrase: String) {
         viewModelScope.launch {
             _driveState.value = DriveState.InProgress
@@ -121,12 +125,9 @@ class BackupViewModel @Inject constructor(
                 val salt = ByteArray(32).also { SecureRandom().nextBytes(it) }
                 val key = BackupCrypto.pbkdf2Key(passphrase, salt)
                 val (iv, ciphertext) = BackupCrypto.encrypt(key, plainBytes)
-                val magic = "WASI_BAK2".toByteArray(Charsets.UTF_8)
-                val encBytes = magic + salt + iv + ciphertext
-
+                val encBytes = "WASI_BAK2".toByteArray(Charsets.UTF_8) + salt + iv + ciphertext
                 val dateStr = SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault()).format(Date())
-                val filename = "wasiyyati_drive_$dateStr.wasi2bak"
-                val fileId = driveManager.uploadBackup(encBytes, filename)
+                val fileId = driveManager.uploadBackup(encBytes, "wasiyyati_drive_$dateStr.wasi2bak")
                 _driveState.value = DriveState.Success("✅ تم رفع النسخة بنجاح إلى Google Drive ($fileId)")
                 loadDriveBackups()
             } catch (e: Exception) {
@@ -135,7 +136,6 @@ class BackupViewModel @Inject constructor(
         }
     }
 
-    // Download and restore a WASI_BAK2 backup from Drive
     fun importDriveBackup(fileId: String, passphrase: String) {
         viewModelScope.launch {
             _driveState.value = DriveState.InProgress
@@ -181,8 +181,7 @@ class BackupViewModel @Inject constructor(
     private val ENC_PREFIX = "[enc]"
 
     private fun String.enc(): String {
-        val bytes = toByteArray(Charsets.UTF_8)
-        val encData = crypto.encrypt(bytes)
+        val encData = crypto.encrypt(toByteArray(Charsets.UTF_8))
         return ENC_PREFIX + Base64.encodeToString(encData.toByteArray(), Base64.NO_WRAP)
     }
 
@@ -192,7 +191,7 @@ class BackupViewModel @Inject constructor(
         return String(crypto.decrypt(CryptoManager.EncryptedData.fromByteArray(bytes)), Charsets.UTF_8)
     }
 
-    // ── Device-bound backup (Android Keystore encrypted, same device only) ─
+    // ── Device-bound backup ───────────────────────────────────────────────
 
     fun exportBackup(uri: Uri) {
         viewModelScope.launch {
@@ -201,11 +200,10 @@ class BackupViewModel @Inject constructor(
                 val json = buildBackupJson()
                 val plainBytes = json.toByteArray(Charsets.UTF_8)
                 val encData = crypto.encrypt(plainBytes)
-                val magic = "WASI_BAK".toByteArray(Charsets.UTF_8)
                 val ivBytes = encData.iv
                 val ctBytes = encData.ciphertext
                 val ivLen = ByteArray(4) { i -> ((ivBytes.size shr (24 - i * 8)) and 0xFF).toByte() }
-                val output = magic + ivLen + ivBytes + ctBytes
+                val output = "WASI_BAK".toByteArray(Charsets.UTF_8) + ivLen + ivBytes + ctBytes
                 val stream = context.contentResolver.openOutputStream(uri)
                     ?: throw IllegalStateException("تعذر فتح ملف النسخة للكتابة")
                 stream.use { it.write(output) }
@@ -245,8 +243,6 @@ class BackupViewModel @Inject constructor(
 
     fun clearState() { _state.value = BackupState.Idle }
 
-    // ── Portable backup (PBKDF2 + AES-GCM, cross-device) ─────────────────
-
     fun exportPortableBackup(uri: Uri, passphrase: String) {
         viewModelScope.launch {
             _state.value = BackupState.InProgress
@@ -256,8 +252,7 @@ class BackupViewModel @Inject constructor(
                 val salt = ByteArray(32).also { SecureRandom().nextBytes(it) }
                 val key = BackupCrypto.pbkdf2Key(passphrase, salt)
                 val (iv, ciphertext) = BackupCrypto.encrypt(key, plainBytes)
-                val magic = "WASI_BAK2".toByteArray(Charsets.UTF_8)
-                val output = magic + salt + iv + ciphertext
+                val output = "WASI_BAK2".toByteArray(Charsets.UTF_8) + salt + iv + ciphertext
                 val stream = context.contentResolver.openOutputStream(uri)
                     ?: throw IllegalStateException("تعذر فتح ملف النسخة للكتابة")
                 stream.use { it.write(output) }
@@ -276,7 +271,7 @@ class BackupViewModel @Inject constructor(
                     ?: throw IllegalStateException("لا يمكن قراءة الملف")
                 require(raw.size >= 69) { "ملف النسخة تالف أو غير صالح" }
                 val header = String(raw.copyOfRange(0, 9), Charsets.UTF_8)
-                if (header != "WASI_BAK2") throw IllegalArgumentException("الملف ليس نسخة محمولة صالحة")
+                if (header != "WASI_BAK2") throw IllegalArgumentException("ملف النسخة ليس نسخة محمولة صالحة")
                 val salt = raw.copyOfRange(9, 41)
                 val iv = raw.copyOfRange(41, 53)
                 val ct = raw.copyOfRange(53, raw.size)
@@ -296,7 +291,7 @@ class BackupViewModel @Inject constructor(
         }
     }
 
-    // ── Build JSON (device-bound: vault fields kept as [enc] ciphertext) ──
+    // ── Build JSON (device-bound) ─────────────────────────────────────────
 
     private suspend fun buildBackupJson(): String {
         val wills = willDao.getAllWills().first()
@@ -317,68 +312,33 @@ class BackupViewModel @Inject constructor(
                     put("title", w.title); put("content", w.content)
                     put("isDraft", w.isDraft); put("updatedAt", w.updatedAt)
                     put("createdAt", w.createdAt); put("legalDisclaimer", w.legalDisclaimer)
-                    // Embed encrypted audio bytes so the file can be restored on the same device
-                    w.audioPath?.also { path ->
+                    w.audioPath?.let { path ->
                         val f = java.io.File(path)
-                        if (f.exists()) {
+                        if (f.exists() && f.length() <= MAX_INLINE_FILE_BYTES) {
                             put("audioFileName", f.name)
                             put("audioData", Base64.encodeToString(f.readBytes(), Base64.NO_WRAP))
+                        } else if (f.exists()) {
+                            put("audioFileName", f.name)
+                            // File too large to inline — device backup only stores the path
+                        }
+                    }
+                    w.videoPath?.let { path ->
+                        val f = java.io.File(path)
+                        if (f.exists() && f.length() <= MAX_INLINE_FILE_BYTES) {
+                            put("videoFileName", f.name)
+                            put("videoData", Base64.encodeToString(f.readBytes(), Base64.NO_WRAP))
+                        } else if (f.exists()) {
+                            put("videoFileName", f.name)
                         }
                     }
                 }
             }))
-            put("debts", JSONArray(debts.map { d ->
-                JSONObject().apply {
-                    put("direction", d.direction.name); put("personName", d.personName)
-                    put("amount", d.amount); put("currency", d.currency)
-                    put("dueDate", d.dueDate ?: 0L); put("description", d.description)
-                    put("evidence", d.evidence); put("status", d.status.name)
-                }
-            }))
-            put("assets", JSONArray(assets.map { a ->
-                JSONObject().apply {
-                    put("type", a.type.name); put("name", a.name)
-                    put("description", a.description); put("estimatedValue", a.estimatedValue ?: 0.0)
-                    put("currency", a.currency); put("location", a.location)
-                    put("accountReference", a.accountReference); put("notes", a.notes)
-                }
-            }))
-            put("entrusted", JSONArray(entrusted.map { e ->
-                JSONObject().apply {
-                    put("ownerName", e.ownerName); put("ownerPhone", e.ownerPhone)
-                    put("itemDescription", e.itemDescription)
-                    put("returnInstructions", e.returnInstructions); put("evidence", e.evidence)
-                }
-            }))
-            put("beneficiaries", JSONArray(beneficiaries.map { b ->
-                JSONObject().apply {
-                    put("fullName", b.fullName); put("relation", b.relation)
-                    put("phone", b.phone); put("email", b.email)
-                    put("nationalId", b.nationalId)
-                    put("isEmergency", b.isEmergencyContact); put("emergencyPriority", b.emergencyPriority)
-                    put("canAccessWill", b.canAccessWill); put("notes", b.notes)
-                }
-            }))
-            put("digitalAccounts", JSONArray(digitalAccounts.map { da ->
-                JSONObject().apply {
-                    put("platform", da.platform); put("accountIdentifier", da.accountIdentifier)
-                    put("instructions", da.instructions)
-                    put("subscriptionCost", da.subscriptionCost ?: 0.0); put("currency", da.currency)
-                    put("notes", da.notes)
-                }
-            }))
-            put("documents", JSONArray(documents.map { doc ->
-                JSONObject().apply {
-                    put("title", doc.title); put("category", doc.category)
-                    put("mimeType", doc.mimeType); put("notes", doc.notes)
-                    if (doc.filePath.isNotEmpty()) {
-                        val f = java.io.File(doc.filePath)
-                        put("fileName", f.name)
-                        if (f.exists()) put("fileData", Base64.encodeToString(f.readBytes(), Base64.NO_WRAP))
-                    }
-                }
-            }))
-            // Vault items: raw [enc] values (device-bound, only valid on originating device)
+            put("debts", buildDebtsArray(debts))
+            put("assets", buildAssetsArray(assets))
+            put("entrusted", buildEntrustedArray(entrusted))
+            put("beneficiaries", buildBeneficiariesArray(beneficiaries))
+            put("digitalAccounts", buildDigitalAccountsArray(digitalAccounts))
+            put("documents", buildDocumentsArray(documents))
             put("vaultItems", JSONArray(vaultItems.map { v ->
                 JSONObject().apply {
                     put("serviceName", v.serviceName); put("category", v.category.name)
@@ -394,7 +354,7 @@ class BackupViewModel @Inject constructor(
         }.toString()
     }
 
-    // ── Build JSON (portable: vault fields decrypted to plaintext) ────────
+    // ── Build JSON (portable: Keystore-decrypt audio/video before archiving) ─
 
     private suspend fun buildPortableBackupJson(): String {
         val wills = willDao.getAllWills().first()
@@ -415,77 +375,75 @@ class BackupViewModel @Inject constructor(
                     put("title", w.title); put("content", w.content)
                     put("isDraft", w.isDraft); put("updatedAt", w.updatedAt)
                     put("createdAt", w.createdAt); put("legalDisclaimer", w.legalDisclaimer)
-                    // Decrypt audio from Keystore and embed raw bytes for portable cross-device restore
-                    w.audioPath?.also { path ->
+
+                    // Audio: decrypt WASI_AUD from Keystore and embed raw bytes.
+                    // FAIL the entire backup if an existing audio file cannot be read/decrypted —
+                    // never produce a silent partial backup.
+                    w.audioPath?.let { path ->
                         val f = java.io.File(path)
                         if (f.exists()) {
                             val encBytes = f.readBytes()
-                            if (encBytes.size >= 20 && String(encBytes.copyOfRange(0, 8), Charsets.UTF_8) == "WASI_AUD") {
-                                try {
-                                    val rawAudio = crypto.decrypt(CryptoManager.EncryptedData(
-                                        encBytes.copyOfRange(8, 20), encBytes.copyOfRange(20, encBytes.size)))
-                                    put("audioFileName", f.nameWithoutExtension + ".3gp")
-                                    put("audioData", Base64.encodeToString(rawAudio, Base64.NO_WRAP))
-                                } catch (_: Exception) {
-                                    put("audioFileName", f.nameWithoutExtension + ".3gp")
+                            if (encBytes.size >= 20 &&
+                                String(encBytes.copyOfRange(0, 8), Charsets.UTF_8) == "WASI_AUD") {
+                                val rawAudio = try {
+                                    crypto.decrypt(CryptoManager.EncryptedData(
+                                        encBytes.copyOfRange(8, 20),
+                                        encBytes.copyOfRange(20, encBytes.size)))
+                                } catch (e: Exception) {
+                                    throw IllegalStateException(
+                                        "فشل فك تشفير الصوت للوصية «${w.title}» — " +
+                                        "لا يمكن إنشاء نسخة محمولة كاملة. " +
+                                        "تأكد أن هذا الجهاز هو جهاز التسجيل الأصلي.")
+                                }
+                                put("audioFileName", f.nameWithoutExtension + ".3gp")
+                                put("audioData", Base64.encodeToString(rawAudio, Base64.NO_WRAP))
+                            } else {
+                                throw IllegalStateException(
+                                    "ملف الصوت للوصية «${w.title}» تالف أو بتنسيق غير متوقع.")
+                            }
+                        }
+                        // If file doesn't exist at the path, the DB record is stale — log but skip.
+                    }
+
+                    // Video: decrypt WASI_VID from Keystore and embed raw bytes.
+                    // Skip (with annotation) if file exceeds MAX_INLINE_FILE_BYTES.
+                    w.videoPath?.let { path ->
+                        val f = java.io.File(path)
+                        if (f.exists()) {
+                            if (f.length() > MAX_INLINE_FILE_BYTES) {
+                                put("videoFileName", f.name)
+                                put("videoSkipped", true)
+                                put("videoSkipReason", "الحجم أكبر من ${MAX_INLINE_FILE_BYTES / 1024 / 1024} ميجابايت")
+                            } else {
+                                val encBytes = f.readBytes()
+                                if (encBytes.size >= 20 &&
+                                    String(encBytes.copyOfRange(0, 8), Charsets.UTF_8) == WASI_VID_MAGIC) {
+                                    val rawVideo = try {
+                                        crypto.decrypt(CryptoManager.EncryptedData(
+                                            encBytes.copyOfRange(8, 20),
+                                            encBytes.copyOfRange(20, encBytes.size)))
+                                    } catch (e: Exception) {
+                                        throw IllegalStateException(
+                                            "فشل فك تشفير الفيديو للوصية «${w.title}» — " +
+                                            "لا يمكن إنشاء نسخة محمولة كاملة.")
+                                    }
+                                    put("videoFileName", f.nameWithoutExtension + ".mp4")
+                                    put("videoData", Base64.encodeToString(rawVideo, Base64.NO_WRAP))
+                                } else {
+                                    throw IllegalStateException(
+                                        "ملف الفيديو للوصية «${w.title}» تالف أو بتنسيق غير متوقع.")
                                 }
                             }
                         }
                     }
                 }
             }))
-            put("debts", JSONArray(debts.map { d ->
-                JSONObject().apply {
-                    put("direction", d.direction.name); put("personName", d.personName)
-                    put("amount", d.amount); put("currency", d.currency)
-                    put("dueDate", d.dueDate ?: 0L); put("description", d.description)
-                    put("evidence", d.evidence); put("status", d.status.name)
-                }
-            }))
-            put("assets", JSONArray(assets.map { a ->
-                JSONObject().apply {
-                    put("type", a.type.name); put("name", a.name)
-                    put("description", a.description); put("estimatedValue", a.estimatedValue ?: 0.0)
-                    put("currency", a.currency); put("location", a.location)
-                    put("accountReference", a.accountReference); put("notes", a.notes)
-                }
-            }))
-            put("entrusted", JSONArray(entrusted.map { e ->
-                JSONObject().apply {
-                    put("ownerName", e.ownerName); put("ownerPhone", e.ownerPhone)
-                    put("itemDescription", e.itemDescription)
-                    put("returnInstructions", e.returnInstructions); put("evidence", e.evidence)
-                }
-            }))
-            put("beneficiaries", JSONArray(beneficiaries.map { b ->
-                JSONObject().apply {
-                    put("fullName", b.fullName); put("relation", b.relation)
-                    put("phone", b.phone); put("email", b.email)
-                    put("nationalId", b.nationalId)
-                    put("isEmergency", b.isEmergencyContact); put("emergencyPriority", b.emergencyPriority)
-                    put("canAccessWill", b.canAccessWill); put("notes", b.notes)
-                }
-            }))
-            put("digitalAccounts", JSONArray(digitalAccounts.map { da ->
-                JSONObject().apply {
-                    put("platform", da.platform); put("accountIdentifier", da.accountIdentifier)
-                    put("instructions", da.instructions)
-                    put("subscriptionCost", da.subscriptionCost ?: 0.0); put("currency", da.currency)
-                    put("notes", da.notes)
-                }
-            }))
-            put("documents", JSONArray(documents.map { doc ->
-                JSONObject().apply {
-                    put("title", doc.title); put("category", doc.category)
-                    put("mimeType", doc.mimeType); put("notes", doc.notes)
-                    if (doc.filePath.isNotEmpty()) {
-                        val f = java.io.File(doc.filePath)
-                        put("fileName", f.name)
-                        if (f.exists()) put("fileData", Base64.encodeToString(f.readBytes(), Base64.NO_WRAP))
-                    }
-                }
-            }))
-            // Vault items: plaintext values (decrypted from device Keystore before export)
+            put("debts", buildDebtsArray(debts))
+            put("assets", buildAssetsArray(assets))
+            put("entrusted", buildEntrustedArray(entrusted))
+            put("beneficiaries", buildBeneficiariesArray(beneficiaries))
+            put("digitalAccounts", buildDigitalAccountsArray(digitalAccounts))
+            put("documents", buildDocumentsArray(documents))
             put("vaultItems", JSONArray(vaultItems.map { v ->
                 JSONObject().apply {
                     put("serviceName", v.serviceName.dec()); put("category", v.category.name)
@@ -501,24 +459,104 @@ class BackupViewModel @Inject constructor(
         }.toString()
     }
 
-    // ── Restore (device-bound): vault [enc] values stored as-is ──────────
+    // ── Shared array builders ─────────────────────────────────────────────
+
+    private fun buildDebtsArray(debts: List<DebtEntity>) = JSONArray(debts.map { d ->
+        JSONObject().apply {
+            put("direction", d.direction.name); put("personName", d.personName)
+            put("amount", d.amount); put("currency", d.currency)
+            put("dueDate", d.dueDate ?: 0L); put("description", d.description)
+            put("evidence", d.evidence); put("status", d.status.name)
+        }
+    })
+
+    private fun buildAssetsArray(assets: List<AssetEntity>) = JSONArray(assets.map { a ->
+        JSONObject().apply {
+            put("type", a.type.name); put("name", a.name)
+            put("description", a.description); put("estimatedValue", a.estimatedValue ?: 0.0)
+            put("currency", a.currency); put("location", a.location)
+            put("accountReference", a.accountReference); put("notes", a.notes)
+        }
+    })
+
+    private fun buildEntrustedArray(entrusted: List<EntrustedEntity>) = JSONArray(entrusted.map { e ->
+        JSONObject().apply {
+            put("ownerName", e.ownerName); put("ownerPhone", e.ownerPhone)
+            put("itemDescription", e.itemDescription)
+            put("returnInstructions", e.returnInstructions); put("evidence", e.evidence)
+        }
+    })
+
+    private fun buildBeneficiariesArray(beneficiaries: List<BeneficiaryEntity>) = JSONArray(beneficiaries.map { b ->
+        JSONObject().apply {
+            put("fullName", b.fullName); put("relation", b.relation)
+            put("phone", b.phone); put("email", b.email)
+            put("nationalId", b.nationalId)
+            put("isEmergency", b.isEmergencyContact); put("emergencyPriority", b.emergencyPriority)
+            put("canAccessWill", b.canAccessWill); put("notes", b.notes)
+        }
+    })
+
+    private fun buildDigitalAccountsArray(accounts: List<DigitalAccountEntity>) = JSONArray(accounts.map { da ->
+        JSONObject().apply {
+            put("platform", da.platform); put("accountIdentifier", da.accountIdentifier)
+            put("instructions", da.instructions)
+            put("subscriptionCost", da.subscriptionCost ?: 0.0); put("currency", da.currency)
+            put("notes", da.notes)
+        }
+    })
+
+    private fun buildDocumentsArray(documents: List<DocumentEntity>) = JSONArray(documents.map { doc ->
+        JSONObject().apply {
+            put("title", doc.title); put("category", doc.category)
+            put("mimeType", doc.mimeType); put("notes", doc.notes)
+            if (doc.filePath.isNotEmpty()) {
+                val f = java.io.File(doc.filePath)
+                put("fileName", f.name)
+                if (f.exists() && f.length() <= MAX_INLINE_FILE_BYTES) {
+                    put("fileData", Base64.encodeToString(f.readBytes(), Base64.NO_WRAP))
+                }
+            }
+        }
+    })
+
+    // ── Restore entry points ──────────────────────────────────────────────
 
     private suspend fun restoreFromJson(json: String) = restoreAllStaged(json, reEncrypt = false)
-
-    // ── Restore (portable): vault plaintext values re-encrypted on new device
-
     private suspend fun restorePortableFromJson(json: String) = restoreAllStaged(json, reEncrypt = true)
 
-    // ── Staged restore: DB transaction + filesystem writes in two phases ──
+    // ── Staged restore ────────────────────────────────────────────────────
 
     private data class StagedFile(val staged: java.io.File, val final: java.io.File)
 
     private suspend fun restoreAllStaged(json: String, reEncrypt: Boolean) {
+        // Phase 0: pre-validate structure before touching any existing data
         val root = JSONObject(json)
         require(root.optInt("version") == 2) { "إصدار ملف النسخة غير مدعوم" }
-        val stagingDir = java.io.File(context.cacheDir, "restore_staging_${System.currentTimeMillis()}").also { it.mkdirs() }
+        val requiredKeys = listOf("wills", "debts", "assets", "entrusted",
+            "beneficiaries", "digitalAccounts", "documents", "vaultItems")
+        for (key in requiredKeys) {
+            require(root.has(key)) { "بيانات النسخة ناقصة: قسم «$key» مفقود" }
+        }
+
+        // Phase 1: stage all media files (do not touch existing data yet)
+        val stagingDir = java.io.File(context.cacheDir, "restore_staging_${System.currentTimeMillis()}")
+            .also { it.mkdirs() }
         val stagedFiles = mutableListOf<StagedFile>()
         try {
+            // Pre-stage files so we know the filesystem writes will succeed
+            val willsArr = root.getJSONArray("wills")
+            for (i in 0 until willsArr.length()) {
+                val w = willsArr.getJSONObject(i)
+                stageWillMediaFiles(w, i, stagingDir, stagedFiles, reEncrypt)
+            }
+            val docsArr = root.getJSONArray("documents")
+            for (i in 0 until docsArr.length()) {
+                val doc = docsArr.getJSONObject(i)
+                stageDocumentFile(doc, i, stagingDir, stagedFiles)
+            }
+
+            // Phase 2: DB transaction — delete old data and insert new records
             db.withTransaction {
                 willDao.deleteAllWills()
                 debtDao.deleteAll()
@@ -528,69 +566,153 @@ class BackupViewModel @Inject constructor(
                 digitalAccountDao.deleteAll()
                 documentDao.deleteAll()
                 vaultItemDao.deleteAll()
-                restoreWillsStaged(root, stagingDir, stagedFiles, reEncrypt)
+                restoreWillsFromStaged(willsArr, stagedFiles, reEncrypt)
                 restoreDebts(root)
                 restoreAssets(root)
                 restoreEntrusted(root)
                 restoreBeneficiaries(root)
                 restoreDigitalAccounts(root)
-                restoreDocumentsStaged(root, stagingDir, stagedFiles)
+                restoreDocumentsFromStaged(docsArr, stagedFiles)
                 restoreVaultItems(root, reEncrypt)
             }
-            // DB committed — now move all staged files to their final locations
+
+            // Phase 3: DB committed — move staged files to final locations
+            val failedMoves = mutableListOf<String>()
             for (sf in stagedFiles) {
                 sf.final.parentFile?.mkdirs()
-                if (!sf.staged.renameTo(sf.final)) {
-                    // Cross-partition fallback: copy + delete
-                    sf.final.writeBytes(sf.staged.readBytes())
-                    sf.staged.delete()
+                val moved = sf.staged.renameTo(sf.final)
+                if (!moved) {
+                    try {
+                        sf.final.writeBytes(sf.staged.readBytes())
+                        sf.staged.delete()
+                    } catch (e: Exception) {
+                        failedMoves += "${sf.final.name}: ${e.message}"
+                    }
                 }
             }
+            if (failedMoves.isNotEmpty()) {
+                // DB is committed, but some files could not be moved to final location.
+                // Report this clearly — do NOT report as success.
+                throw IllegalStateException(
+                    "تمت الاستعادة جزئياً — فشل نقل ${failedMoves.size} ملف. " +
+                    "أعد تثبيت النسخة الاحتياطية: ${failedMoves.take(2).joinToString()}")
+            }
         } catch (e: Exception) {
-            // DB rolled back — delete staging directory to leave no orphans
+            // Clean up staging directory to leave no orphans
             stagingDir.deleteRecursively()
             throw e
         }
+        // Success: clean up any leftover staging files
+        stagingDir.deleteRecursively()
     }
 
-    // ── Individual table restore helpers ──────────────────────────────────
+    // ── Stage media files (called BEFORE DB transaction) ──────────────────
 
-    private suspend fun restoreWillsStaged(
-        root: JSONObject,
+    private fun stageWillMediaFiles(
+        w: JSONObject,
+        index: Int,
         stagingDir: java.io.File,
         staged: MutableList<StagedFile>,
         reEncrypt: Boolean,
     ) {
-        val arr = root.getJSONArray("wills")
+        val audioFileName = w.optString("audioFileName", "")
+        val audioDataB64 = w.optString("audioData", "")
+        if (audioFileName.isNotEmpty() && audioDataB64.isNotEmpty()) {
+            val rawBytes = Base64.decode(audioDataB64, Base64.NO_WRAP)
+            require(rawBytes.isNotEmpty()) { "بيانات الصوت للوصية ${index + 1} فارغة" }
+            val finalDir = java.io.File(context.filesDir, "audio_wills")
+            val (stagingBytes, finalFileName) = if (reEncrypt) {
+                val enc = crypto.encrypt(rawBytes)
+                (WASI_AUD_MAGIC.toByteArray(Charsets.UTF_8) + enc.iv + enc.ciphertext) to
+                        (audioFileName.substringBeforeLast(".") + ".wasi_audio")
+            } else {
+                rawBytes to audioFileName
+            }
+            val stagingFile = java.io.File(stagingDir, "audio_will_$index")
+            stagingFile.writeBytes(stagingBytes)
+            staged.add(StagedFile(stagingFile, java.io.File(finalDir, finalFileName)))
+        }
+
+        val videoFileName = w.optString("videoFileName", "")
+        val videoDataB64 = w.optString("videoData", "")
+        val videoSkipped = w.optBoolean("videoSkipped", false)
+        if (videoFileName.isNotEmpty() && videoDataB64.isNotEmpty() && !videoSkipped) {
+            val rawBytes = Base64.decode(videoDataB64, Base64.NO_WRAP)
+            require(rawBytes.isNotEmpty()) { "بيانات الفيديو للوصية ${index + 1} فارغة" }
+            val finalDir = java.io.File(context.filesDir, "video_wills")
+            val (stagingBytes, finalFileName) = if (reEncrypt) {
+                val enc = crypto.encrypt(rawBytes)
+                (WASI_VID_MAGIC.toByteArray(Charsets.UTF_8) + enc.iv + enc.ciphertext) to
+                        (videoFileName.substringBeforeLast(".") + ".wasi_video")
+            } else {
+                rawBytes to videoFileName
+            }
+            val stagingFile = java.io.File(stagingDir, "video_will_$index")
+            stagingFile.writeBytes(stagingBytes)
+            staged.add(StagedFile(stagingFile, java.io.File(finalDir, finalFileName)))
+        }
+    }
+
+    private fun stageDocumentFile(
+        doc: JSONObject,
+        index: Int,
+        stagingDir: java.io.File,
+        staged: MutableList<StagedFile>,
+    ) {
+        val fileDataB64 = doc.optString("fileData", "")
+        val fileName = doc.optString("fileName", "")
+        if (fileName.isNotEmpty() && fileDataB64.isNotEmpty()) {
+            val rawBytes = Base64.decode(fileDataB64, Base64.NO_WRAP)
+            val finalDir = java.io.File(context.filesDir, "documents")
+            val stagingFile = java.io.File(stagingDir, "doc_$index")
+            stagingFile.writeBytes(rawBytes)
+            staged.add(StagedFile(stagingFile, java.io.File(finalDir, fileName)))
+        }
+    }
+
+    // ── Restore DB rows using pre-staged file locations ───────────────────
+
+    private suspend fun restoreWillsFromStaged(
+        arr: JSONArray,
+        staged: List<StagedFile>,
+        reEncrypt: Boolean,
+    ) {
+        // Build maps from staged index → final paths
+        val audioDir = java.io.File(context.filesDir, "audio_wills")
+        val videoDir = java.io.File(context.filesDir, "video_wills")
+
         for (i in 0 until arr.length()) {
             val w = arr.getJSONObject(i)
             val audioFileName = w.optString("audioFileName", "")
             val audioDataB64 = w.optString("audioData", "")
+            val videoFileName = w.optString("videoFileName", "")
+            val videoDataB64 = w.optString("videoData", "")
+            val videoSkipped = w.optBoolean("videoSkipped", false)
+
             var restoredAudioPath: String? = null
             if (audioFileName.isNotEmpty() && audioDataB64.isNotEmpty()) {
-                val rawBytes = Base64.decode(audioDataB64, Base64.NO_WRAP)
-                val finalDir = java.io.File(context.filesDir, "audio_wills")
-                val stagingBytes: ByteArray
-                val finalFileName: String
-                if (reEncrypt) {
-                    // Portable restore: rawBytes = raw audio → re-encrypt with device Keystore
-                    val enc = crypto.encrypt(rawBytes)
-                    stagingBytes = "WASI_AUD".toByteArray(Charsets.UTF_8) + enc.iv + enc.ciphertext
-                    finalFileName = audioFileName.substringBeforeLast(".") + ".wasi_audio"
-                } else {
-                    // Device backup restore: rawBytes = WASI_AUD bytes → write as-is
-                    stagingBytes = rawBytes
-                    finalFileName = audioFileName
-                }
-                val stagingFile = java.io.File(stagingDir, "audio_will_$i")
-                stagingFile.writeBytes(stagingBytes)
-                staged.add(StagedFile(stagingFile, java.io.File(finalDir, finalFileName)))
-                restoredAudioPath = java.io.File(finalDir, finalFileName).absolutePath
+                val finalFileName = if (reEncrypt)
+                    audioFileName.substringBeforeLast(".") + ".wasi_audio"
+                else audioFileName
+                restoredAudioPath = java.io.File(audioDir, finalFileName).absolutePath
             }
+
+            var restoredVideoPath: String? = null
+            if (videoFileName.isNotEmpty() && !videoSkipped) {
+                if (videoDataB64.isNotEmpty()) {
+                    val finalFileName = if (reEncrypt)
+                        videoFileName.substringBeforeLast(".") + ".wasi_video"
+                    else videoFileName
+                    restoredVideoPath = java.io.File(videoDir, finalFileName).absolutePath
+                }
+                // If videoSkipped=true, leave videoPath null (file not restored)
+            }
+
             willDao.insertWill(WillEntity(
                 title = w.getString("title"),
                 content = w.getString("content"),
                 audioPath = restoredAudioPath,
+                videoPath = restoredVideoPath,
                 isDraft = w.optBoolean("isDraft", true),
                 legalDisclaimer = w.optBoolean("legalDisclaimer", false),
                 createdAt = w.optLong("createdAt", System.currentTimeMillis()),
@@ -599,21 +721,45 @@ class BackupViewModel @Inject constructor(
         }
     }
 
+    private suspend fun restoreDocumentsFromStaged(
+        arr: JSONArray,
+        staged: List<StagedFile>,
+    ) {
+        val finalDir = java.io.File(context.filesDir, "documents")
+        for (i in 0 until arr.length()) {
+            val doc = arr.getJSONObject(i)
+            val fileDataB64 = doc.optString("fileData", "")
+            val fileName = doc.optString("fileName", "")
+            val legacyFilePath = doc.optString("filePath", "")
+            val restoredFilePath = when {
+                fileName.isNotEmpty() && fileDataB64.isNotEmpty() ->
+                    java.io.File(finalDir, fileName).absolutePath
+                legacyFilePath.isNotEmpty() -> legacyFilePath
+                else -> ""
+            }
+            documentDao.insertDocument(DocumentEntity(
+                title = doc.getString("title"),
+                category = doc.optString("category", ""),
+                filePath = restoredFilePath,
+                mimeType = doc.optString("mimeType", "application/octet-stream"),
+                notes = doc.optString("notes", ""),
+            ))
+        }
+    }
+
     private suspend fun restoreDebts(root: JSONObject) {
         val arr = root.getJSONArray("debts")
         for (i in 0 until arr.length()) {
             val d = arr.getJSONObject(i)
-            val direction = DebtDirection.valueOf(d.getString("direction"))
-            val status = RepaymentStatus.valueOf(d.getString("status"))
             debtDao.insertDebt(DebtEntity(
-                direction = direction,
+                direction = DebtDirection.valueOf(d.getString("direction")),
                 personName = d.getString("personName"),
                 amount = d.getDouble("amount"),
                 currency = d.optString("currency", "EGP"),
                 dueDate = d.optLong("dueDate", 0L).takeIf { it > 0L },
                 description = d.optString("description", ""),
                 evidence = d.optString("evidence", ""),
-                status = status,
+                status = RepaymentStatus.valueOf(d.getString("status")),
             ))
         }
     }
@@ -622,9 +768,8 @@ class BackupViewModel @Inject constructor(
         val arr = root.getJSONArray("assets")
         for (i in 0 until arr.length()) {
             val a = arr.getJSONObject(i)
-            val type = AssetType.valueOf(a.getString("type"))
             assetDao.insertAsset(AssetEntity(
-                type = type,
+                type = AssetType.valueOf(a.getString("type")),
                 name = a.getString("name"),
                 description = a.optString("description", ""),
                 estimatedValue = a.optDouble("estimatedValue", 0.0).takeIf { it > 0.0 },
@@ -683,57 +828,19 @@ class BackupViewModel @Inject constructor(
         }
     }
 
-    private suspend fun restoreDocumentsStaged(
-        root: JSONObject,
-        stagingDir: java.io.File,
-        staged: MutableList<StagedFile>,
-    ) {
-        val arr = root.getJSONArray("documents")
-        for (i in 0 until arr.length()) {
-            val doc = arr.getJSONObject(i)
-            val fileDataB64 = doc.optString("fileData", "")
-            val fileName = doc.optString("fileName", "")
-            val legacyFilePath = doc.optString("filePath", "")
-            var restoredFilePath = ""
-            if (fileName.isNotEmpty() && fileDataB64.isNotEmpty()) {
-                // New format: fileData + fileName (both portable and device backups)
-                val rawBytes = Base64.decode(fileDataB64, Base64.NO_WRAP)
-                val finalDir = java.io.File(context.filesDir, "documents")
-                val stagingFile = java.io.File(stagingDir, "doc_$i")
-                stagingFile.writeBytes(rawBytes)
-                val finalFile = java.io.File(finalDir, fileName)
-                staged.add(StagedFile(stagingFile, finalFile))
-                restoredFilePath = finalFile.absolutePath
-            } else if (legacyFilePath.isNotEmpty()) {
-                // Legacy format: filePath only (old same-device backups)
-                restoredFilePath = legacyFilePath
-            }
-            documentDao.insertDocument(DocumentEntity(
-                title = doc.getString("title"),
-                category = doc.optString("category", ""),
-                filePath = restoredFilePath,
-                mimeType = doc.optString("mimeType", "application/octet-stream"),
-                notes = doc.optString("notes", ""),
-            ))
-        }
-    }
-
     private suspend fun restoreVaultItems(root: JSONObject, reEncrypt: Boolean) {
         val arr = root.getJSONArray("vaultItems")
         for (i in 0 until arr.length()) {
             val v = arr.getJSONObject(i)
-            val category = runCatching {
-                VaultCategory.valueOf(v.optString("category", "OTHER"))
-            }.getOrDefault(VaultCategory.OTHER)
+            val category = runCatching { VaultCategory.valueOf(v.optString("category", "OTHER")) }
+                .getOrDefault(VaultCategory.OTHER)
             val encOrRaw: (String) -> String? = { raw ->
                 raw.takeIf { it.isNotEmpty() }?.let { if (reEncrypt) it.enc() else it }
             }
             vaultItemDao.insert(VaultItemEntity(
-                serviceName = if (reEncrypt) v.getString("serviceName").enc()
-                              else v.getString("serviceName"),
+                serviceName = if (reEncrypt) v.getString("serviceName").enc() else v.getString("serviceName"),
                 category = category,
-                password = if (reEncrypt) v.getString("password").enc()
-                           else v.getString("password"),
+                password = if (reEncrypt) v.getString("password").enc() else v.getString("password"),
                 username = encOrRaw(v.optString("username", "")),
                 email = encOrRaw(v.optString("email", "")),
                 websiteUrl = encOrRaw(v.optString("websiteUrl", "")),
@@ -745,5 +852,9 @@ class BackupViewModel @Inject constructor(
                 updatedAt = v.optLong("updatedAt", System.currentTimeMillis()),
             ))
         }
+    }
+
+    private companion object {
+        const val WASI_AUD_MAGIC = "WASI_AUD"
     }
 }

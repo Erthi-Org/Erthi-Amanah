@@ -25,7 +25,11 @@ import com.erthi.amanah.ui.screens.more.MoreScreen
 import com.erthi.amanah.ui.screens.onboarding.OnboardingScreen
 import com.erthi.amanah.ui.screens.settings.SettingsScreen
 import com.erthi.amanah.ui.screens.vault.PasswordVaultScreen
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.erthi.amanah.ui.screens.will.AudioWillScreen
+import com.erthi.amanah.ui.screens.will.VideoWillPlayerScreen
+import com.erthi.amanah.ui.screens.will.VideoWillScreen
 import com.erthi.amanah.ui.screens.will.WillAccessScreen
 import com.erthi.amanah.ui.screens.will.WillEditorScreen
 import com.erthi.amanah.ui.screens.will.WillScreen
@@ -89,6 +93,11 @@ fun ErthiNavGraph(
                 onEditWill = { navController.navigate(Screen.WillEditor.route) },
                 onWillAccess = { navController.navigate(Screen.WillAccess.route) },
                 onAudioWill = { navController.navigate(Screen.AudioWill.route) },
+                onVideoWill = { navController.navigate(Screen.VideoWill.route) },
+                onPlayVideo = { path ->
+                    navController.navigate(
+                        "video_will_player/${java.net.URLEncoder.encode(path, "UTF-8")}")
+                },
             )
         }
 
@@ -186,6 +195,25 @@ fun ErthiNavGraph(
 
         composable(Screen.AudioWill.route) {
             AudioWillScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.VideoWill.route) {
+            VideoWillScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(
+            route = Screen.VideoWillPlayer.ROUTE,
+            arguments = listOf(navArgument("path") {
+                type = NavType.StringType
+                nullable = false
+            }),
+        ) { backStackEntry ->
+            val path = java.net.URLDecoder.decode(
+                backStackEntry.arguments?.getString("path") ?: "", "UTF-8")
+            VideoWillPlayerScreen(
+                encryptedVideoPath = path,
+                onBack = { navController.popBackStack() },
+            )
         }
     }
 }
