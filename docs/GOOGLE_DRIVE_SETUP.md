@@ -13,24 +13,29 @@ files private to this app and invisible in the user's regular Drive folder.
 
 ## Step 1 — Get the keystore SHA-1
 
-For CI/CD debug builds use the stable keystore stored in the repo secret `DEBUG_KEYSTORE_BASE64`.
-Decode it locally and extract the fingerprint:
+> **SHA-1 vs SHA-256**: Google Cloud Console OAuth client IDs for Android require the
+> **SHA-1** certificate fingerprint, NOT SHA-256. These are two different hashes computed
+> from the same certificate data — do not use the SHA-256 as a substitute.
+
+The stable debug keystore (committed as `DEBUG_KEYSTORE_BASE64`) has these fingerprints:
+
+| Algorithm | Fingerprint |
+|-----------|-------------|
+| **SHA-1** (required for OAuth client) | `A2:F9:4E:1B:E7:96:09:FF:33:78:70:04:27:39:3B:00:8E:10:26:66` |
+| SHA-256 (used by CI verification) | `36:00:E8:FF:78:AA:D2:0C:39:A9:1F:50:A6:19:CF:4B:5B:1D:77:26:5D:15:32:8E:C1:C3:17:BE:91:EB:AB:EA` |
+
+To re-derive these from the secret (e.g. after key rotation):
 
 ```bash
 # Decode the base64 keystore (Linux/macOS)
 echo "$DEBUG_KEYSTORE_BASE64" | base64 -d > /tmp/debug.keystore
 
-# Print SHA-1 and SHA-256 fingerprints
+# Print both SHA-1 and SHA-256 fingerprints
 keytool -list -v \
   -keystore /tmp/debug.keystore \
   -alias "$DEBUG_KEY_ALIAS" \
   -storepass "$DEBUG_STORE_PASSWORD" \
-  | grep -A2 "Certificate fingerprints"
-```
-
-The expected SHA-256 is:
-```
-3600e8ff78aad20c39a91f50a619cf4b5b1d77265d15328ec1c317be91ebabea
+  | grep -A3 "Certificate fingerprints"
 ```
 
 ---

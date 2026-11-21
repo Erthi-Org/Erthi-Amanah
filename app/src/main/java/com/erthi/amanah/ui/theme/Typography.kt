@@ -1,22 +1,42 @@
+@file:OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
+
 package com.erthi.amanah.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.erthi.amanah.R
 
-// XML-based downloadable fonts backed by Android's Font Provider service (GMS).
-// Unlike the Compose runtime Google Fonts provider, these are cached at the OS level
-// by the Android font framework — the font survives app restarts and works offline
-// after the first successful download.
+// Bundled variable font (OFL licence, sourced from google/fonts on GitHub).
+// Works fully offline on first install — no GMS or network required.
+// FontVariation.weight() sets the `wght` axis precisely for each Material 3 slot.
+// minSdk = 26 satisfies the API-26 requirement for FontVariation.Settings.
 val NotoKufiArabicFamily = FontFamily(
-    Font(R.font.noto_kufi_arabic_w400, FontWeight.Normal),
-    Font(R.font.noto_kufi_arabic_w500, FontWeight.Medium),
-    Font(R.font.noto_kufi_arabic_w600, FontWeight.SemiBold),
-    Font(R.font.noto_kufi_arabic_w700, FontWeight.Bold),
+    Font(
+        R.font.noto_kufi_arabic_variable,
+        weight = FontWeight.Normal,
+        variationSettings = FontVariation.Settings(FontVariation.weight(400)),
+    ),
+    Font(
+        R.font.noto_kufi_arabic_variable,
+        weight = FontWeight.Medium,
+        variationSettings = FontVariation.Settings(FontVariation.weight(500)),
+    ),
+    Font(
+        R.font.noto_kufi_arabic_variable,
+        weight = FontWeight.SemiBold,
+        variationSettings = FontVariation.Settings(FontVariation.weight(600)),
+    ),
+    Font(
+        R.font.noto_kufi_arabic_variable,
+        weight = FontWeight.Bold,
+        variationSettings = FontVariation.Settings(FontVariation.weight(700)),
+    ),
 )
 
 val ErthiTypography = Typography(
