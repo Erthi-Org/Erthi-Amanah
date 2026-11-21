@@ -607,6 +607,9 @@ class BackupViewModel @Inject constructor(
         val metaJson = JSONObject(String(metaBytes, Charsets.UTF_8))
         val stagingDir = File(context.cacheDir, "restore_staging_${System.currentTimeMillis()}").also { it.mkdirs() }
         val stagedFiles = mutableListOf<StagedFile>()
+        // Once restoreAllStagedWithJournal is called, the Room journal owns the staging dir.
+        // The caller must not delete it — the recovery worker will clean up after verified moves.
+        var journalOwned = false
         try {
             val fileCount = din.readInt()
             require(fileCount in 0..MAX_ARCHIVE_FILE_COUNT) { "عدد الملفات في النسخة غير صالح: $fileCount" }
@@ -624,9 +627,13 @@ class BackupViewModel @Inject constructor(
                 stagedByFileId[fileId] = stagingFile
             }
             buildStagedFilesFromStreamingMetadata(metaJson, stagedByFileId, stagedFiles)
+            journalOwned = true  // DB commit may happen inside; staging dir is now journal's
             restoreAllStagedWithJournal(metaJson, stagingDir, stagedFiles, reEncrypt = false)
         } catch (e: Exception) {
-            stagingDir.deleteRecursively()
+            // Safe to delete only if the journal was never committed (pre-commit failure).
+            // restoreAllStagedWithJournal already deleted staging on pre-commit failures.
+            // On post-commit failures, staging must survive for the recovery worker.
+            if (!journalOwned) stagingDir.deleteRecursively()
             throw e
         }
     }
@@ -658,6 +665,7 @@ class BackupViewModel @Inject constructor(
         val metaJson = JSONObject(String(metaBytes, Charsets.UTF_8))
         val stagingDir = File(context.cacheDir, "restore_staging_${System.currentTimeMillis()}").also { it.mkdirs() }
         val stagedFiles = mutableListOf<StagedFile>()
+        var journalOwned = false
         try {
             val fileCount = din.readInt()
             require(fileCount in 0..MAX_ARCHIVE_FILE_COUNT) { "عدد الملفات غير صالح: $fileCount" }
@@ -679,9 +687,10 @@ class BackupViewModel @Inject constructor(
                 stagedByFileId[fileId] = stagingFile
             }
             buildStagedFilesFromStreamingMetadata(metaJson, stagedByFileId, stagedFiles)
+            journalOwned = true
             restoreAllStagedWithJournal(metaJson, stagingDir, stagedFiles, reEncrypt = true)
         } catch (e: Exception) {
-            stagingDir.deleteRecursively()
+            if (!journalOwned) stagingDir.deleteRecursively()
             throw e
         }
     }
@@ -865,6 +874,7 @@ class BackupViewModel @Inject constructor(
         for (key in requiredKeys) require(root.has(key)) { "بيانات ناقصة: $key" }
         val stagingDir = File(context.cacheDir, "restore_staging_${System.currentTimeMillis()}").also { it.mkdirs() }
         val stagedFiles = mutableListOf<StagedFile>()
+        var journalOwned = false
         try {
             val willsArr = root.getJSONArray("wills")
             for (i in 0 until willsArr.length()) {
@@ -874,9 +884,10 @@ class BackupViewModel @Inject constructor(
             for (i in 0 until docsArr.length()) {
                 stageDocumentFile(docsArr.getJSONObject(i), i, stagingDir, stagedFiles)
             }
+            journalOwned = true
             restoreAllStagedWithJournal(root, stagingDir, stagedFiles, reEncrypt)
         } catch (e: Exception) {
-            stagingDir.deleteRecursively()
+            if (!journalOwned) stagingDir.deleteRecursively()
             throw e
         }
     }

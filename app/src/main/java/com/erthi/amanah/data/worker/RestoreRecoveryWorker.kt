@@ -15,7 +15,11 @@ import java.io.FileOutputStream
 /**
  * Runs at app startup via WorkManager. If a previous restore was interrupted after the DB
  * transaction committed (journal present in Room), completes the pending file moves idempotently.
- * Returns Result.retry() on any recoverable failure so WorkManager re-attempts on next launch.
+ *
+ * Failure classification:
+ *   - IO error during copy/rename  → retriable (Result.retry): file data still in staged location
+ *   - staged missing + dest missing → unrecoverable data loss (Result.failure): nothing to recover
+ *   - staged missing + dest present → already moved (success for that file)
  */
 @HiltWorker
 class RestoreRecoveryWorker @AssistedInject constructor(
@@ -26,9 +30,15 @@ class RestoreRecoveryWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         val journal = restoreJournalDao.getPendingJournal() ?: return Result.success()
+
+        // Clean up stale .tmp files from previous failed attempts before retrying.
+        val stagingDir = File(journal.stagingDirPath)
+        stagingDir.listFiles { f -> f.name.endsWith(".tmp") }?.forEach { it.delete() }
+
         return try {
             val filesArr = JSONArray(journal.stagedJson)
-            val incomplete = mutableListOf<String>()
+            var hasRetriable = false
+            var hasUnrecoverable = false
 
             for (i in 0 until filesArr.length()) {
                 val entry = filesArr.getJSONObject(i)
@@ -37,46 +47,54 @@ class RestoreRecoveryWorker @AssistedInject constructor(
 
                 when {
                     staged.exists() -> {
-                        // Staged file present — complete the move
+                        // Staged file present — complete the move atomically via tmp.
                         final.parentFile?.mkdirs()
                         val tmpDest = File(final.parentFile, "${final.name}.tmp")
                         try {
                             streamCopy(staged, tmpDest)
-                            if (!tmpDest.renameTo(final)) {
-                                // rename may fail cross-filesystem; tmpDest is already the data
-                                if (final.exists()) final.delete()
-                                if (!tmpDest.renameTo(final)) tmpDest.renameTo(final).also {
-                                    if (!it) incomplete += final.name
-                                }
+                            if (tmpDest.length() != staged.length()) {
+                                // Copy truncated — discard and retry next time.
+                                tmpDest.delete()
+                                hasRetriable = true
+                                continue
                             }
-                            if (final.exists() && final.length() == staged.length()) {
+                            // Single atomic rename attempt; if it fails (cross-fs), leave tmp
+                            // and retry next launch — do NOT delete staged yet.
+                            if (tmpDest.renameTo(final)) {
                                 staged.delete()
                             } else {
-                                incomplete += final.name
+                                tmpDest.delete()
+                                hasRetriable = true
                             }
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             tmpDest.delete()
-                            incomplete += final.name
+                            hasRetriable = true
                         }
                     }
                     final.exists() && final.length() > 0 -> {
-                        // Staged already moved in a previous attempt — nothing to do
+                        // Already moved in a previous attempt — nothing to do.
                     }
                     else -> {
-                        // Neither staged nor destination exists — data is gone
-                        incomplete += final.name
+                        // Neither staged nor destination exists — data is gone, cannot recover.
+                        hasUnrecoverable = true
                     }
                 }
             }
 
-            // Clean up staging dir only after all moves are verified
-            if (incomplete.isEmpty()) {
-                runCatching { File(journal.stagingDirPath).deleteRecursively() }
-                restoreJournalDao.deleteJournal(journal.sessionId)
-                Result.success()
-            } else {
-                // Keep journal so the next retry can attempt the remaining moves
-                Result.retry()
+            when {
+                hasUnrecoverable -> {
+                    // Data is permanently lost for at least one file; clear the journal so we
+                    // don't loop forever, and report failure so WorkManager surfaces it.
+                    runCatching { stagingDir.deleteRecursively() }
+                    restoreJournalDao.deleteJournal(journal.sessionId)
+                    Result.failure()
+                }
+                hasRetriable -> Result.retry()
+                else -> {
+                    runCatching { stagingDir.deleteRecursively() }
+                    restoreJournalDao.deleteJournal(journal.sessionId)
+                    Result.success()
+                }
             }
         } catch (_: Exception) {
             Result.retry()
