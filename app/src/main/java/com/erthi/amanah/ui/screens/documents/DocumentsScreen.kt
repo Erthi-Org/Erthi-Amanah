@@ -1,17 +1,19 @@
 package com.erthi.amanah.ui.screens.documents
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -25,15 +27,49 @@ fun DocumentsScreen(
     onBack: () -> Unit,
     viewModel: DocumentViewModel = hiltViewModel(),
 ) {
-    var showAddDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     val documents by viewModel.documents.collectAsState()
+
+    // Pending file URI from SAF picker; null means no file selected yet
+    var pickedUri by remember { mutableStateOf<Uri?>(null) }
+    var pickedFileName by remember { mutableStateOf("") }
+    var showAddDialog by remember { mutableStateOf(false) }
+
+    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        pickedUri = uri
+        if (uri != null) {
+            // Try to resolve display name via ContentResolver
+            pickedFileName = try {
+                context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+                    ?.use { c -> if (c.moveToFirst()) c.getString(0) else "" } ?: ""
+            } catch (_: Exception) { "" }
+        }
+        showAddDialog = true
+    }
 
     if (showAddDialog) {
         AddDocumentDialog(
-            onDismiss = { showAddDialog = false },
-            onConfirm = { title, category, notes ->
-                viewModel.addDocument(title, category, notes)
+            pickedUri = pickedUri,
+            pickedFileName = pickedFileName,
+            onPickFile = {
                 showAddDialog = false
+                filePicker.launch(arrayOf("*/*"))
+            },
+            onDismiss = {
+                showAddDialog = false
+                pickedUri = null
+                pickedFileName = ""
+            },
+            onConfirm = { title, category, notes ->
+                val uri = pickedUri
+                if (uri != null) {
+                    viewModel.addDocumentWithFile(uri, title, category, notes)
+                } else {
+                    viewModel.addDocument(title, category, notes)
+                }
+                showAddDialog = false
+                pickedUri = null
+                pickedFileName = ""
             },
         )
     }
@@ -42,17 +78,22 @@ fun DocumentsScreen(
         topBar = { ErthiTopBar(title = "الوثائق المهمة", onBack = onBack) },
         containerColor = NavyDeep,
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }, containerColor = SilverBlue, contentColor = NavyDeep) {
-                Icon(Icons.Default.Add, null)
-            }
+            FloatingActionButton(
+                onClick = { filePicker.launch(arrayOf("*/*")) },
+                containerColor = DocumentsColor,
+                contentColor = NavyDeep,
+            ) { Icon(Icons.Default.AttachFile, null) }
         },
     ) { padding ->
         if (documents.isEmpty()) {
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-                EmptyState("لا توجد وثائق مرفقة\nاضغط + لتسجيل وثيقة")
+                EmptyState("لا توجد وثائق مرفقة\nاضغط + لإرفاق ملف أو تسجيل وثيقة")
             }
         } else {
-            LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 items(documents, key = { it.id }) { doc ->
                     DocumentCard(doc, onDelete = { viewModel.delete(doc) })
                 }
@@ -64,40 +105,113 @@ fun DocumentsScreen(
 
 @Composable
 private fun DocumentCard(doc: DocumentEntity, onDelete: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = NavyCard)) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = NavyCard),
+    ) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Description, null, tint = SilverBlue, modifier = Modifier.size(28.dp))
+            // Icon reflects whether file is attached
+            val hasFile = doc.filePath.isNotEmpty()
+            Icon(
+                if (hasFile) Icons.Default.Description else Icons.Default.TextSnippet,
+                null,
+                tint = if (hasFile) DocumentsColor else TextMuted,
+                modifier = Modifier.size(28.dp),
+            )
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(doc.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = TextPrimary)
-                if (doc.category.isNotBlank()) Text(doc.category, style = MaterialTheme.typography.labelSmall, color = SilverBlue)
+                if (doc.category.isNotBlank()) Text(doc.category, style = MaterialTheme.typography.labelSmall, color = DocumentsColor)
+                if (hasFile) {
+                    val name = java.io.File(doc.filePath).name
+                    Text(name, style = MaterialTheme.typography.labelSmall, color = TextSecondary, maxLines = 1)
+                }
                 if (doc.notes.isNotBlank()) Text(doc.notes, style = MaterialTheme.typography.bodySmall, color = TextSecondary, maxLines = 1)
             }
-            IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, null, tint = EmergencyRed, modifier = Modifier.size(20.dp)) }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, null, tint = EmergencyRed, modifier = Modifier.size(20.dp))
+            }
         }
     }
 }
 
 @Composable
-private fun AddDocumentDialog(onDismiss: () -> Unit, onConfirm: (String, String, String) -> Unit) {
-    var title by remember { mutableStateOf("") }
+private fun AddDocumentDialog(
+    pickedUri: android.net.Uri?,
+    pickedFileName: String,
+    onPickFile: () -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String, String) -> Unit,
+) {
+    var title by remember(pickedFileName) { mutableStateOf(pickedFileName.substringBeforeLast(".").ifBlank { "" }) }
     var category by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
 
     AlertDialog(
-        onDismissRequest = onDismiss, containerColor = NavyCard,
-        title = { Text("تسجيل وثيقة", color = TextPrimary, fontWeight = FontWeight.Bold) },
+        onDismissRequest = onDismiss,
+        containerColor = NavyCard,
+        title = {
+            Text(
+                if (pickedUri != null) "تسجيل وثيقة مع ملف" else "تسجيل وثيقة",
+                color = TextPrimary, fontWeight = FontWeight.Bold,
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("عنوان الوثيقة *", color = TextSecondary) }, modifier = Modifier.fillMaxWidth(), colors = dialogFieldColors(), singleLine = true, placeholder = { Text("مثال: بطاقة رقم قومي، عقد تأمين", color = TextMuted) })
-                OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("التصنيف", color = TextSecondary) }, modifier = Modifier.fillMaxWidth(), colors = dialogFieldColors(), singleLine = true, placeholder = { Text("مثال: هوية، تأمين، عقار", color = TextMuted) })
-                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("ملاحظات", color = TextSecondary) }, modifier = Modifier.fillMaxWidth(), colors = dialogFieldColors(), maxLines = 2)
+                // Show attached file info or offer to pick
+                if (pickedUri != null && pickedFileName.isNotBlank()) {
+                    Card(colors = CardDefaults.cardColors(containerColor = DocumentsColor.copy(alpha = 0.12f)), shape = RoundedCornerShape(8.dp)) {
+                        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.AttachFile, null, tint = DocumentsColor, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(pickedFileName, style = MaterialTheme.typography.labelSmall, color = DocumentsColor, maxLines = 1)
+                        }
+                    }
+                } else {
+                    TextButton(onClick = onPickFile) {
+                        Icon(Icons.Default.AttachFile, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("إرفاق ملف (اختياري)", color = DocumentsColor)
+                    }
+                }
+                OutlinedTextField(
+                    value = title, onValueChange = { title = it },
+                    label = { Text("عنوان الوثيقة *", color = TextSecondary) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = dialogFieldColors(), singleLine = true,
+                    placeholder = { Text("مثال: بطاقة رقم قومي", color = TextMuted) },
+                )
+                OutlinedTextField(
+                    value = category, onValueChange = { category = it },
+                    label = { Text("التصنيف", color = TextSecondary) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = dialogFieldColors(), singleLine = true,
+                    placeholder = { Text("مثال: هوية، تأمين", color = TextMuted) },
+                )
+                OutlinedTextField(
+                    value = notes, onValueChange = { notes = it },
+                    label = { Text("ملاحظات", color = TextSecondary) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = dialogFieldColors(), maxLines = 2,
+                )
             }
         },
-        confirmButton = { TextButton(onClick = { onConfirm(title, category, notes) }, enabled = title.isNotBlank()) { Text("إضافة", color = SilverBlue, fontWeight = FontWeight.Bold) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("إلغاء", color = TextSecondary) } },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(title, category, notes) },
+                enabled = title.isNotBlank(),
+            ) { Text("إضافة", color = DocumentsColor, fontWeight = FontWeight.Bold) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("إلغاء", color = TextSecondary) }
+        },
     )
 }
 
 @Composable
-private fun dialogFieldColors() = OutlinedTextFieldDefaults.colors(focusedBorderColor = SilverBlue, unfocusedBorderColor = DividerColor, focusedLabelColor = SilverBlue, cursorColor = SilverBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary)
+private fun dialogFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = DocumentsColor, unfocusedBorderColor = DividerColor,
+    focusedLabelColor = DocumentsColor, cursorColor = DocumentsColor,
+    focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+)
