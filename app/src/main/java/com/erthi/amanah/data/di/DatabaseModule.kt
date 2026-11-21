@@ -6,12 +6,26 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.erthi.amanah.data.db.ErthiDatabase
 import com.erthi.amanah.data.db.dao.*
+import com.erthi.amanah.data.db.dao.RestoreJournalDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            """CREATE TABLE IF NOT EXISTS `restore_journal` (
+                `sessionId` TEXT NOT NULL PRIMARY KEY,
+                `stagedJson` TEXT NOT NULL,
+                `stagingDirPath` TEXT NOT NULL,
+                `createdAt` INTEGER NOT NULL
+            )""".trimIndent()
+        )
+    }
+}
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(database: SupportSQLiteDatabase) {
@@ -48,7 +62,7 @@ object DatabaseModule {
             ErthiDatabase::class.java,
             "erthi_vault.db",
         )
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .fallbackToDestructiveMigration()
             .build()
     }
@@ -61,4 +75,5 @@ object DatabaseModule {
     @Provides fun provideDocumentDao(db: ErthiDatabase): DocumentDao = db.documentDao()
     @Provides fun provideBeneficiaryDao(db: ErthiDatabase): BeneficiaryDao = db.beneficiaryDao()
     @Provides fun provideVaultItemDao(db: ErthiDatabase): VaultItemDao = db.vaultItemDao()
+    @Provides fun provideRestoreJournalDao(db: ErthiDatabase): RestoreJournalDao = db.restoreJournalDao()
 }

@@ -4,6 +4,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.erthi.amanah.data.db.dao.*
 import com.erthi.amanah.data.db.entity.*
+import com.erthi.amanah.data.db.entity.RestoreJournalEntity
 
 @Database(
     entities = [
@@ -15,8 +16,9 @@ import com.erthi.amanah.data.db.entity.*
         DocumentEntity::class,
         BeneficiaryEntity::class,
         VaultItemEntity::class,
+        RestoreJournalEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class ErthiDatabase : RoomDatabase() {
@@ -28,4 +30,5 @@ abstract class ErthiDatabase : RoomDatabase() {
     abstract fun documentDao(): DocumentDao
     abstract fun beneficiaryDao(): BeneficiaryDao
     abstract fun vaultItemDao(): VaultItemDao
+    abstract fun restoreJournalDao(): RestoreJournalDao
 }

@@ -91,8 +91,8 @@ fun VideoWillScreen(
     // Cleanup stale temp files from previous sessions
     LaunchedEffect(Unit) { viewModel.cleanupTempFiles() }
 
-    // Fix 5: bind camera only when facing or permissions change, NOT on every recomposition
-    LaunchedEffect(cameraFacing, hasCameraPermission, hasMicPermission) {
+    // P0.3: include previewViewRef so camera re-binds when PreviewView is recreated
+    LaunchedEffect(cameraFacing, hasCameraPermission, hasMicPermission, previewViewRef) {
         val pv = previewViewRef ?: return@LaunchedEffect
         if (!hasCameraPermission || !hasMicPermission) return@LaunchedEffect
         // Guard: don't unbind while recording is active (would abort the recording)
