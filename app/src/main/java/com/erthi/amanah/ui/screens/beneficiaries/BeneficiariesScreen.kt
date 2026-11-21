@@ -1,18 +1,17 @@
 package com.erthi.amanah.ui.screens.beneficiaries
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -45,7 +44,7 @@ fun BeneficiariesScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddDialog = true },
-                containerColor = SilverBlue,
+                containerColor = BeneficiariesColor,
                 contentColor = NavyDeep,
             ) { Icon(Icons.Default.Add, null) }
         },
@@ -70,22 +69,30 @@ fun BeneficiariesScreen(
 
 @Composable
 private fun BeneficiaryCard(b: BeneficiaryEntity, onDelete: () -> Unit) {
+    val isEmergency = b.isEmergencyContact
+    val iconColor = if (isEmergency) EmergencyRed else BeneficiariesColor
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = NavyCard),
     ) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                if (b.isEmergencyContact) Icons.Default.Warning else Icons.Default.Person,
-                null,
-                tint = if (b.isEmergencyContact) EmergencyRed else SilverBlue,
-                modifier = Modifier.size(28.dp),
-            )
+            Box(
+                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp))
+                    .background(iconColor.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    if (isEmergency) Icons.Default.Warning else Icons.Default.Person,
+                    null,
+                    tint = iconColor,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(b.fullName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = TextPrimary)
-                Text(b.relation, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                Text(b.relation, style = MaterialTheme.typography.bodySmall, color = if (isEmergency) EmergencyRed else BeneficiariesColor)
                 if (b.phone.isNotBlank()) Text(b.phone, style = MaterialTheme.typography.labelSmall, color = TextMuted)
             }
             IconButton(onClick = onDelete) {
@@ -117,14 +124,14 @@ private fun AddBeneficiaryDialog(
                 OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("رقم الهاتف", color = TextSecondary) }, modifier = Modifier.fillMaxWidth(), colors = dialogFieldColors(), singleLine = true)
                 OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("البريد الإلكتروني", color = TextSecondary) }, modifier = Modifier.fillMaxWidth(), colors = dialogFieldColors(), singleLine = true)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = isEmergency, onCheckedChange = { isEmergency = it }, colors = CheckboxDefaults.colors(checkedColor = SilverBlue))
+                    Checkbox(checked = isEmergency, onCheckedChange = { isEmergency = it }, colors = CheckboxDefaults.colors(checkedColor = BeneficiariesColor))
                     Text("جهة اتصال للطوارئ", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(name, relation, phone, email, isEmergency) }, enabled = name.isNotBlank()) {
-                Text("إضافة", color = SilverBlue, fontWeight = FontWeight.Bold)
+                Text("إضافة", color = BeneficiariesColor, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("إلغاء", color = TextSecondary) } },
@@ -133,7 +140,7 @@ private fun AddBeneficiaryDialog(
 
 @Composable
 private fun dialogFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = SilverBlue, unfocusedBorderColor = DividerColor,
-    focusedLabelColor = SilverBlue, cursorColor = SilverBlue,
+    focusedBorderColor = BeneficiariesColor, unfocusedBorderColor = DividerColor,
+    focusedLabelColor = BeneficiariesColor, cursorColor = BeneficiariesColor,
     focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
 )

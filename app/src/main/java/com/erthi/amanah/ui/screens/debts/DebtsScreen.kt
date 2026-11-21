@@ -1,17 +1,18 @@
 package com.erthi.amanah.ui.screens.debts
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -48,7 +49,7 @@ fun DebtsScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddDialog = true },
-                containerColor = SilverBlue,
+                containerColor = DebtsColor,
                 contentColor = NavyDeep,
             ) { Icon(Icons.Default.Add, null) }
         },
@@ -89,9 +90,19 @@ private fun DebtCard(debt: DebtEntity, onDelete: () -> Unit) {
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            val icon = if (debt.direction == DebtDirection.OWED_BY_ME)
+                Icons.Default.TrendingDown else Icons.Default.TrendingUp
+            Box(
+                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp))
+                    .background(DebtsColor.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, null, tint = DebtsColor, modifier = Modifier.size(22.dp))
+            }
+            Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(debt.personName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = TextPrimary)
-                Text("${debt.amount} ${debt.currency}", style = MaterialTheme.typography.bodyMedium, color = SilverBlue)
+                Text("${debt.amount} ${debt.currency}", style = MaterialTheme.typography.bodyMedium, color = DebtsColor)
                 if (debt.description.isNotBlank()) {
                     Text(debt.description, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                 }
@@ -125,7 +136,7 @@ private fun AddDebtDialog(
                         onClick = { direction = DebtDirection.OWED_BY_ME },
                         label = { Text("عليّ") },
                         modifier = Modifier.weight(1f),
-                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = SilverBlue, selectedLabelColor = NavyDeep),
+                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = DebtsColor.copy(alpha = 0.18f), selectedLabelColor = DebtsColor),
                     )
                     Spacer(Modifier.width(8.dp))
                     FilterChip(
@@ -133,33 +144,27 @@ private fun AddDebtDialog(
                         onClick = { direction = DebtDirection.OWED_TO_ME },
                         label = { Text("لي") },
                         modifier = Modifier.weight(1f),
-                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = SilverBlue, selectedLabelColor = NavyDeep),
+                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = DebtsColor.copy(alpha = 0.18f), selectedLabelColor = DebtsColor),
                     )
                 }
                 OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
+                    value = name, onValueChange = { name = it },
                     label = { Text("اسم الشخص", color = TextSecondary) },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = dialogFieldColors(),
-                    singleLine = true,
+                    colors = dialogFieldColors(), singleLine = true,
                 )
                 OutlinedTextField(
-                    value = amount,
-                    onValueChange = { amount = it },
+                    value = amount, onValueChange = { amount = it },
                     label = { Text("المبلغ (جنيه)", color = TextSecondary) },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = dialogFieldColors(),
-                    singleLine = true,
+                    colors = dialogFieldColors(), singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
                 OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
+                    value = description, onValueChange = { description = it },
                     label = { Text("ملاحظات (اختياري)", color = TextSecondary) },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = dialogFieldColors(),
-                    maxLines = 2,
+                    colors = dialogFieldColors(), maxLines = 2,
                 )
             }
         },
@@ -167,7 +172,7 @@ private fun AddDebtDialog(
             TextButton(
                 onClick = { onConfirm(name, amount.toDoubleOrNull() ?: 0.0, description, direction) },
                 enabled = name.isNotBlank() && (amount.toDoubleOrNull() ?: 0.0) > 0,
-            ) { Text("إضافة", color = SilverBlue, fontWeight = FontWeight.Bold) }
+            ) { Text("إضافة", color = DebtsColor, fontWeight = FontWeight.Bold) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("إلغاء", color = TextSecondary) }
@@ -177,7 +182,7 @@ private fun AddDebtDialog(
 
 @Composable
 private fun dialogFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = SilverBlue, unfocusedBorderColor = DividerColor,
-    focusedLabelColor = SilverBlue, cursorColor = SilverBlue,
+    focusedBorderColor = DebtsColor, unfocusedBorderColor = DividerColor,
+    focusedLabelColor = DebtsColor, cursorColor = DebtsColor,
     focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
 )
