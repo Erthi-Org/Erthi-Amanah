@@ -316,6 +316,15 @@ class BackupViewModel @Inject constructor(
                 JSONObject().apply {
                     put("title", w.title); put("content", w.content)
                     put("isDraft", w.isDraft); put("updatedAt", w.updatedAt)
+                    put("createdAt", w.createdAt); put("legalDisclaimer", w.legalDisclaimer)
+                    // Embed encrypted audio bytes so the file can be restored on the same device
+                    w.audioPath?.also { path ->
+                        val f = java.io.File(path)
+                        if (f.exists()) {
+                            put("audioFileName", f.name)
+                            put("audioData", Base64.encodeToString(f.readBytes(), Base64.NO_WRAP))
+                        }
+                    }
                 }
             }))
             put("debts", JSONArray(debts.map { d ->
@@ -400,6 +409,9 @@ class BackupViewModel @Inject constructor(
                 JSONObject().apply {
                     put("title", w.title); put("content", w.content)
                     put("isDraft", w.isDraft); put("updatedAt", w.updatedAt)
+                    put("createdAt", w.createdAt); put("legalDisclaimer", w.legalDisclaimer)
+                    // Audio files are device-Keystore encrypted; include filename as metadata only
+                    w.audioPath?.also { path -> put("audioFileName", java.io.File(path).name) }
                 }
             }))
             put("debts", JSONArray(debts.map { d ->
@@ -522,10 +534,23 @@ class BackupViewModel @Inject constructor(
         val arr = root.getJSONArray("wills")
         for (i in 0 until arr.length()) {
             val w = arr.getJSONObject(i)
+            // Restore embedded audio bytes (device-bound backup only)
+            val audioFileName = w.optString("audioFileName", "")
+            val audioDataB64 = w.optString("audioData", "")
+            var restoredAudioPath: String? = null
+            if (audioFileName.isNotEmpty() && audioDataB64.isNotEmpty()) {
+                val audioDir = java.io.File(context.filesDir, "audio_wills").also { it.mkdirs() }
+                val audioFile = java.io.File(audioDir, audioFileName)
+                audioFile.writeBytes(Base64.decode(audioDataB64, Base64.NO_WRAP))
+                restoredAudioPath = audioFile.absolutePath
+            }
             willDao.insertWill(WillEntity(
                 title = w.getString("title"),
                 content = w.getString("content"),
+                audioPath = restoredAudioPath,
                 isDraft = w.optBoolean("isDraft", true),
+                legalDisclaimer = w.optBoolean("legalDisclaimer", false),
+                createdAt = w.optLong("createdAt", System.currentTimeMillis()),
                 updatedAt = w.optLong("updatedAt", System.currentTimeMillis()),
             ))
         }

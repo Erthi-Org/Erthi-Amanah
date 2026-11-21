@@ -45,7 +45,8 @@ fun WillScreen(
         ) {
             item {
                 Box(
-                    modifier = Modifier.fillMaxWidth().height(120.dp)
+                    modifier = Modifier.fillMaxWidth()
+                        .heightIn(min = 100.dp)
                         .clip(RoundedCornerShape(16.dp)).background(NavyCard),
                     contentAlignment = Alignment.Center,
                 ) {
