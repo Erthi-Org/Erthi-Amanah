@@ -8,6 +8,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.erthi.amanah.ui.screens.about.AboutAppScreen
 import com.erthi.amanah.ui.screens.about.AboutErthiScreen
+import com.erthi.amanah.ui.screens.settings.EncryptionInfoScreen
+import com.erthi.amanah.ui.screens.settings.LanguagePickerScreen
+import com.erthi.amanah.ui.screens.settings.PrivacyScreen
+import com.erthi.amanah.ui.screens.settings.RecoveryKeyScreen
 import com.erthi.amanah.ui.screens.assets.AssetsScreen
 import com.erthi.amanah.ui.screens.auth.AuthScreen
 import com.erthi.amanah.ui.screens.auth.SetPinScreen
@@ -159,7 +163,28 @@ fun ErthiNavGraph(
                         popUpTo(Screen.Home.route) { inclusive = true }
                     }
                 },
+                onNavigatePrivacy = { navController.navigate(Screen.Privacy.route) },
+                onNavigateEncryption = { navController.navigate(Screen.EncryptionInfo.route) },
+                onNavigateRecoveryKey = { navController.navigate(Screen.RecoveryKey.route) },
+                onNavigateDeathVerification = { /* Coming soon — no-op */ },
+                onNavigateLanguagePicker = { navController.navigate(Screen.LanguagePicker.route) },
             )
+        }
+
+        composable(Screen.Privacy.route) {
+            PrivacyScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.EncryptionInfo.route) {
+            EncryptionInfoScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.RecoveryKey.route) {
+            RecoveryKeyScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.LanguagePicker.route) {
+            LanguagePickerScreen(onBack = { navController.popBackStack() })
         }
 
         composable(Screen.AboutApp.route) {

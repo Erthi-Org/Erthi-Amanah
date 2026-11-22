@@ -35,8 +35,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onStop() {
-        super.onStop()
+    // Lock on deliberate user navigation away (Home, Recents, Back-to-launcher).
+    // onStop() is intentionally NOT used: it fires when any child activity launches
+    // (e.g. the system file/document picker), which would force re-auth on every
+    // attachment attempt. onUserLeaveHint() fires only on user-initiated background.
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
         authViewModel?.lock()
     }
 }

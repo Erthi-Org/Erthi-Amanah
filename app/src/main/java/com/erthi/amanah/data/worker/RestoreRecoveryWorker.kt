@@ -1,6 +1,7 @@
 package com.erthi.amanah.data.worker
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
@@ -96,9 +97,14 @@ class RestoreRecoveryWorker @AssistedInject constructor(
             when {
                 hasUnrecoverable -> {
                     // Data is permanently lost for at least one file; clear the journal so we
-                    // don't loop forever, and report failure so WorkManager surfaces it.
+                    // don't loop forever, persist a durable failure marker for the UI to surface,
+                    // and report failure so WorkManager also records it.
                     runCatching { stagingDir.deleteRecursively() }
                     restoreJournalDao.deleteJournal(journal.sessionId)
+                    prefs().edit()
+                        .putLong(PREF_KEY_LOSS_AT, System.currentTimeMillis())
+                        .putString(PREF_KEY_LOSS_SESSION, journal.sessionId)
+                        .apply()
                     Result.failure()
                 }
                 hasRetriable -> Result.retry()
@@ -126,7 +132,13 @@ class RestoreRecoveryWorker @AssistedInject constructor(
         }
     }
 
-    private companion object {
-        const val COPY_BUFFER_SIZE = 256 * 1024
+    private fun prefs(): SharedPreferences =
+        applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    companion object {
+        private const val COPY_BUFFER_SIZE = 256 * 1024
+        const val PREFS_NAME = "erthi_recovery_state"
+        const val PREF_KEY_LOSS_AT = "data_loss_at_ms"
+        const val PREF_KEY_LOSS_SESSION = "data_loss_session_id"
     }
 }

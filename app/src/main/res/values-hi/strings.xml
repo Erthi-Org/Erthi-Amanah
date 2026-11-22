@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- हिन्दी — अनंतिम अनुवाद (मूल वक्ता द्वारा समीक्षा नहीं की गई) -->
+<resources>
+    <string name="app_name">मेरी वसीयत</string>
+    <string name="app_tagline">Erthi Amanah — एक Erthi धर्मार्थ पहल</string>
+    <string name="nav_home">होम</string>
+    <string name="nav_will">वसीयत</string>
+    <string name="nav_finance">वित्त</string>
+    <string name="nav_debts">ऋण</string>
+    <string name="nav_assets">संपत्ति</string>
+    <string name="nav_entrusted">अमानत</string>
+    <string name="nav_digital">डिजिटल खाते</string>
+    <string name="nav_documents">दस्तावेज़</string>
+    <string name="nav_beneficiaries">परिवार और लाभार्थी</string>
+    <string name="nav_emergency">आपातकाल</string>
+    <string name="nav_backup">बैकअप</string>
+    <string name="nav_settings">सेटिंग्स और सुरक्षा</string>
+    <string name="btn_start">शुरू करें</string>
+    <string name="welcome_title">स्वागत है</string>
+    <string name="settings_title">सेटिंग्स और सुरक्षा</string>
+    <string name="settings_lock">ऐप लॉक करें</string>
+    <string name="settings_lock_desc">फिंगरप्रिंट या PIN से</string>
+    <string name="settings_encrypt">डेटा एन्क्रिप्शन</string>
+    <string name="settings_encrypt_desc">स्थानीय AES-256 एन्क्रिप्शन — सक्रिय</string>
+    <string name="settings_recovery_key">पुनर्प्राप्ति कुंजी</string>
+    <string name="settings_privacy">गोपनीयता</string>
+    <string name="settings_privacy_desc">आपका डेटा आपके डिवाइस पर रहता है</string>
+    <string name="btn_save">सहेजें</string>
+    <string name="btn_cancel">रद्द करें</string>
+    <string name="btn_delete">हटाएं</string>
+    <string name="btn_add">जोड़ें</string>
+    <string name="btn_back">वापस</string>
+    <string name="auth_prompt_title">पहचान सत्यापित करें</string>
+    <string name="set_pin_title">PIN बनाएं</string>
+    <string name="pin_mismatch">PIN मेल नहीं खाते</string>
+    <string name="language_picker_title">भाषा चुनें</string>
+    <string name="empty_list">कोई डेटा नहीं</string>
+    <string name="backup_title">बैकअप</string>
+    <string name="documents_title">दस्तावेज़</string>
+    <string name="beneficiaries_title">परिवार और लाभार्थी</string>
+    <string name="emergency_title">आपातकाल</string>
+</resources>

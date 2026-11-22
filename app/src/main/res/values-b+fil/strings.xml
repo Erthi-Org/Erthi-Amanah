@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Filipino — pansamantalang pagsasalin (hindi pa sinuri ng katutubong nagsasalita) -->
+<resources>
+    <string name="app_name">Aking Testamento</string>
+    <string name="app_tagline">Erthi Amanah — Isang Charitable na Inisyatibo ng Erthi</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_will">Testamento</string>
+    <string name="nav_finance">Pananalapi</string>
+    <string name="nav_debts">Mga Utang</string>
+    <string name="nav_assets">Mga Ari-arian</string>
+    <string name="nav_entrusted">Pananampalataya</string>
+    <string name="nav_digital">Mga Digital na Account</string>
+    <string name="nav_documents">Mga Dokumento</string>
+    <string name="nav_beneficiaries">Pamilya at Mga Benepisyaryo</string>
+    <string name="nav_emergency">Emerhensya</string>
+    <string name="nav_backup">Backup</string>
+    <string name="nav_settings">Mga Setting at Seguridad</string>
+    <string name="btn_start">Magsimula</string>
+    <string name="welcome_title">Maligayang pagdating</string>
+    <string name="settings_title">Mga Setting at Seguridad</string>
+    <string name="settings_lock">I-lock ang App</string>
+    <string name="settings_lock_desc">Sa fingerprint o PIN</string>
+    <string name="settings_encrypt">Pag-encrypt ng Data</string>
+    <string name="settings_encrypt_desc">Lokal na AES-256 encryption — Aktibo</string>
+    <string name="settings_recovery_key">Recovery Key</string>
+    <string name="settings_privacy">Privacy</string>
+    <string name="settings_privacy_desc">Nananatili ang iyong data sa iyong device</string>
+    <string name="btn_save">I-save</string>
+    <string name="btn_cancel">Kanselahin</string>
+    <string name="btn_delete">Tanggalin</string>
+    <string name="btn_add">Magdagdag</string>
+    <string name="btn_back">Bumalik</string>
+    <string name="auth_prompt_title">I-verify ang pagkakakilanlan</string>
+    <string name="set_pin_title">Gumawa ng PIN</string>
+    <string name="pin_mismatch">Hindi magkatugma ang mga PIN</string>
+    <string name="language_picker_title">Pumili ng wika</string>
+    <string name="empty_list">Walang data</string>
+    <string name="backup_title">Backup</string>
+    <string name="documents_title">Mga Dokumento</string>
+    <string name="beneficiaries_title">Pamilya at Mga Benepisyaryo</string>
+    <string name="emergency_title">Emerhensya</string>
+</resources>

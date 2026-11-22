@@ -30,6 +30,11 @@ sealed class Screen(val route: String) {
     // More hub
     data object More : Screen("more")
     data object Feedback : Screen("feedback")
+    // Settings sub-screens
+    data object Privacy : Screen("privacy")
+    data object EncryptionInfo : Screen("encryption_info")
+    data object RecoveryKey : Screen("recovery_key")
+    data object LanguagePicker : Screen("language_picker")
     // Audio will recording
     data object AudioWill : Screen("audio_will")
     // Video will recording

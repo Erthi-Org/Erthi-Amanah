@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Deutsch — vorläufige Übersetzungen (nicht von einem Muttersprachler geprüft) -->
+<resources>
+    <string name="app_name">Mein Testament</string>
+    <string name="app_tagline">Erthi Amanah — Eine gemeinnützige Erthi-Initiative</string>
+    <string name="nav_home">Startseite</string>
+    <string name="nav_will">Testament</string>
+    <string name="nav_finance">Finanzen</string>
+    <string name="nav_debts">Schulden</string>
+    <string name="nav_assets">Vermögen</string>
+    <string name="nav_entrusted">Treuhand</string>
+    <string name="nav_digital">Digitale Konten</string>
+    <string name="nav_documents">Dokumente</string>
+    <string name="nav_beneficiaries">Familie &amp; Begünstigte</string>
+    <string name="nav_emergency">Notfall</string>
+    <string name="nav_backup">Sicherung</string>
+    <string name="nav_settings">Einstellungen &amp; Sicherheit</string>
+    <string name="btn_start">Loslegen</string>
+    <string name="welcome_title">Willkommen</string>
+    <string name="settings_title">Einstellungen &amp; Sicherheit</string>
+    <string name="settings_lock">App sperren</string>
+    <string name="settings_lock_desc">Mit Fingerabdruck oder PIN</string>
+    <string name="settings_encrypt">Datenverschlüsselung</string>
+    <string name="settings_encrypt_desc">Lokale AES-256-Verschlüsselung — Aktiv</string>
+    <string name="settings_recovery_key">Wiederherstellungsschlüssel</string>
+    <string name="settings_privacy">Datenschutz</string>
+    <string name="settings_privacy_desc">Ihre Daten bleiben auf Ihrem Gerät</string>
+    <string name="btn_save">Speichern</string>
+    <string name="btn_cancel">Abbrechen</string>
+    <string name="btn_delete">Löschen</string>
+    <string name="btn_add">Hinzufügen</string>
+    <string name="btn_back">Zurück</string>
+    <string name="auth_prompt_title">Identität bestätigen</string>
+    <string name="set_pin_title">PIN erstellen</string>
+    <string name="pin_mismatch">PINs stimmen nicht überein</string>
+    <string name="language_picker_title">Sprache wählen</string>
+    <string name="empty_list">Keine Daten</string>
+    <string name="backup_title">Sicherung</string>
+    <string name="documents_title">Dokumente</string>
+    <string name="beneficiaries_title">Familie &amp; Begünstigte</string>
+    <string name="emergency_title">Notfall</string>
+</resources>

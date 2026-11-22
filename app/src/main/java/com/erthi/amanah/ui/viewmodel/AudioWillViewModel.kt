@@ -34,8 +34,8 @@ class AudioWillViewModel @Inject constructor(
     // Handles both WASI_AUD (legacy single-block) and WASI_AU2 (chunked) formats.
     // Caller must delete the temp file after MediaPlayer completes.
     suspend fun decryptAudioToTemp(encFile: File, cacheDir: File): File? = withContext(Dispatchers.IO) {
+        val tmp = File(cacheDir, "tmp_playback_${System.currentTimeMillis()}.3gp")
         try {
-            val tmp = File(cacheDir, "tmp_playback_${System.currentTimeMillis()}.3gp")
             java.io.DataInputStream(encFile.inputStream().buffered()).use { din ->
                 val magicBytes = ByteArray(8); din.readFully(magicBytes)
                 when (String(magicBytes, Charsets.UTF_8)) {
@@ -46,23 +46,33 @@ class AudioWillViewModel @Inject constructor(
                     }
                     "WASI_AU2" -> {
                         val chunkCount = din.readInt()
-                        if (chunkCount < 1) return@withContext null
+                        // Reject clearly malformed chunk counts (P0-D bounds fix)
+                        if (chunkCount < 1 || chunkCount > MAX_CHUNK_COUNT) return@withContext null
                         tmp.outputStream().buffered().use { out ->
                             repeat(chunkCount) {
                                 val iv = ByteArray(12); din.readFully(iv)
                                 val ctLen = din.readInt()
-                                if (ctLen < 1) return@withContext null
+                                if (ctLen < 1 || ctLen > MAX_CHUNK_BYTES) return@withContext null
                                 val ct = ByteArray(ctLen); din.readFully(ct)
                                 out.write(crypto.decrypt(CryptoManager.EncryptedData(iv, ct)))
                             }
                         }
+                        // Ensure no trailing data (would indicate truncated or corrupt file)
+                        if (din.available() > 0) return@withContext null
                     }
                     else -> return@withContext null
                 }
             }
             tmp
         } catch (_: Exception) {
+            tmp.delete()
             null
         }
+    }
+
+    companion object {
+        private const val MAX_CHUNK_COUNT = 10_000
+        // 10 MiB per chunk — well above any reasonable audio segment
+        private const val MAX_CHUNK_BYTES = 10 * 1024 * 1024
     }
 }

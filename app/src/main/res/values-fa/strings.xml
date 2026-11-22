@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- فارسی — ترجمه‌های موقت (توسط گویشور بومی بازبینی نشده) -->
+<resources>
+    <string name="app_name">وصیت‌نامه‌ام</string>
+    <string name="app_tagline">ارثی امانه — ابتکار خیریه ارثی</string>
+    <string name="nav_home">خانه</string>
+    <string name="nav_will">وصیت‌نامه</string>
+    <string name="nav_finance">مالی</string>
+    <string name="nav_debts">بدهی‌ها</string>
+    <string name="nav_assets">دارایی‌ها</string>
+    <string name="nav_entrusted">امانت‌ها</string>
+    <string name="nav_digital">حساب‌های دیجیتال</string>
+    <string name="nav_documents">اسناد</string>
+    <string name="nav_beneficiaries">خانواده و ذینفعان</string>
+    <string name="nav_emergency">اورژانس</string>
+    <string name="nav_backup">پشتیبان‌گیری</string>
+    <string name="nav_settings">تنظیمات و امنیت</string>
+    <string name="btn_start">شروع کنید</string>
+    <string name="welcome_title">خوش آمدید</string>
+    <string name="settings_title">تنظیمات و امنیت</string>
+    <string name="settings_lock">قفل کردن برنامه</string>
+    <string name="settings_lock_desc">با اثر انگشت یا PIN</string>
+    <string name="settings_encrypt">رمزگذاری داده‌ها</string>
+    <string name="settings_encrypt_desc">رمزگذاری محلی AES-256 — فعال</string>
+    <string name="settings_recovery_key">کلید بازیابی</string>
+    <string name="settings_privacy">حریم خصوصی</string>
+    <string name="settings_privacy_desc">داده‌های شما روی دستگاه‌تان می‌ماند</string>
+    <string name="btn_save">ذخیره</string>
+    <string name="btn_cancel">لغو</string>
+    <string name="btn_delete">حذف</string>
+    <string name="btn_add">افزودن</string>
+    <string name="btn_back">برگشت</string>
+    <string name="auth_prompt_title">تأیید هویت</string>
+    <string name="set_pin_title">ایجاد PIN</string>
+    <string name="pin_mismatch">PIN‌ها مطابقت ندارند</string>
+    <string name="language_picker_title">انتخاب زبان</string>
+    <string name="empty_list">داده‌ای وجود ندارد</string>
+    <string name="backup_title">پشتیبان‌گیری</string>
+    <string name="documents_title">اسناد</string>
+    <string name="beneficiaries_title">خانواده و ذینفعان</string>
+    <string name="emergency_title">اورژانس</string>
+</resources>

@@ -21,6 +21,7 @@ import com.erthi.amanah.data.db.entity.DocumentEntity
 import com.erthi.amanah.ui.components.*
 import com.erthi.amanah.ui.theme.*
 import com.erthi.amanah.ui.viewmodel.DocumentViewModel
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun DocumentsScreen(
@@ -29,6 +30,14 @@ fun DocumentsScreen(
 ) {
     val context = LocalContext.current
     val documents by viewModel.documents.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Collect error events from the ViewModel
+    LaunchedEffect(viewModel) {
+        viewModel.errorEvent.collectLatest { msg ->
+            snackbarHostState.showSnackbar(msg)
+        }
+    }
 
     // Pending file URI from SAF picker; null means no file selected yet
     var pickedUri by remember { mutableStateOf<Uri?>(null) }
@@ -36,15 +45,17 @@ fun DocumentsScreen(
     var showAddDialog by remember { mutableStateOf(false) }
 
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        pickedUri = uri
+        // uri is null when user cancels — do not show dialog in that case unless already shown
         if (uri != null) {
-            // Try to resolve display name via ContentResolver
+            pickedUri = uri
             pickedFileName = try {
                 context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
                     ?.use { c -> if (c.moveToFirst()) c.getString(0) else "" } ?: ""
             } catch (_: Exception) { "" }
+            showAddDialog = true
+        } else if (!showAddDialog) {
+            // Cancelled with no dialog open — nothing to do
         }
-        showAddDialog = true
     }
 
     if (showAddDialog) {
@@ -77,6 +88,7 @@ fun DocumentsScreen(
     Scaffold(
         topBar = { ErthiTopBar(title = "الوثائق المهمة", onBack = onBack) },
         containerColor = NavyDeep,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { filePicker.launch(arrayOf("*/*")) },

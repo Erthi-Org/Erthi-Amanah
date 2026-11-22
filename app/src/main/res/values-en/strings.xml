@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English translations — provisional (not independently reviewed) -->
+<resources>
+    <string name="app_name">My Will</string>
+    <string name="app_tagline">Erthi Amanah — An Erthi Charitable Initiative</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_will">Will</string>
+    <string name="nav_finance">Finance</string>
+    <string name="nav_debts">Debts</string>
+    <string name="nav_assets">Assets</string>
+    <string name="nav_entrusted">Trusts</string>
+    <string name="nav_digital">Digital Accounts</string>
+    <string name="nav_documents">Documents</string>
+    <string name="nav_beneficiaries">Family &amp; Beneficiaries</string>
+    <string name="nav_emergency">Emergency</string>
+    <string name="nav_backup">Backup</string>
+    <string name="nav_settings">Settings &amp; Security</string>
+    <string name="nav_about_app">About the App</string>
+    <string name="nav_about_erthi">About Erthi</string>
+    <string name="slogan">Your will. Your trusts. Your affairs — in a safe place.</string>
+    <string name="btn_start">Get Started</string>
+    <string name="welcome_title">Welcome</string>
+    <string name="welcome_subtitle">Manage your will and important data securely</string>
+    <string name="will_title">Will</string>
+    <string name="will_write">Write Your Will</string>
+    <string name="will_audio">Record Audio Will</string>
+    <string name="will_video">Record Video Will</string>
+    <string name="settings_title">Settings &amp; Security</string>
+    <string name="settings_lock">Lock App</string>
+    <string name="settings_lock_desc">With fingerprint or PIN</string>
+    <string name="settings_encrypt">Data Encryption</string>
+    <string name="settings_encrypt_desc">Local AES-256 encryption — Active</string>
+    <string name="settings_recovery_key">Recovery Key</string>
+    <string name="settings_recovery_key_desc">Manage decryption key</string>
+    <string name="settings_privacy">Privacy</string>
+    <string name="settings_privacy_desc">Your data stays on your device</string>
+    <string name="btn_save">Save</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_delete">Delete</string>
+    <string name="btn_add">Add</string>
+    <string name="btn_back">Back</string>
+    <string name="label_name">Name</string>
+    <string name="label_amount">Amount</string>
+    <string name="label_notes">Notes</string>
+    <string name="empty_list">No data yet</string>
+    <string name="auth_prompt_title">Verify Identity</string>
+    <string name="set_pin_title">Create PIN</string>
+    <string name="pin_mismatch">PINs do not match</string>
+    <string name="language_picker_title">Choose Language</string>
+    <string name="backup_title">Backup</string>
+    <string name="backup_now">Create Backup Now</string>
+    <string name="documents_title">Documents</string>
+    <string name="beneficiaries_title">Family &amp; Beneficiaries</string>
+    <string name="emergency_title">Emergency</string>
+</resources>

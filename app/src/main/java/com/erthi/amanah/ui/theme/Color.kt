@@ -2,11 +2,31 @@ package com.erthi.amanah.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+// ── Andalusian Royal Sapphire Palette ─────────────────────────────────────────
+val AndalusianBlue      = Color(0xFF050C1F)   // deep royal sapphire — primary background
+val AndalusianNavy      = Color(0xFF080F26)   // secondary surfaces
+val AndalusianCard      = Color(0xFF0D152E)   // elevated cards
+val AndalusianElevated  = Color(0xFF131B38)   // deeper card surfaces
+
+// Royal Gold
+val RoyalGold           = Color(0xFFC9A030)   // primary gold accent
+val RoyalGoldLight      = Color(0xFFE8C85A)   // lighter gold highlights
+val RoyalGoldDim        = Color(0xFF8C7020)   // muted gold for borders
+
+// Purple & Pink Enamel accents
+val PurpleEnamel        = Color(0xFF8B2FC9)   // jewel purple
+val PinkEnamel          = Color(0xFFD4327A)   // jewel pink / rose
+val PurpleEnamelLight   = Color(0xFFB565E0)   // lighter purple
+
+// Andalusian geometric border
+val AndalusianBorder    = Color(0xFF1E2D5E)   // subtle sapphire border
+val AndalusianBorderGold= Color(0xFF3A2E10)   // subtle gold border
+
 // ── Ultra-Deep Glossy Black Palette ──────────────────────────────────────────
-val GlossyBlack      = Color(0xFF030405)   // primary background
-val GlossyBlackMid   = Color(0xFF080B10)   // secondary surfaces
-val ObsidianCard     = Color(0xFF111720)   // elevated obsidian cards
-val ObsidianElevated = Color(0xFF171E29)   // deep reflective surfaces
+val GlossyBlack      = AndalusianBlue          // primary background (now royal sapphire)
+val GlossyBlackMid   = AndalusianNavy          // secondary surfaces
+val ObsidianCard     = AndalusianCard          // elevated obsidian cards
+val ObsidianElevated = AndalusianElevated      // deep reflective surfaces
 
 // Aliases kept for all existing screens
 val NavyDeep  = GlossyBlack
@@ -30,8 +50,8 @@ val TextSecondary = Color(0xFFB0C4D8)
 val TextMuted     = Color(0xFF5A6880)
 
 // ── Gold Accent (Erthi brand) ─────────────────────────────────────────────────
-val GoldAccent  = Color(0xFFD9AA54)
-val GoldBright  = Color(0xFFFFD470)
+val GoldAccent  = RoyalGold       // primary gold — now Andalusian royal gold
+val GoldBright  = RoyalGoldLight  // bright gold highlights
 
 // ── Semantic ─────────────────────────────────────────────────────────────────
 val EmergencyRed      = Color(0xFFD32F2F)
@@ -41,8 +61,8 @@ val SuccessGreenLight = Color(0xFF4CAF50)
 val WarningAmber      = Color(0xFFF57C00)
 
 // ── Divider / metallic border ─────────────────────────────────────────────────
-val DividerColor    = Color(0xFF1E2A3A)
-val MetallicBorder  = Color(0xFF2E3A4E)
+val DividerColor    = AndalusianBorder          // sapphire-toned divider
+val MetallicBorder  = Color(0xFF1E2D5E)         // Andalusian sapphire border
 
 // Legacy
 val CardWhite     = Color(0xFFFFFFFF)

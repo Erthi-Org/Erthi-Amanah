@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- اردو — عارضی ترجمے (مادری زبان کے بولنے والے نے جائزہ نہیں لیا) -->
+<resources>
+    <string name="app_name">میری وصیت</string>
+    <string name="app_tagline">ارثی امانہ — ارثی خیراتی اقدام</string>
+    <string name="nav_home">ہوم</string>
+    <string name="nav_will">وصیت</string>
+    <string name="nav_finance">مالیات</string>
+    <string name="nav_debts">قرضے</string>
+    <string name="nav_assets">اثاثے</string>
+    <string name="nav_entrusted">امانتیں</string>
+    <string name="nav_digital">ڈیجیٹل اکاؤنٹس</string>
+    <string name="nav_documents">دستاویزات</string>
+    <string name="nav_beneficiaries">خاندان اور مستفیدین</string>
+    <string name="nav_emergency">ہنگامی صورتحال</string>
+    <string name="nav_backup">بیک اپ</string>
+    <string name="nav_settings">ترتیبات اور سیکیورٹی</string>
+    <string name="btn_start">شروع کریں</string>
+    <string name="welcome_title">خوش آمدید</string>
+    <string name="settings_title">ترتیبات اور سیکیورٹی</string>
+    <string name="settings_lock">ایپ لاک کریں</string>
+    <string name="settings_lock_desc">فنگرپرنٹ یا PIN سے</string>
+    <string name="settings_encrypt">ڈیٹا انکرپشن</string>
+    <string name="settings_encrypt_desc">مقامی AES-256 انکرپشن — فعال</string>
+    <string name="settings_recovery_key">ریکوری کلید</string>
+    <string name="settings_privacy">رازداری</string>
+    <string name="settings_privacy_desc">آپ کا ڈیٹا آپ کے ڈیوائس پر رہتا ہے</string>
+    <string name="btn_save">محفوظ کریں</string>
+    <string name="btn_cancel">منسوخ کریں</string>
+    <string name="btn_delete">حذف کریں</string>
+    <string name="btn_add">شامل کریں</string>
+    <string name="btn_back">واپس</string>
+    <string name="auth_prompt_title">شناخت کی تصدیق کریں</string>
+    <string name="set_pin_title">PIN بنائیں</string>
+    <string name="pin_mismatch">PIN میل نہیں کھاتے</string>
+    <string name="language_picker_title">زبان منتخب کریں</string>
+    <string name="empty_list">کوئی ڈیٹا نہیں</string>
+    <string name="backup_title">بیک اپ</string>
+    <string name="documents_title">دستاویزات</string>
+    <string name="beneficiaries_title">خاندان اور مستفیدین</string>
+    <string name="emergency_title">ہنگامی صورتحال</string>
+</resources>

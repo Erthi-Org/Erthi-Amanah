@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bahasa Melayu — terjemahan sementara (belum disemak oleh penutur asli) -->
+<resources>
+    <string name="app_name">Wasiat Saya</string>
+    <string name="app_tagline">Erthi Amanah — Inisiatif Amal Erthi</string>
+    <string name="nav_home">Utama</string>
+    <string name="nav_will">Wasiat</string>
+    <string name="nav_finance">Kewangan</string>
+    <string name="nav_debts">Hutang</string>
+    <string name="nav_assets">Harta</string>
+    <string name="nav_entrusted">Amanah</string>
+    <string name="nav_digital">Akaun Digital</string>
+    <string name="nav_documents">Dokumen</string>
+    <string name="nav_beneficiaries">Keluarga &amp; Benefisiari</string>
+    <string name="nav_emergency">Kecemasan</string>
+    <string name="nav_backup">Sandaran</string>
+    <string name="nav_settings">Tetapan &amp; Keselamatan</string>
+    <string name="btn_start">Mulakan</string>
+    <string name="welcome_title">Selamat datang</string>
+    <string name="settings_title">Tetapan &amp; Keselamatan</string>
+    <string name="settings_lock">Kunci Apl</string>
+    <string name="settings_lock_desc">Dengan cap jari atau PIN</string>
+    <string name="settings_encrypt">Penyulitan Data</string>
+    <string name="settings_encrypt_desc">Penyulitan tempatan AES-256 — Aktif</string>
+    <string name="settings_recovery_key">Kunci Pemulihan</string>
+    <string name="settings_privacy">Privasi</string>
+    <string name="settings_privacy_desc">Data anda kekal di peranti anda</string>
+    <string name="btn_save">Simpan</string>
+    <string name="btn_cancel">Batal</string>
+    <string name="btn_delete">Padam</string>
+    <string name="btn_add">Tambah</string>
+    <string name="btn_back">Kembali</string>
+    <string name="auth_prompt_title">Sahkan identiti</string>
+    <string name="set_pin_title">Buat PIN</string>
+    <string name="pin_mismatch">PIN tidak sepadan</string>
+    <string name="language_picker_title">Pilih bahasa</string>
+    <string name="empty_list">Tiada data</string>
+    <string name="backup_title">Sandaran</string>
+    <string name="documents_title">Dokumen</string>
+    <string name="beneficiaries_title">Keluarga &amp; Benefisiari</string>
+    <string name="emergency_title">Kecemasan</string>
+</resources>

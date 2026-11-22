@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.erthi.amanah.ui.components.AndalusianSectionCard
 import com.erthi.amanah.ui.navigation.Screen
 import com.erthi.amanah.ui.theme.*
 
@@ -99,13 +100,23 @@ fun HomeScreen(
 
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                // Bottom padding ensures last row is fully visible above bottom nav + system bar.
+                contentPadding = PaddingValues(
+                    start = 12.dp, end = 12.dp, top = 8.dp,
+                    bottom = 88.dp,  // nav bar height (~56dp) + 32dp breathing room
+                ),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.weight(1f),
             ) {
                 items(dashboardSections) { section ->
-                    HomeSectionCard(section = section, onClick = { onNavigate(section.screen) })
+                    AndalusianSectionCard(
+                        icon = section.icon,
+                        iconColor = section.iconColor,
+                        title = section.title,
+                        subtitle = section.subtitle,
+                        onClick = { onNavigate(section.screen) },
+                    )
                 }
             }
 
@@ -119,57 +130,41 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeSectionCard(section: DashboardSection, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = ObsidianCard),
-        modifier = Modifier.fillMaxWidth().border(1.dp, MetallicBorder, RoundedCornerShape(14.dp)),
-    ) {
-        Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.Start) {
-            Box(
-                modifier = Modifier.size(38.dp).clip(RoundedCornerShape(10.dp))
-                    .background(section.iconColor.copy(alpha = 0.18f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(section.icon, null, tint = section.iconColor, modifier = Modifier.size(21.dp))
-            }
-            Spacer(Modifier.height(8.dp))
-            Text(section.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = TextPrimary)
-            Text(section.subtitle, style = MaterialTheme.typography.labelSmall, color = TextSecondary, maxLines = 2)
-        }
-    }
-}
-
-@Composable
 private fun HomeBottomBar(
     onVault: () -> Unit,
     onBackup: () -> Unit,
     onMore: () -> Unit,
 ) {
     NavigationBar(
-        containerColor = GlossyBlackMid,
+        containerColor = AndalusianNavy,
         tonalElevation = 0.dp,
+        modifier = Modifier.border(
+            width = 1.dp,
+            brush = Brush.horizontalGradient(
+                listOf(Color.Transparent, RoyalGold.copy(alpha = 0.3f), Color.Transparent)
+            ),
+            shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp),
+        ),
     ) {
         NavigationBarItem(
             selected = true,
             onClick = { },
-            icon = { Icon(Icons.Default.Home, null, tint = MetallicSilver) },
-            label = { Text("الرئيسية", style = MaterialTheme.typography.labelSmall, color = MetallicSilver) },
-            colors = NavigationBarItemDefaults.colors(indicatorColor = MetallicSilver.copy(alpha = 0.12f)),
+            icon = { Icon(Icons.Default.Home, null, tint = RoyalGold) },
+            label = { Text("الرئيسية", style = MaterialTheme.typography.labelSmall, color = RoyalGold) },
+            colors = NavigationBarItemDefaults.colors(indicatorColor = RoyalGold.copy(alpha = 0.15f)),
         )
         NavigationBarItem(
             selected = false,
             onClick = onVault,
-            icon = { Icon(Icons.Default.Lock, null, tint = VaultColor) },
-            label = { Text("خزنة كلمات المرور", style = MaterialTheme.typography.labelSmall, color = TextSecondary) },
-            colors = NavigationBarItemDefaults.colors(indicatorColor = VaultColor.copy(alpha = 0.12f)),
+            icon = { Icon(Icons.Default.Lock, null, tint = PurpleEnamelLight) },
+            label = { Text("الخزنة", style = MaterialTheme.typography.labelSmall, color = TextSecondary) },
+            colors = NavigationBarItemDefaults.colors(indicatorColor = PurpleEnamel.copy(alpha = 0.12f)),
         )
         NavigationBarItem(
             selected = false,
             onClick = onBackup,
             icon = { Icon(Icons.Default.CloudUpload, null, tint = BackupColor) },
-            label = { Text("النسخ الاحتياطي", style = MaterialTheme.typography.labelSmall, color = TextSecondary) },
+            label = { Text("النسخ", style = MaterialTheme.typography.labelSmall, color = TextSecondary) },
             colors = NavigationBarItemDefaults.colors(indicatorColor = BackupColor.copy(alpha = 0.12f)),
         )
         NavigationBarItem(

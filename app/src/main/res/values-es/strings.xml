@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Español — traducciones provisionales (no revisadas por un hablante nativo) -->
+<resources>
+    <string name="app_name">Mi Testamento</string>
+    <string name="app_tagline">Erthi Amanah — Una iniciativa benéfica de Erthi</string>
+    <string name="nav_home">Inicio</string>
+    <string name="nav_will">Testamento</string>
+    <string name="nav_finance">Finanzas</string>
+    <string name="nav_debts">Deudas</string>
+    <string name="nav_assets">Bienes</string>
+    <string name="nav_entrusted">Fideicomisos</string>
+    <string name="nav_digital">Cuentas digitales</string>
+    <string name="nav_documents">Documentos</string>
+    <string name="nav_beneficiaries">Familia y beneficiarios</string>
+    <string name="nav_emergency">Emergencia</string>
+    <string name="nav_backup">Copia de seguridad</string>
+    <string name="nav_settings">Ajustes y seguridad</string>
+    <string name="btn_start">Comenzar</string>
+    <string name="welcome_title">Bienvenido</string>
+    <string name="settings_title">Ajustes y seguridad</string>
+    <string name="settings_lock">Bloquear app</string>
+    <string name="settings_lock_desc">Con huella dactilar o PIN</string>
+    <string name="settings_encrypt">Cifrado de datos</string>
+    <string name="settings_encrypt_desc">Cifrado local AES-256 — Activo</string>
+    <string name="settings_recovery_key">Clave de recuperación</string>
+    <string name="settings_privacy">Privacidad</string>
+    <string name="settings_privacy_desc">Sus datos permanecen en su dispositivo</string>
+    <string name="btn_save">Guardar</string>
+    <string name="btn_cancel">Cancelar</string>
+    <string name="btn_delete">Eliminar</string>
+    <string name="btn_add">Añadir</string>
+    <string name="btn_back">Volver</string>
+    <string name="auth_prompt_title">Verificar identidad</string>
+    <string name="set_pin_title">Crear PIN</string>
+    <string name="pin_mismatch">Los PIN no coinciden</string>
+    <string name="language_picker_title">Elegir idioma</string>
+    <string name="empty_list">Sin datos</string>
+    <string name="backup_title">Copia de seguridad</string>
+    <string name="documents_title">Documentos</string>
+    <string name="beneficiaries_title">Familia y beneficiarios</string>
+    <string name="emergency_title">Emergencia</string>
+</resources>
