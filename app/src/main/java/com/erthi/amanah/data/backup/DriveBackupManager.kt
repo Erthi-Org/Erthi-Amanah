@@ -217,6 +217,43 @@ class DriveBackupManager @Inject constructor(
         bytes
     }
 
+    // Streaming download — writes to a temp file so the entire archive is never in memory.
+    // Throws if more than maxBytes are received before the connection closes.
+    suspend fun downloadBackupToFile(
+        fileId: String,
+        destination: java.io.File,
+        maxBytes: Long,
+    ) = withContext(Dispatchers.IO) {
+        val account = getSignedInAccount()
+            ?: throw IllegalStateException("لم يتم تسجيل الدخول إلى Google")
+        val tok = token(account)
+
+        val conn = openConn("$DRIVE_API/files/$fileId?alt=media", "GET", tok)
+        if (conn.responseCode !in 200..299) {
+            conn.disconnect()
+            throw DriveApiException("فشل التنزيل: ${conn.responseCode}")
+        }
+        try {
+            var received = 0L
+            val buffer = ByteArray(64 * 1024)
+            conn.inputStream.use { input ->
+                destination.outputStream().use { output ->
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count == -1) break
+                        received += count
+                        if (received > maxBytes) throw IllegalStateException(
+                            "حجم ملف النسخة يتجاوز الحد المسموح به"
+                        )
+                        output.write(buffer, 0, count)
+                    }
+                }
+            }
+        } finally {
+            conn.disconnect()
+        }
+    }
+
     // ── Delete ───────────────────────────────────────────────────────────────
 
     suspend fun deleteBackup(fileId: String) = withContext(Dispatchers.IO) {

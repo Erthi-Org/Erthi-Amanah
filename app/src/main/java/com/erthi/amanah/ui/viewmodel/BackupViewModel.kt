@@ -309,12 +309,14 @@ class BackupViewModel @Inject constructor(
     fun importDriveBackup(fileId: String, passphrase: String) {
         viewModelScope.launch {
             _driveState.value = DriveState.InProgress
+            val tmpFile = File(context.cacheDir, "drive_import_${System.currentTimeMillis()}.tmp")
             try {
-                val raw = driveManager.downloadBackup(fileId)
-                require(raw.size >= 9) { "ملف النسخة تالف أو غير صالح" }
-                require(raw.size <= MAX_DRIVE_DOWNLOAD_BYTES) { "حجم ملف Drive يتجاوز الحد المسموح به" }
+                // Stream download to a bounded temp file — no full-archive ByteArray in memory.
                 withContext(Dispatchers.IO) {
-                    DataInputStream(raw.inputStream()).use { din ->
+                    driveManager.downloadBackupToFile(fileId, tmpFile, MAX_DRIVE_DOWNLOAD_BYTES.toLong())
+                }
+                withContext(Dispatchers.IO) {
+                    DataInputStream(tmpFile.inputStream().buffered()).use { din ->
                         val magic9 = ByteArray(9).also { din.readFully(it) }
                         when (String(magic9, Charsets.UTF_8)) {
                             WASI_BAK3_MAGIC -> restoreFromPortableArchive(din, passphrase)
@@ -336,6 +338,8 @@ class BackupViewModel @Inject constructor(
                 _driveState.value = DriveState.Error("❌ ${e.message}")
             } catch (e: Exception) {
                 _driveState.value = DriveState.Error("❌ فشل الاستعادة من Drive: ${e.localizedMessage}")
+            } finally {
+                tmpFile.delete()
             }
         }
     }
