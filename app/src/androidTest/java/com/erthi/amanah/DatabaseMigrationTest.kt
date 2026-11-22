@@ -24,7 +24,7 @@ class DatabaseMigrationTest {
     @Test
     fun fromV2ToV3PreservesDocuments() = verifyUpgrade(2)
 
-    private fun verifyUpgrade(oldVersion: Int) = runBlocking {
+    private fun verifyUpgrade(oldVersion: Int): Unit = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val name = "migration-fixture-${UUID.randomUUID()}.db"
         val legacyDocument = DocumentEntity(title = "Synthetic archived document", filePath = "legacy-path")
@@ -32,7 +32,12 @@ class DatabaseMigrationTest {
         fun open() = Room.databaseBuilder(context, ErthiDatabase::class.java, name)
             .addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
         try {
-            open().use { it.documentDao().insertDocument(legacyDocument) }
+            val fixture = open()
+            try {
+                fixture.documentDao().insertDocument(legacyDocument)
+            } finally {
+                fixture.close()
+            }
             SQLiteDatabase.openDatabase(context.getDatabasePath(name).absolutePath, null, SQLiteDatabase.OPEN_READWRITE).use {
                 // V2 added only vault_items. V3 added only restore_journal.
                 it.execSQL("DROP TABLE restore_journal")
@@ -40,12 +45,15 @@ class DatabaseMigrationTest {
                 it.execSQL("DROP TABLE room_master_table")
                 it.version = oldVersion
             }
-            open().use { migrated ->
+            val migrated = open()
+            try {
                 val document = migrated.documentDao().getAllDocuments().first().single()
                 assertEquals(legacyDocument.title, document.title)
                 assertEquals(legacyDocument.filePath, document.filePath)
                 assertEquals(3, migrated.openHelper.readableDatabase.version)
                 assertNull(migrated.restoreJournalDao().getPendingJournal())
+            } finally {
+                migrated.close()
             }
         } finally {
             context.deleteDatabase(name)
