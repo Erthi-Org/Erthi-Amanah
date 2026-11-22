@@ -1,6 +1,7 @@
 package com.erthi.amanah
 
 import android.graphics.Bitmap
+import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.WindowManager
@@ -14,7 +15,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class ApplicationFlowTest {
@@ -39,16 +39,7 @@ class ApplicationFlowTest {
         capture("04-documents-ar")
         compose.onNodeWithContentDescription(text(R.string.documents_add_record)).performClick()
         capture("05-add-document-ar")
-        clickText(R.string.documents_attach)
-        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
-        val deadline = SystemClock.elapsedRealtime() + 10_000
-        while (automation.rootInActiveWindow?.packageName?.toString()?.contains("documentsui") != true
-            && SystemClock.elapsedRealtime() < deadline) {
-            SystemClock.sleep(100)
-        }
-        check(automation.rootInActiveWindow?.packageName?.toString()?.contains("documentsui") == true)
-        shell("input keyevent ${KeyEvent.KEYCODE_BACK}")
-        waitForText(R.string.documents_empty)
+        clickText(R.string.btn_cancel)
         clickBack()
 
         clickText(R.string.nav_backup)
@@ -80,6 +71,32 @@ class ApplicationFlowTest {
         shell("am start -n $packageName/com.erthi.amanah.MainActivity")
         waitForTag("unlock-entry")
         capture("11-unlock-en")
+
+        // Verify the file picker separately so its outcome does not suppress screen evidence.
+        compose.onNodeWithTag("unlock-entry").performScrollTo().performTextInput("672495")
+        compose.onNodeWithTag("unlock-button").performScrollTo().performClick()
+        waitForText(R.string.nav_home)
+        clickText(R.string.nav_documents)
+        waitForText(R.string.documents_empty)
+        compose.onNodeWithContentDescription(text(R.string.documents_add_record)).performClick()
+        clickText(R.string.documents_attach)
+        val deadline = SystemClock.elapsedRealtime() + 12_000
+        var activityDump: String
+        do {
+            activityDump = shell("dumpsys activity activities")
+            if ("android.intent.action.OPEN_DOCUMENT" in activityDump ||
+                activityDump.lineSequence().any { "ResumedActivity" in it && "documentsui" in it }) {
+                break
+            }
+            SystemClock.sleep(300)
+        } while (SystemClock.elapsedRealtime() < deadline)
+        check("android.intent.action.OPEN_DOCUMENT" in activityDump ||
+            activityDump.lineSequence().any { "ResumedActivity" in it && "documentsui" in it }) {
+            activityDump.lineSequence().filter { "ResumedActivity" in it }.joinToString()
+        }
+        shell("input keyevent ${KeyEvent.KEYCODE_BACK}")
+        waitForText(R.string.documents_empty)
+        compose.onAllNodesWithTag("unlock-entry").assertCountEquals(0)
     }
 
     private fun setLanguage(tag: String) {
@@ -99,10 +116,20 @@ class ApplicationFlowTest {
         try {
             SystemClock.sleep(550)
             val instrumentation = InstrumentationRegistry.getInstrumentation()
-            val screenshots = File(instrumentation.targetContext.getExternalFilesDir(null), "screenshots")
-            screenshots.mkdirs()
-            val screenshot = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
-            File(screenshots, "$name.png").outputStream().use { screenshot.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            val automation = instrumentation.uiAutomation
+            val image = requireNotNull(automation.takeScreenshot())
+            shell("mkdir -p /data/local/tmp/erthi-screen-evidence")
+            val descriptors = automation.executeShellCommandRw(
+                "cat > /data/local/tmp/erthi-screen-evidence/$name.png"
+            )
+            try {
+                ParcelFileDescriptor.AutoCloseOutputStream(descriptors[1]).use {
+                    check(image.compress(Bitmap.CompressFormat.PNG, 100, it))
+                }
+                ParcelFileDescriptor.AutoCloseInputStream(descriptors[0]).use { it.readBytes() }
+            } finally {
+                image.recycle()
+            }
         } finally {
             compose.activityRule.scenario.onActivity {
                 it.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
@@ -128,9 +155,8 @@ class ApplicationFlowTest {
         compose.waitUntil(12_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
     }
 
-    private fun shell(command: String) {
-        android.os.ParcelFileDescriptor.AutoCloseInputStream(
+    private fun shell(command: String): String =
+        ParcelFileDescriptor.AutoCloseInputStream(
             InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command)
-        ).use { it.readBytes() }
-    }
+        ).bufferedReader().use { it.readText() }
 }

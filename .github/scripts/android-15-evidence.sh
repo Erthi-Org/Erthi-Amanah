@@ -45,5 +45,5 @@ fi
 
 status=0
 ./gradlew connectedDebugAndroidTest --no-daemon || status=$?
-adb pull /sdcard/Android/data/com.erthi.amanah.debug/files/screenshots build/visual-evidence/after/ || true
+adb pull /data/local/tmp/erthi-screen-evidence build/visual-evidence/after/ || true
 exit "$status"
