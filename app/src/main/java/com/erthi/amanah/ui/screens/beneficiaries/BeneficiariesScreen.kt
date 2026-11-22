@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.beneficiaries
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -46,7 +47,7 @@ fun BeneficiariesScreen(
                 onClick = { showAddDialog = true },
                 containerColor = BeneficiariesColor,
                 contentColor = NavyDeep,
-            ) { Icon(Icons.Default.Add, null) }
+            ) { OrnamentalIcon(Icons.Default.Add, null) }
         },
     ) { padding ->
         if (beneficiaries.isEmpty()) {
@@ -82,7 +83,7 @@ private fun BeneficiaryCard(b: BeneficiaryEntity, onDelete: () -> Unit) {
                     .background(iconColor.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
+                OrnamentalIcon(
                     if (isEmergency) Icons.Default.Warning else Icons.Default.Person,
                     null,
                     tint = iconColor,
@@ -96,7 +97,7 @@ private fun BeneficiaryCard(b: BeneficiaryEntity, onDelete: () -> Unit) {
                 if (b.phone.isNotBlank()) Text(b.phone, style = MaterialTheme.typography.labelSmall, color = TextMuted)
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, null, tint = EmergencyRed, modifier = Modifier.size(20.dp))
+                OrnamentalIcon(Icons.Default.Delete, null, tint = EmergencyRed, modifier = Modifier.size(20.dp))
             }
         }
     }

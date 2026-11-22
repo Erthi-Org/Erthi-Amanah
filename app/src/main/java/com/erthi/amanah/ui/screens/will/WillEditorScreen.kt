@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.will
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -65,7 +66,7 @@ fun WillEditorScreen(
                         saved = true
                         onBack()
                     }) {
-                        Icon(Icons.Default.Save, contentDescription = "حفظ كمسودة", tint = SilverBlue)
+                        OrnamentalIcon(Icons.Default.Save, contentDescription = "حفظ كمسودة", tint = SilverBlue)
                     }
                 },
             )

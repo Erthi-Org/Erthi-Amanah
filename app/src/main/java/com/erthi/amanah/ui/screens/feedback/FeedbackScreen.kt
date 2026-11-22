@@ -1,5 +1,7 @@
 package com.erthi.amanah.ui.screens.feedback
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
@@ -35,7 +37,7 @@ fun FeedbackScreen(onBack: () -> Unit) {
     var description by remember { mutableStateOf("") }
     var categoryExpanded by remember { mutableStateOf(false) }
     var consentGiven by remember { mutableStateOf(false) }
-    var submitted by remember { mutableStateOf(false) }
+    var emailUnavailable by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = { ErthiTopBar(title = "شاركنا اقتراحك", onBack = onBack) },
@@ -49,20 +51,8 @@ fun FeedbackScreen(onBack: () -> Unit) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (submitted) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = ObsidianCard),
-                    shape = RoundedCornerShape(14.dp),
-                ) {
-                    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("✅ تم فتح تطبيق البريد الإلكتروني", fontWeight = FontWeight.Bold, color = SuccessGreenLight)
-                        Text("ستجد الرسالة معبأة ومستعدة للإرسال. إذا لم يفتح تطبيق البريد، تحقق من إعدادات الجهاز.", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-                        TextButton(onClick = { submitted = false }) {
-                            Text("إرسال اقتراح آخر", color = AssetsColor)
-                        }
-                    }
-                }
-                return@Column
+            if (emailUnavailable) {
+                Text("أضف تطبيق بريد إلكتروني لإرسال الاقتراح. ما زالت المسودة هنا.", color = EmergencyRedLight)
             }
 
             // Privacy notice
@@ -71,10 +61,10 @@ fun FeedbackScreen(onBack: () -> Unit) {
                 shape = RoundedCornerShape(12.dp),
             ) {
                 Row(modifier = Modifier.padding(12.dp)) {
-                    Icon(Icons.Default.PrivacyTip, null, tint = GoldAccent, modifier = Modifier.size(18.dp))
+                    OrnamentalIcon(Icons.Default.PrivacyTip, null, tint = GoldAccent, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        "لن يُرفق أي ملف حساس تلقائياً. الرسالة تُرسل إلى info@erthi.org عبر تطبيق البريد فقط.",
+                        "لن يُرفق أي ملف حساس تلقائياً. راجع المسودة وأرسلها إلى info@erthi.org من تطبيق البريد. إذا أرسلتها من عنوانك، يصلك الرد إلى هذا العنوان.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondary,
                     )
@@ -138,16 +128,11 @@ fun FeedbackScreen(onBack: () -> Unit) {
                         putExtra(Intent.EXTRA_SUBJECT, "[$selectedCategory] ${subject.ifBlank { "اقتراح" }}")
                         putExtra(Intent.EXTRA_TEXT, emailBody)
                     }
-                    if (intent.resolveActivity(context.packageManager) != null) {
+                    try {
                         context.startActivity(intent)
-                        submitted = true
-                    } else {
-                        val share = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, "إلى: info@erthi.org\n$emailBody")
-                        }
-                        context.startActivity(Intent.createChooser(share, "إرسال الاقتراح"))
-                        submitted = true
+                        emailUnavailable = false
+                    } catch (_: ActivityNotFoundException) {
+                        emailUnavailable = true
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -155,9 +140,9 @@ fun FeedbackScreen(onBack: () -> Unit) {
                 colors = ButtonDefaults.buttonColors(containerColor = AssetsColor, contentColor = GlossyBlack),
                 enabled = subject.isNotBlank() && description.isNotBlank() && consentGiven,
             ) {
-                Icon(Icons.Default.Send, null)
+                OrnamentalIcon(Icons.Default.Send, null)
                 Spacer(Modifier.width(8.dp))
-                Text("إرسال الاقتراح", fontWeight = FontWeight.Bold)
+                Text("فتح مسودة البريد", fontWeight = FontWeight.Bold)
             }
 
             Text(

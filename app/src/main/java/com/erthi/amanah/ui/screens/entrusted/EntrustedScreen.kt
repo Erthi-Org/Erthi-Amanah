@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.entrusted
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -43,7 +44,7 @@ fun EntrustedScreen(
         containerColor = NavyDeep,
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }, containerColor = EntrustedColor, contentColor = NavyDeep) {
-                Icon(Icons.Default.Add, null)
+                OrnamentalIcon(Icons.Default.Add, null)
             }
         },
     ) { padding ->
@@ -71,7 +72,7 @@ private fun EntrustedCard(item: EntrustedEntity, onDelete: () -> Unit) {
                     .background(EntrustedColor.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Default.Handshake, null, tint = EntrustedColor, modifier = Modifier.size(22.dp))
+                OrnamentalIcon(Icons.Default.Handshake, null, tint = EntrustedColor, modifier = Modifier.size(22.dp))
             }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -79,7 +80,7 @@ private fun EntrustedCard(item: EntrustedEntity, onDelete: () -> Unit) {
                 Text(item.itemDescription, style = MaterialTheme.typography.bodySmall, color = TextSecondary, maxLines = 2)
                 if (item.ownerPhone.isNotBlank()) Text(item.ownerPhone, style = MaterialTheme.typography.labelSmall, color = TextMuted)
             }
-            IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, null, tint = EmergencyRed, modifier = Modifier.size(20.dp)) }
+            IconButton(onClick = onDelete) { OrnamentalIcon(Icons.Default.Delete, null, tint = EmergencyRed, modifier = Modifier.size(20.dp)) }
         }
     }
 }

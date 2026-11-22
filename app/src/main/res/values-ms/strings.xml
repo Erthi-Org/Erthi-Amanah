@@ -39,4 +39,14 @@
     <string name="documents_title">Dokumen</string>
     <string name="beneficiaries_title">Keluarga &amp; Benefisiari</string>
     <string name="emergency_title">Kecemasan</string>
+    <string name="language_provisional">Sesetengah terjemahan masih sementara dan belum disemak.</string>
+    <string name="settings_language">Bahasa aplikasi</string>
+    <string name="auth_pin_label">PIN</string>
+    <string name="auth_unlock">Buka kunci</string>
+    <string name="auth_use_biometrics">Buka kunci dengan biometrik</string>
+    <string name="auth_acknowledge">Saya faham dan ingin meneruskan</string>
+    <string name="quran_attribution">Al-Baqarah 2:180 (petikan)</string>
+    <string name="nav_vault">Peti simpanan</string>
+    <string name="nav_more">Lagi</string>
+    <string name="settings_death_unavailable">Pengesahan kematian belum tersedia</string>
 </resources>

@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.*
@@ -67,8 +67,8 @@ fun AndalusianCard(
 
 /** Four small diamond corner ornaments drawn in Canvas. */
 @Composable
-private fun AndalusianCornerAccents(accentColor: Color) {
-    Canvas(modifier = Modifier.fillMaxSize()) {
+private fun BoxScope.AndalusianCornerAccents(accentColor: Color) {
+    Canvas(modifier = Modifier.matchParentSize()) {
         val d = 6.dp.toPx()
         val paint = Paint().apply {
             color = accentColor.copy(alpha = 0.6f)
@@ -191,9 +191,9 @@ fun AndalusianSectionCard(
                 RoundedCornerShape(16.dp),
             ),
     ) {
-        Column(modifier = Modifier.padding(14.dp), horizontalAlignment = Alignment.Start) {
-            AndalusianIcon(icon = icon, iconColor = iconColor, size = 44.dp, iconSize = 22.dp)
-            Spacer(Modifier.height(10.dp))
+        Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.Start) {
+            AndalusianIcon(icon = icon, iconColor = iconColor, size = 36.dp, iconSize = 18.dp)
+            Spacer(Modifier.height(6.dp))
             Text(
                 title,
                 style = MaterialTheme.typography.titleSmall,
@@ -445,8 +445,8 @@ fun AndalusianSettingItem(
                     )
                 }
             } else {
-                Icon(
-                    Icons.Default.ChevronRight,
+                OrnamentalIcon(
+                    Icons.AutoMirrored.Filled.ArrowForward,
                     null,
                     tint = RoyalGold.copy(alpha = 0.5f),
                     modifier = Modifier.size(18.dp),

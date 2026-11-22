@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.assets
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,7 +48,7 @@ fun AssetsScreen(
         containerColor = NavyDeep,
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }, containerColor = AssetsColor, contentColor = NavyDeep) {
-                Icon(Icons.Default.Add, null)
+                OrnamentalIcon(Icons.Default.Add, null)
             }
         },
     ) { padding ->
@@ -75,7 +76,7 @@ private fun AssetCard(asset: AssetEntity, onDelete: () -> Unit) {
                     .background(AssetsColor.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(assetTypeIcon(asset.type), null, tint = AssetsColor, modifier = Modifier.size(22.dp))
+                OrnamentalIcon(assetTypeIcon(asset.type), null, tint = AssetsColor, modifier = Modifier.size(22.dp))
             }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -83,7 +84,7 @@ private fun AssetCard(asset: AssetEntity, onDelete: () -> Unit) {
                 Text(assetTypeLabel(asset.type), style = MaterialTheme.typography.labelSmall, color = AssetsColor)
                 if (asset.estimatedValue != null) Text("${asset.estimatedValue} ${asset.currency}", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
             }
-            IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, null, tint = EmergencyRed, modifier = Modifier.size(20.dp)) }
+            IconButton(onClick = onDelete) { OrnamentalIcon(Icons.Default.Delete, null, tint = EmergencyRed, modifier = Modifier.size(20.dp)) }
         }
     }
 }

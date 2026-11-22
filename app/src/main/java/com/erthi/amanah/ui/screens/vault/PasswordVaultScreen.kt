@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.vault
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import android.app.Activity
 import android.view.WindowManager
 import androidx.compose.animation.AnimatedVisibility
@@ -79,7 +80,7 @@ fun PasswordVaultScreen(
                 onBack = onBack,
                 actions = {
                     IconButton(onClick = { showAddDialog = true }) {
-                        Icon(Icons.Default.Add, null, tint = VaultColor)
+                        OrnamentalIcon(Icons.Default.Add, null, tint = VaultColor)
                     }
                 },
             )
@@ -92,7 +93,7 @@ fun PasswordVaultScreen(
                 contentColor = GlossyBlack,
                 shape = CircleShape,
             ) {
-                Icon(Icons.Default.Add, null)
+                OrnamentalIcon(Icons.Default.Add, null)
             }
         },
     ) { padding ->
@@ -110,7 +111,7 @@ fun PasswordVaultScreen(
                             .border(1.dp, VaultColor.copy(alpha = 0.4f), CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(Icons.Default.Lock, null, tint = VaultColor, modifier = Modifier.size(22.dp))
+                        OrnamentalIcon(Icons.Default.Lock, null, tint = VaultColor, modifier = Modifier.size(22.dp))
                     }
                     Spacer(Modifier.width(12.dp))
                     Column {
@@ -125,11 +126,11 @@ fun PasswordVaultScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = { Text("البحث...", color = TextMuted) },
-                leadingIcon = { Icon(Icons.Default.Search, null, tint = TextMuted) },
+                leadingIcon = { OrnamentalIcon(Icons.Default.Search, null, tint = TextMuted) },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Clear, null, tint = TextMuted)
+                            OrnamentalIcon(Icons.Default.Clear, null, tint = TextMuted)
                         }
                     }
                 },
@@ -234,7 +235,7 @@ private fun VaultCard(item: VaultItemEntity, onEdit: () -> Unit, onDelete: () ->
                         .background(item.category.color().copy(alpha = 0.18f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(item.category.icon(), null, tint = item.category.color(), modifier = Modifier.size(20.dp))
+                    OrnamentalIcon(item.category.icon(), null, tint = item.category.color(), modifier = Modifier.size(20.dp))
                 }
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -242,10 +243,10 @@ private fun VaultCard(item: VaultItemEntity, onEdit: () -> Unit, onDelete: () ->
                     Text(item.category.arabicLabel(), style = MaterialTheme.typography.labelSmall, color = item.category.color())
                 }
                 IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Edit, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+                    OrnamentalIcon(Icons.Default.Edit, null, tint = TextMuted, modifier = Modifier.size(16.dp))
                 }
                 IconButton(onClick = { showDeleteConfirm = true }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Delete, null, tint = EmergencyRed.copy(alpha = 0.7f), modifier = Modifier.size(16.dp))
+                    OrnamentalIcon(Icons.Default.Delete, null, tint = EmergencyRed.copy(alpha = 0.7f), modifier = Modifier.size(16.dp))
                 }
             }
             if (item.username != null || item.email != null) {
@@ -269,7 +270,7 @@ private fun VaultCard(item: VaultItemEntity, onEdit: () -> Unit, onDelete: () ->
                     overflow = TextOverflow.Ellipsis,
                 )
                 IconButton(onClick = { passwordVisible = !passwordVisible }, modifier = Modifier.size(28.dp)) {
-                    Icon(
+                    OrnamentalIcon(
                         if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                         null, tint = VaultColor, modifier = Modifier.size(16.dp),
                     )
@@ -352,10 +353,10 @@ private fun VaultItemDialog(
                     trailingIcon = {
                         Row {
                             IconButton(onClick = { password = viewModel.generatePassword() }, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.AutoFixHigh, null, tint = VaultColor, modifier = Modifier.size(18.dp))
+                                OrnamentalIcon(Icons.Default.AutoFixHigh, null, tint = VaultColor, modifier = Modifier.size(18.dp))
                             }
                             IconButton(onClick = { passwordVisible = !passwordVisible }, modifier = Modifier.size(32.dp)) {
-                                Icon(if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, null, tint = TextMuted, modifier = Modifier.size(18.dp))
+                                OrnamentalIcon(if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, null, tint = TextMuted, modifier = Modifier.size(18.dp))
                             }
                         }
                     },

@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.backup
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -15,6 +16,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
+import com.erthi.amanah.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -44,6 +47,7 @@ fun BackupScreen(
     viewModel: BackupViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val hasPendingRestore by viewModel.hasPendingRestore.collectAsState(initial = false)
     val driveState by viewModel.driveState.collectAsState()
     val driveAccount by viewModel.driveAccount.collectAsState()
     val driveBackups by viewModel.driveBackups.collectAsState()
@@ -134,6 +138,10 @@ fun BackupScreen(
             }
 
             // ── Local (device-bound) ───────────────────────────────────────
+            if (hasPendingRestore) {
+                Text(stringResource(R.string.restore_pending_warning), color = RoyalGoldLight)
+            }
+
             SectionLabel("نسخة محلية (نفس الجهاز فقط)")
             BackupInfoCard(Icons.Default.Security, "التشفير", "AES-256-GCM — مفتاح Android Keystore (مرتبط بالجهاز)", BackupColor)
             Button(
@@ -143,7 +151,7 @@ fun BackupScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = BackupColor, contentColor = GlossyBlack),
                 enabled = state !is BackupState.InProgress,
             ) {
-                Icon(Icons.Default.SaveAlt, null)
+                OrnamentalIcon(Icons.Default.SaveAlt, null)
                 Spacer(Modifier.width(8.dp))
                 Text("نسخة محلية (نفس الجهاز)", fontWeight = FontWeight.Bold)
             }
@@ -155,7 +163,7 @@ fun BackupScreen(
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MetallicSilver),
                 enabled = state !is BackupState.InProgress,
             ) {
-                Icon(Icons.Default.CloudDownload, null)
+                OrnamentalIcon(Icons.Default.CloudDownload, null)
                 Spacer(Modifier.width(8.dp))
                 Text("استعادة نسخة محلية", fontWeight = FontWeight.SemiBold)
             }
@@ -170,7 +178,7 @@ fun BackupScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = GlossyBlack),
                 enabled = state !is BackupState.InProgress,
             ) {
-                Icon(Icons.Default.CloudUpload, null)
+                OrnamentalIcon(Icons.Default.CloudUpload, null)
                 Spacer(Modifier.width(8.dp))
                 Text("نسخة مشفرة بكلمة مرور", fontWeight = FontWeight.Bold)
             }
@@ -182,7 +190,7 @@ fun BackupScreen(
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = GoldAccent),
                 enabled = state !is BackupState.InProgress,
             ) {
-                Icon(Icons.Default.FileDownload, null)
+                OrnamentalIcon(Icons.Default.FileDownload, null)
                 Spacer(Modifier.width(8.dp))
                 Text("استعادة نسخة محمولة", fontWeight = FontWeight.SemiBold)
             }
@@ -234,7 +242,7 @@ fun BackupScreen(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.CloudOff, null, tint = TextMuted, modifier = Modifier.size(18.dp))
+                            OrnamentalIcon(Icons.Default.CloudOff, null, tint = TextMuted, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(10.dp))
                             Text("لا توجد نسخ احتياطية على Drive", color = TextMuted, style = MaterialTheme.typography.bodySmall)
                         }
@@ -270,7 +278,7 @@ private fun DriveConnectCard(onConnect: () -> Unit) {
                         .background(DigitalColor.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Default.CloudQueue, null, tint = DigitalColor, modifier = Modifier.size(22.dp))
+                    OrnamentalIcon(Icons.Default.CloudQueue, null, tint = DigitalColor, modifier = Modifier.size(22.dp))
                 }
                 Spacer(Modifier.width(12.dp))
                 Column {
@@ -290,7 +298,7 @@ private fun DriveConnectCard(onConnect: () -> Unit) {
                 shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = DigitalColor, contentColor = Color.White),
             ) {
-                Icon(Icons.Default.Login, null)
+                OrnamentalIcon(Icons.Default.Login, null)
                 Spacer(Modifier.width(8.dp))
                 Text("تسجيل الدخول بـ Google", fontWeight = FontWeight.Bold)
             }
@@ -320,7 +328,7 @@ private fun DriveConnectedCard(
                         .background(DigitalColor.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Default.CloudDone, null, tint = DigitalColor, modifier = Modifier.size(20.dp))
+                    OrnamentalIcon(Icons.Default.CloudDone, null, tint = DigitalColor, modifier = Modifier.size(20.dp))
                 }
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -328,7 +336,7 @@ private fun DriveConnectedCard(
                     Text(email, color = TextSecondary, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 IconButton(onClick = onRefresh, enabled = !isLoading) {
-                    Icon(Icons.Default.Refresh, null, tint = TextSecondary, modifier = Modifier.size(18.dp))
+                    OrnamentalIcon(Icons.Default.Refresh, null, tint = TextSecondary, modifier = Modifier.size(18.dp))
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -339,7 +347,7 @@ private fun DriveConnectedCard(
                     colors = ButtonDefaults.buttonColors(containerColor = DigitalColor, contentColor = Color.White),
                     enabled = !isLoading,
                 ) {
-                    Icon(Icons.Default.CloudUpload, null, modifier = Modifier.size(18.dp))
+                    OrnamentalIcon(Icons.Default.CloudUpload, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("رفع نسخة", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                 }
@@ -350,7 +358,7 @@ private fun DriveConnectedCard(
                     border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = TextMuted),
                 ) {
-                    Icon(Icons.Default.Logout, null, modifier = Modifier.size(16.dp))
+                    OrnamentalIcon(Icons.Default.Logout, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
                     Text("قطع", fontSize = 12.sp)
                 }
@@ -379,17 +387,17 @@ private fun DriveBackupItem(
         modifier = Modifier.fillMaxWidth().border(1.dp, MetallicBorder, RoundedCornerShape(12.dp)),
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.CloudDone, null, tint = DigitalColor, modifier = Modifier.size(22.dp))
+            OrnamentalIcon(Icons.Default.CloudDone, null, tint = DigitalColor, modifier = Modifier.size(22.dp))
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(backup.name, color = TextPrimary, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("$dateStr · $sizeStr", color = TextMuted, style = MaterialTheme.typography.labelSmall)
             }
             IconButton(onClick = onRestore, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Restore, null, tint = DigitalColor, modifier = Modifier.size(18.dp))
+                OrnamentalIcon(Icons.Default.Restore, null, tint = DigitalColor, modifier = Modifier.size(18.dp))
             }
             IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Delete, null, tint = EmergencyRed.copy(alpha = 0.7f), modifier = Modifier.size(16.dp))
+                OrnamentalIcon(Icons.Default.Delete, null, tint = EmergencyRed.copy(alpha = 0.7f), modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -417,7 +425,7 @@ private fun StatusCard(
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = tint)
             } else {
-                Icon(
+                OrnamentalIcon(
                     if (isError) Icons.Default.Error else Icons.Default.CheckCircle,
                     null, tint = tint, modifier = Modifier.size(20.dp),
                 )
@@ -461,7 +469,7 @@ private fun PassphraseDialog(
                     visualTransformation = if (showPass) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { showPass = !showPass }) {
-                            Icon(if (showPass) Icons.Default.VisibilityOff else Icons.Default.Visibility, null, tint = MetallicSilver)
+                            OrnamentalIcon(if (showPass) Icons.Default.VisibilityOff else Icons.Default.Visibility, null, tint = MetallicSilver)
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -510,7 +518,7 @@ private fun BackupInfoCard(icon: ImageVector, label: String, value: String, icon
         modifier = Modifier.fillMaxWidth().border(1.dp, MetallicBorder, RoundedCornerShape(10.dp)),
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
-            Icon(icon, null, tint = iconColor, modifier = Modifier.size(18.dp))
+            OrnamentalIcon(icon, null, tint = iconColor, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(10.dp))
             Column {
                 Text(label, style = MaterialTheme.typography.labelSmall, color = MetallicSilver, fontWeight = FontWeight.Bold)

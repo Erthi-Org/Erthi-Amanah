@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.emergency
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -124,7 +125,7 @@ fun EmergencyScreen(
                 containerColor = EmergencyRed,
                 contentColor = Color.White,
             ) {
-                Icon(Icons.Default.PersonAdd, contentDescription = "إضافة جهة طوارئ")
+                OrnamentalIcon(Icons.Default.PersonAdd, contentDescription = "إضافة جهة طوارئ")
             }
         },
     ) { padding ->
@@ -141,7 +142,7 @@ fun EmergencyScreen(
                         .padding(12.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Warning, null, tint = EmergencyRed, modifier = Modifier.size(22.dp))
+                        OrnamentalIcon(Icons.Default.Warning, null, tint = EmergencyRed, modifier = Modifier.size(22.dp))
                         Spacer(Modifier.width(8.dp))
                         Text("اتصل بسرعة في الحالات الطارئة", color = EmergencyRed, fontWeight = FontWeight.Bold)
                     }
@@ -189,7 +190,7 @@ fun EmergencyScreen(
                         colors = CardDefaults.cardColors(containerColor = ObsidianCard),
                     ) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.PersonAdd, null, tint = MetallicSilver)
+                            OrnamentalIcon(Icons.Default.PersonAdd, null, tint = MetallicSilver)
                             Spacer(Modifier.width(10.dp))
                             Text("اضغط لإضافة جهة اتصال للطوارئ", color = TextSecondary)
                         }
@@ -209,7 +210,7 @@ fun EmergencyScreen(
                     shape = RoundedCornerShape(28.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = EmergencyRed, contentColor = Color.White),
                 ) {
-                    Icon(Icons.Default.Sos, null)
+                    OrnamentalIcon(Icons.Default.Sos, null)
                     Spacer(Modifier.width(8.dp))
                     Text(
                         if (emergencyContacts.isEmpty()) "إرسال استغاثة (اختر مستلماً)"
@@ -236,7 +237,7 @@ private fun EmergencyNumberCard(n: EmergencyNumber, modifier: Modifier, onClick:
             modifier = Modifier.padding(14.dp).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Icon(n.icon, null, tint = EmergencyRed, modifier = Modifier.size(28.dp))
+            OrnamentalIcon(n.icon, null, tint = EmergencyRed, modifier = Modifier.size(28.dp))
             Spacer(Modifier.height(4.dp))
             Text(n.number, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = EmergencyRed)
             Text(n.label, style = MaterialTheme.typography.labelSmall, color = TextSecondary, textAlign = TextAlign.Center)
@@ -257,7 +258,7 @@ private fun EmergencyContactCard(contact: BeneficiaryEntity, onDelete: () -> Uni
                     .background(EmergencyRed.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Default.Person, null, tint = EmergencyRed, modifier = Modifier.size(20.dp))
+                OrnamentalIcon(Icons.Default.Person, null, tint = EmergencyRed, modifier = Modifier.size(20.dp))
             }
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -267,7 +268,7 @@ private fun EmergencyContactCard(contact: BeneficiaryEntity, onDelete: () -> Uni
                 }
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, null, tint = EmergencyRed.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
+                OrnamentalIcon(Icons.Default.Delete, null, tint = EmergencyRed.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
             }
         }
     }

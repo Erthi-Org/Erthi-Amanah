@@ -1,17 +1,16 @@
 package com.erthi.amanah.ui.theme
 
-import android.os.Build
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val ErthiDarkColorScheme = darkColorScheme(
-    primary = SilverBlue,
+    primary = RoyalGoldLight,
     onPrimary = NavyDeep,
     primaryContainer = NavyCard,
     onPrimaryContainer = SilverLight,
-    secondary = GoldAccent,
+    secondary = PurpleEnamelLight,
     onSecondary = NavyDeep,
     secondaryContainer = NavyMid,
     onSecondaryContainer = SilverPale,

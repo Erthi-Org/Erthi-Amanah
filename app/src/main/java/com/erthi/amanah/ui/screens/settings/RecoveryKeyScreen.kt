@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.settings
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -32,7 +33,7 @@ fun RecoveryKeyScreen(onBack: () -> Unit) {
             // Honest status: no standalone recovery key exists yet
             AndalusianCard(accentColor = RoyalGold) {
                 Row(verticalAlignment = Alignment.Top) {
-                    Icon(Icons.Default.VpnKey, null, tint = RoyalGold, modifier = Modifier.size(22.dp))
+                    OrnamentalIcon(Icons.Default.VpnKey, null, tint = RoyalGold, modifier = Modifier.size(22.dp))
                     Spacer(Modifier.width(12.dp))
                     Column {
                         Text(

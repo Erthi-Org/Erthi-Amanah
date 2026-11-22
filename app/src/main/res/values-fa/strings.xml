@@ -39,4 +39,14 @@
     <string name="documents_title">اسناد</string>
     <string name="beneficiaries_title">خانواده و ذینفعان</string>
     <string name="emergency_title">اورژانس</string>
+    <string name="language_provisional">برخی ترجمه‌ها موقت‌اند و هنوز بازبینی نشده‌اند.</string>
+    <string name="settings_language">زبان برنامه</string>
+    <string name="auth_pin_label">رمز ورود</string>
+    <string name="auth_unlock">باز کردن قفل</string>
+    <string name="auth_use_biometrics">باز کردن قفل با احراز هویت زیستی</string>
+    <string name="auth_acknowledge">متوجه شدم و می‌خواهم ادامه دهم</string>
+    <string name="quran_attribution">سوره بقره، آیه ۱۸۰ (گزیده)</string>
+    <string name="nav_vault">گاوصندوق</string>
+    <string name="nav_more">بیشتر</string>
+    <string name="settings_death_unavailable">تأیید فوت در حال حاضر در دسترس نیست</string>
 </resources>

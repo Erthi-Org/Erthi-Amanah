@@ -39,4 +39,14 @@
     <string name="documents_title">दस्तावेज़</string>
     <string name="beneficiaries_title">परिवार और लाभार्थी</string>
     <string name="emergency_title">आपातकाल</string>
+    <string name="language_provisional">कुछ अनुवाद अस्थायी हैं और उनकी समीक्षा बाकी है।</string>
+    <string name="settings_language">ऐप की भाषा</string>
+    <string name="auth_pin_label">पिन</string>
+    <string name="auth_unlock">अनलॉक करें</string>
+    <string name="auth_use_biometrics">बायोमेट्रिक्स से अनलॉक करें</string>
+    <string name="auth_acknowledge">मैं समझ गया हूँ और आगे बढ़ना चाहता हूँ</string>
+    <string name="quran_attribution">सूरह अल-बक़रा 2:180 (अंश)</string>
+    <string name="nav_vault">तिजोरी</string>
+    <string name="nav_more">और</string>
+    <string name="settings_death_unavailable">मृत्यु का सत्यापन अभी उपलब्ध नहीं है</string>
 </resources>

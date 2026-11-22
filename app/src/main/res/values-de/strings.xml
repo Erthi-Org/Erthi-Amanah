@@ -39,4 +39,14 @@
     <string name="documents_title">Dokumente</string>
     <string name="beneficiaries_title">Familie &amp; Begünstigte</string>
     <string name="emergency_title">Notfall</string>
+    <string name="language_provisional">Einige Übersetzungen sind vorläufig und werden noch geprüft.</string>
+    <string name="settings_language">App-Sprache</string>
+    <string name="auth_pin_label">PIN</string>
+    <string name="auth_unlock">Entsperren</string>
+    <string name="auth_use_biometrics">Biometrisch entsperren</string>
+    <string name="auth_acknowledge">Ich habe verstanden und möchte fortfahren</string>
+    <string name="quran_attribution">Al-Baqara 2:180 (Auszug)</string>
+    <string name="nav_vault">Tresor</string>
+    <string name="nav_more">Mehr</string>
+    <string name="settings_death_unavailable">Die Überprüfung eines Todesfalls ist derzeit nicht verfügbar</string>
 </resources>

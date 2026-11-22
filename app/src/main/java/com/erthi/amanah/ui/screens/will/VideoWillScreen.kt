@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.will
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -215,7 +216,7 @@ fun VideoWillScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Icon(Icons.Default.Videocam, null, tint = WillColor, modifier = Modifier.size(64.dp))
+                    OrnamentalIcon(Icons.Default.Videocam, null, tint = WillColor, modifier = Modifier.size(64.dp))
                     Spacer(Modifier.height(16.dp))
                     Text("تسجيل الوصية المصورة",
                         style = MaterialTheme.typography.headlineSmall,
@@ -298,7 +299,7 @@ fun VideoWillScreen(
                     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)),
                         contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.CheckCircle, null,
+                            OrnamentalIcon(Icons.Default.CheckCircle, null,
                                 tint = SuccessGreenLight, modifier = Modifier.size(64.dp))
                             Spacer(Modifier.height(12.dp))
                             Text("تم حفظ الوصية المصورة بأمان",
@@ -316,7 +317,7 @@ fun VideoWillScreen(
                         contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.padding(32.dp)) {
-                            Icon(Icons.Default.Error, null,
+                            OrnamentalIcon(Icons.Default.Error, null,
                                 tint = EmergencyRed, modifier = Modifier.size(48.dp))
                             Spacer(Modifier.height(12.dp))
                             Text(s.message, color = TextPrimary, textAlign = TextAlign.Center)
@@ -370,7 +371,7 @@ fun VideoWillScreen(
                                         .size(48.dp)
                                         .background(Color.Black.copy(alpha = 0.5f), CircleShape),
                                 ) {
-                                    Icon(Icons.Default.Cameraswitch, null,
+                                    OrnamentalIcon(Icons.Default.Cameraswitch, null,
                                         tint = Color.White, modifier = Modifier.size(24.dp))
                                 }
                             }
@@ -416,7 +417,7 @@ fun VideoWillScreen(
                                     .background(if (isRecording) EmergencyRed else WillColor, CircleShape)
                                     .clip(CircleShape),
                             ) {
-                                Icon(
+                                OrnamentalIcon(
                                     if (isRecording) Icons.Default.Stop else Icons.Default.FiberManualRecord,
                                     contentDescription = if (isRecording) "إيقاف التسجيل" else "بدء التسجيل",
                                     tint = Color.White, modifier = Modifier.size(36.dp),

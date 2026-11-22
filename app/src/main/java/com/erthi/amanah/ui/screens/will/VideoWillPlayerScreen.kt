@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.will
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -104,7 +105,7 @@ fun VideoWillPlayerScreen(
                         modifier = Modifier.align(Alignment.Center).padding(32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Icon(Icons.Default.Error, null, tint = EmergencyRed, modifier = Modifier.size(56.dp))
+                        OrnamentalIcon(Icons.Default.Error, null, tint = EmergencyRed, modifier = Modifier.size(56.dp))
                         Spacer(Modifier.height(16.dp))
                         Text(
                             decryptError ?: "خطأ غير معروف",

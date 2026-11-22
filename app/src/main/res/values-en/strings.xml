@@ -52,4 +52,25 @@
     <string name="documents_title">Documents</string>
     <string name="beneficiaries_title">Family &amp; Beneficiaries</string>
     <string name="emergency_title">Emergency</string>
+    <string name="language_provisional">Some translations are provisional and pending review.</string>
+    <string name="settings_language">App language</string>
+    <string name="auth_pin_label">PIN</string>
+    <string name="auth_unlock">Unlock</string>
+    <string name="auth_use_biometrics">Unlock with biometrics</string>
+    <string name="auth_acknowledge">I understand and wish to continue</string>
+    <string name="quran_attribution">Al-Baqarah 2:180 (excerpt)</string>
+    <string name="nav_vault">Vault</string>
+    <string name="nav_more">More</string>
+    <string name="settings_death_unavailable">Death verification is currently unavailable</string>
+    <string name="attachment_too_large">The attachment exceeds the 50 MiB limit.</string>
+    <string name="attachment_access_expired">Could not access the file. Select it again.</string>
+    <string name="attachment_save_failed">Could not save the attachment.</string>
+    <string name="attachment_delete_failed">Could not finish deleting the document and its attachment.</string>
+    <string name="documents_add_record">Add document record</string>
+    <string name="documents_attach">Attach a file</string>
+    <string name="documents_name">Document title</string>
+    <string name="documents_category">Category</string>
+    <string name="documents_delete_prompt">Delete this document and its attachment?</string>
+    <string name="documents_empty">No documents yet.</string>
+    <string name="restore_pending_warning">A restore is incomplete. It will be retried when the app starts again.</string>
 </resources>

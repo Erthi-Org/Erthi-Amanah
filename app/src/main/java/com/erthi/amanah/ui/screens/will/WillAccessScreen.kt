@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.will
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -115,7 +116,7 @@ fun WillAccessScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = GlossyBlack),
                         enabled = beneficiaries.isNotEmpty(),
                     ) {
-                        Icon(Icons.Default.Save, null)
+                        OrnamentalIcon(Icons.Default.Save, null)
                         Spacer(Modifier.width(8.dp))
                         Text("حفظ إعدادات الوصول", fontWeight = FontWeight.Bold)
                     }
@@ -146,7 +147,7 @@ fun WillAccessScreen(
                     modifier = Modifier.fillMaxWidth().border(1.dp, GoldAccent.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
                 ) {
                     Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
-                        Icon(Icons.Default.Info, null, tint = GoldAccent, modifier = Modifier.size(18.dp))
+                        OrnamentalIcon(Icons.Default.Info, null, tint = GoldAccent, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
                         Text(
                             "فعّل الوصول للأشخاص الموثوقين الذين تريدهم أن يطّلعوا على وصيتك بعد وفاتك. يتطلب حفظ أي تغيير إدخال الرمز السري.",
@@ -165,7 +166,7 @@ fun WillAccessScreen(
                         modifier = Modifier.fillMaxWidth().border(1.dp, SuccessGreenLight.copy(alpha = 0.5f), RoundedCornerShape(10.dp)),
                     ) {
                         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.CheckCircle, null, tint = SuccessGreenLight, modifier = Modifier.size(18.dp))
+                            OrnamentalIcon(Icons.Default.CheckCircle, null, tint = SuccessGreenLight, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
                             Text("✅ تم حفظ إعدادات الوصول بنجاح", color = SuccessGreenLight, style = MaterialTheme.typography.bodySmall)
                         }
@@ -184,7 +185,7 @@ fun WillAccessScreen(
                             modifier = Modifier.padding(24.dp).fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            Icon(Icons.Default.People, null, tint = MetallicSilver, modifier = Modifier.size(40.dp))
+                            OrnamentalIcon(Icons.Default.People, null, tint = MetallicSilver, modifier = Modifier.size(40.dp))
                             Spacer(Modifier.height(8.dp))
                             Text("لا يوجد مستفيدون مضافون بعد", color = TextSecondary, style = MaterialTheme.typography.bodyMedium)
                             Text("أضف مستفيدين من شاشة «الأسرة والمستفيدون»", color = TextMuted, style = MaterialTheme.typography.bodySmall)
@@ -228,7 +229,7 @@ private fun BeneficiaryAccessCard(
         ),
     ) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(
+            OrnamentalIcon(
                 Icons.Default.Person,
                 null,
                 tint = if (canAccess) GoldAccent else MetallicSilver,

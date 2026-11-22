@@ -39,4 +39,14 @@
     <string name="documents_title">Mga Dokumento</string>
     <string name="beneficiaries_title">Pamilya at Mga Benepisyaryo</string>
     <string name="emergency_title">Emerhensya</string>
+    <string name="language_provisional">Pansamantala ang ilang salin at kailangan pang suriin.</string>
+    <string name="settings_language">Wika ng app</string>
+    <string name="auth_pin_label">PIN</string>
+    <string name="auth_unlock">I-unlock</string>
+    <string name="auth_use_biometrics">I-unlock gamit ang biometrics</string>
+    <string name="auth_acknowledge">Nauunawaan ko at nais kong magpatuloy</string>
+    <string name="quran_attribution">Al-Baqarah 2:180 (sipi)</string>
+    <string name="nav_vault">Vault</string>
+    <string name="nav_more">Higit pa</string>
+    <string name="settings_death_unavailable">Kasalukuyang hindi magagamit ang pagpapatunay ng pagkamatay</string>
 </resources>

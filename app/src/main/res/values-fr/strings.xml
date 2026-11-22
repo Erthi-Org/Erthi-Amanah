@@ -30,4 +30,14 @@
     <string name="auth_prompt_title">Vérification d\'identité</string>
     <string name="language_picker_title">Choisir la langue</string>
     <string name="empty_list">Aucune donnée</string>
+    <string name="language_provisional">Certaines traductions sont provisoires et restent à vérifier.</string>
+    <string name="settings_language">Langue de l’application</string>
+    <string name="auth_pin_label">Code PIN</string>
+    <string name="auth_unlock">Déverrouiller</string>
+    <string name="auth_use_biometrics">Déverrouiller par biométrie</string>
+    <string name="auth_acknowledge">J’ai compris et je souhaite continuer</string>
+    <string name="quran_attribution">Al-Baqara 2:180 (extrait)</string>
+    <string name="nav_vault">Coffre-fort</string>
+    <string name="nav_more">Plus</string>
+    <string name="settings_death_unavailable">La vérification du décès est actuellement indisponible</string>
 </resources>

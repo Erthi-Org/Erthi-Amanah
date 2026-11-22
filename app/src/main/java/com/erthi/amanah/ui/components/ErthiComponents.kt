@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import com.erthi.amanah.R
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -44,9 +46,9 @@ fun ErthiTopBar(
         navigationIcon = {
             if (onBack != null) {
                 IconButton(onClick = onBack) {
-                    Icon(
+                    OrnamentalIcon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "رجوع",
+                        contentDescription = stringResource(R.string.btn_back),
                         tint = SilverBlue,
                     )
                 }
@@ -103,7 +105,7 @@ fun DashboardItem(
                     .background(iconTint.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
+                OrnamentalIcon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = iconTint,
@@ -151,7 +153,7 @@ fun EmergencyCallButton(
                 .fillMaxWidth()
                 .padding(16.dp),
         ) {
-            Icon(
+            OrnamentalIcon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = EmergencyRed,
@@ -212,7 +214,7 @@ fun EmptyState(
                         .background(iconTint.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(icon, null, tint = iconTint.copy(alpha = 0.6f), modifier = Modifier.size(28.dp))
+                    OrnamentalIcon(icon, null, tint = iconTint.copy(alpha = 0.6f), modifier = Modifier.size(28.dp))
                 }
                 Text(
                     text = message,

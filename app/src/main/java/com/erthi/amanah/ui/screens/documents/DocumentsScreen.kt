@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.documents
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -11,6 +12,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.res.stringResource
+import com.erthi.amanah.R
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -40,9 +44,27 @@ fun DocumentsScreen(
     }
 
     // Pending file URI from SAF picker; null means no file selected yet
-    var pickedUri by remember { mutableStateOf<Uri?>(null) }
-    var pickedFileName by remember { mutableStateOf("") }
-    var showAddDialog by remember { mutableStateOf(false) }
+    var pickedUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    var pickedFileName by rememberSaveable { mutableStateOf("") }
+    var showAddDialog by rememberSaveable { mutableStateOf(false) }
+
+    var pendingDeletion by remember { mutableStateOf<DocumentEntity?>(null) }
+    pendingDeletion?.let { document ->
+        AlertDialog(
+            onDismissRequest = { pendingDeletion = null },
+            icon = { OrnamentalIcon(Icons.Default.Delete, null, tint = RoyalGoldLight) },
+            title = { Text(stringResource(R.string.documents_delete_prompt)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingDeletion = null
+                    viewModel.delete(document)
+                }) { Text(stringResource(R.string.btn_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeletion = null }) { Text(stringResource(R.string.btn_cancel)) }
+            },
+        )
+    }
 
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         // uri is null when user cancels — do not show dialog in that case unless already shown
@@ -53,8 +75,6 @@ fun DocumentsScreen(
                     ?.use { c -> if (c.moveToFirst()) c.getString(0) else "" } ?: ""
             } catch (_: Exception) { "" }
             showAddDialog = true
-        } else if (!showAddDialog) {
-            // Cancelled with no dialog open — nothing to do
         }
     }
 
@@ -86,20 +106,20 @@ fun DocumentsScreen(
     }
 
     Scaffold(
-        topBar = { ErthiTopBar(title = "الوثائق المهمة", onBack = onBack) },
+        topBar = { ErthiTopBar(title = stringResource(R.string.documents_title), onBack = onBack) },
         containerColor = NavyDeep,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { filePicker.launch(arrayOf("*/*")) },
+                onClick = { showAddDialog = true },
                 containerColor = DocumentsColor,
                 contentColor = NavyDeep,
-            ) { Icon(Icons.Default.AttachFile, null) }
+            ) { OrnamentalIcon(Icons.Default.Add, stringResource(R.string.documents_add_record)) }
         },
     ) { padding ->
         if (documents.isEmpty()) {
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-                EmptyState("لا توجد وثائق مرفقة\nاضغط + لإرفاق ملف أو تسجيل وثيقة")
+                EmptyState(stringResource(R.string.documents_empty))
             }
         } else {
             LazyColumn(
@@ -107,7 +127,7 @@ fun DocumentsScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(documents, key = { it.id }) { doc ->
-                    DocumentCard(doc, onDelete = { viewModel.delete(doc) })
+                    DocumentCard(doc, onDelete = { pendingDeletion = doc })
                 }
                 item { Spacer(Modifier.height(72.dp)) }
             }
@@ -125,7 +145,7 @@ private fun DocumentCard(doc: DocumentEntity, onDelete: () -> Unit) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             // Icon reflects whether file is attached
             val hasFile = doc.filePath.isNotEmpty()
-            Icon(
+            OrnamentalIcon(
                 if (hasFile) Icons.Default.Description else Icons.Default.TextSnippet,
                 null,
                 tint = if (hasFile) DocumentsColor else TextMuted,
@@ -136,13 +156,13 @@ private fun DocumentCard(doc: DocumentEntity, onDelete: () -> Unit) {
                 Text(doc.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = TextPrimary)
                 if (doc.category.isNotBlank()) Text(doc.category, style = MaterialTheme.typography.labelSmall, color = DocumentsColor)
                 if (hasFile) {
-                    val name = java.io.File(doc.filePath).name
-                    Text(name, style = MaterialTheme.typography.labelSmall, color = TextSecondary, maxLines = 1)
+                    Text(stringResource(R.string.documents_attach), style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary, maxLines = 1)
                 }
                 if (doc.notes.isNotBlank()) Text(doc.notes, style = MaterialTheme.typography.bodySmall, color = TextSecondary, maxLines = 1)
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, null, tint = EmergencyRed, modifier = Modifier.size(20.dp))
+                OrnamentalIcon(Icons.Default.Delete, stringResource(R.string.btn_delete), tint = EmergencyRed, modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -165,45 +185,43 @@ private fun AddDocumentDialog(
         containerColor = NavyCard,
         title = {
             Text(
-                if (pickedUri != null) "تسجيل وثيقة مع ملف" else "تسجيل وثيقة",
+                stringResource(R.string.documents_add_record),
                 color = TextPrimary, fontWeight = FontWeight.Bold,
             )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 // Show attached file info or offer to pick
-                if (pickedUri != null && pickedFileName.isNotBlank()) {
+                if (pickedUri != null) {
                     Card(colors = CardDefaults.cardColors(containerColor = DocumentsColor.copy(alpha = 0.12f)), shape = RoundedCornerShape(8.dp)) {
                         Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.AttachFile, null, tint = DocumentsColor, modifier = Modifier.size(16.dp))
+                            OrnamentalIcon(Icons.Default.AttachFile, null, tint = DocumentsColor, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
                             Text(pickedFileName, style = MaterialTheme.typography.labelSmall, color = DocumentsColor, maxLines = 1)
                         }
                     }
                 } else {
                     TextButton(onClick = onPickFile) {
-                        Icon(Icons.Default.AttachFile, null, modifier = Modifier.size(18.dp))
+                        OrnamentalIcon(Icons.Default.AttachFile, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("إرفاق ملف (اختياري)", color = DocumentsColor)
+                        Text(stringResource(R.string.documents_attach), color = DocumentsColor)
                     }
                 }
                 OutlinedTextField(
                     value = title, onValueChange = { title = it },
-                    label = { Text("عنوان الوثيقة *", color = TextSecondary) },
+                    label = { Text(stringResource(R.string.documents_name), color = TextSecondary) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = dialogFieldColors(), singleLine = true,
-                    placeholder = { Text("مثال: بطاقة رقم قومي", color = TextMuted) },
                 )
                 OutlinedTextField(
                     value = category, onValueChange = { category = it },
-                    label = { Text("التصنيف", color = TextSecondary) },
+                    label = { Text(stringResource(R.string.documents_category), color = TextSecondary) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = dialogFieldColors(), singleLine = true,
-                    placeholder = { Text("مثال: هوية، تأمين", color = TextMuted) },
                 )
                 OutlinedTextField(
                     value = notes, onValueChange = { notes = it },
-                    label = { Text("ملاحظات", color = TextSecondary) },
+                    label = { Text(stringResource(R.string.label_notes), color = TextSecondary) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = dialogFieldColors(), maxLines = 2,
                 )
@@ -213,10 +231,10 @@ private fun AddDocumentDialog(
             TextButton(
                 onClick = { onConfirm(title, category, notes) },
                 enabled = title.isNotBlank(),
-            ) { Text("إضافة", color = DocumentsColor, fontWeight = FontWeight.Bold) }
+            ) { Text(stringResource(R.string.btn_add), color = DocumentsColor, fontWeight = FontWeight.Bold) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("إلغاء", color = TextSecondary) }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_cancel), color = TextSecondary) }
         },
     )
 }

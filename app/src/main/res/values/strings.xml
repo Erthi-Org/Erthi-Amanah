@@ -133,4 +133,22 @@
     <string name="attachment_access_expired">تعذّر الوصول إلى الملف. حدّده مرة أخرى.</string>
     <string name="attachment_save_failed">تعذّر حفظ المرفق.</string>
     <string name="attachment_delete_failed">تعذّر إتمام حذف الوثيقة وملفها.</string>
+    <string name="language_provisional">بعض الترجمات أولية وقيد المراجعة.</string>
+    <string name="settings_language">لغة التطبيق</string>
+    <string name="auth_pin_label">الرمز السري</string>
+    <string name="auth_unlock">دخول</string>
+    <string name="auth_use_biometrics">الدخول بالبصمة</string>
+    <string name="auth_acknowledge">فهمت وأوافق على المتابعة</string>
+    <string name="quran_attribution">سورة البقرة، الآية 180 (مقتطف)</string>
+    <string name="nav_vault">الخزنة</string>
+    <string name="nav_more">المزيد</string>
+    <string name="settings_death_unavailable">التحقق من الوفاة غير متاح حاليًا</string>
+    <string name="language_picker_title">اختيار اللغة</string>
+    <string name="documents_add_record">إضافة سجل وثيقة</string>
+    <string name="documents_attach">إرفاق ملف</string>
+    <string name="documents_name">عنوان الوثيقة</string>
+    <string name="documents_category">التصنيف</string>
+    <string name="documents_delete_prompt">حذف الوثيقة والمرفق؟</string>
+    <string name="documents_empty">لا توجد وثائق بعد.</string>
+    <string name="restore_pending_warning">الاستعادة غير مكتملة. ستتكرر المحاولة عند تشغيل التطبيق مجددًا.</string>
 </resources>

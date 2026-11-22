@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.finance
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -43,13 +44,13 @@ private fun FinanceCard(title: String, subtitle: String, icon: ImageVector, tint
         colors = CardDefaults.cardColors(containerColor = NavyCard),
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = tint, modifier = Modifier.size(32.dp))
+            OrnamentalIcon(icon, null, tint = tint, modifier = Modifier.size(32.dp))
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = TextPrimary)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
             }
-            Icon(Icons.Default.ChevronRight, null, tint = TextMuted)
+            OrnamentalIcon(Icons.Default.ChevronRight, null, tint = TextMuted)
         }
     }
 }

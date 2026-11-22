@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.will
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import android.Manifest
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
@@ -200,7 +201,7 @@ fun AudioWillScreen(
                 modifier = Modifier.fillMaxWidth().border(1.dp, GoldAccent.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
             ) {
                 Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
-                    Icon(Icons.Default.Info, null, tint = GoldAccent, modifier = Modifier.size(16.dp))
+                    OrnamentalIcon(Icons.Default.Info, null, tint = GoldAccent, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(8.dp))
                     Text("سجّل وصيتك بصوتك. يُخزَّن التسجيل محلياً على هاتفك مشفّراً بـ AES-256.", style = MaterialTheme.typography.bodySmall, color = GoldAccent.copy(alpha = 0.85f))
                 }
@@ -214,19 +215,19 @@ fun AudioWillScreen(
                     Text("جارٍ التسجيل", color = EmergencyRed, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
                 RecordState.PLAYING -> {
-                    Icon(Icons.Default.PlayCircle, null, tint = VaultColor, modifier = Modifier.size(32.dp))
+                    OrnamentalIcon(Icons.Default.PlayCircle, null, tint = VaultColor, modifier = Modifier.size(32.dp))
                     Text("جارٍ التشغيل", color = VaultColor, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
                 RecordState.STOPPED -> {
-                    Icon(Icons.Default.CheckCircle, null, tint = SuccessGreenLight, modifier = Modifier.size(32.dp))
+                    OrnamentalIcon(Icons.Default.CheckCircle, null, tint = SuccessGreenLight, modifier = Modifier.size(32.dp))
                     Text("اكتمل التسجيل", color = SuccessGreenLight, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
                 RecordState.SAVED -> {
-                    Icon(Icons.Default.SaveAlt, null, tint = GoldAccent, modifier = Modifier.size(32.dp))
+                    OrnamentalIcon(Icons.Default.SaveAlt, null, tint = GoldAccent, modifier = Modifier.size(32.dp))
                     Text("تم الحفظ المشفّر", color = GoldAccent, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
                 else -> {
-                    Icon(Icons.Default.Mic, null, tint = MetallicSilver, modifier = Modifier.size(48.dp))
+                    OrnamentalIcon(Icons.Default.Mic, null, tint = MetallicSilver, modifier = Modifier.size(48.dp))
                     Text("اضغط للبدء", color = TextSecondary, fontSize = 16.sp)
                 }
             }
@@ -260,7 +261,7 @@ fun AudioWillScreen(
                     shape = RoundedCornerShape(26.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = GlossyBlack),
                 ) {
-                    Icon(Icons.Default.Mic, null)
+                    OrnamentalIcon(Icons.Default.Mic, null)
                     Spacer(Modifier.width(8.dp))
                     Text("منح إذن التسجيل", fontWeight = FontWeight.Bold)
                 }
@@ -273,7 +274,7 @@ fun AudioWillScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = EmergencyRed, contentColor = Color.White),
                             contentPadding = PaddingValues(0.dp),
                         ) {
-                            Icon(Icons.Default.Mic, null, modifier = Modifier.size(36.dp))
+                            OrnamentalIcon(Icons.Default.Mic, null, modifier = Modifier.size(36.dp))
                         }
                     }
                     RecordState.RECORDING -> {
@@ -283,7 +284,7 @@ fun AudioWillScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = ObsidianElevated, contentColor = EmergencyRed),
                             contentPadding = PaddingValues(0.dp),
                         ) {
-                            Icon(Icons.Default.Stop, null, modifier = Modifier.size(36.dp))
+                            OrnamentalIcon(Icons.Default.Stop, null, modifier = Modifier.size(36.dp))
                         }
                     }
                     RecordState.STOPPED -> {
@@ -294,7 +295,7 @@ fun AudioWillScreen(
                                 shape = RoundedCornerShape(26.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = VaultColor),
                             ) {
-                                Icon(Icons.Default.PlayArrow, null)
+                                OrnamentalIcon(Icons.Default.PlayArrow, null)
                                 Spacer(Modifier.width(6.dp))
                                 Text("استماع")
                             }
@@ -304,7 +305,7 @@ fun AudioWillScreen(
                                 shape = RoundedCornerShape(26.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = GlossyBlack),
                             ) {
-                                Icon(Icons.Default.Save, null)
+                                OrnamentalIcon(Icons.Default.Save, null)
                                 Spacer(Modifier.width(6.dp))
                                 Text("حفظ مشفّر", fontWeight = FontWeight.Bold)
                             }
@@ -320,7 +321,7 @@ fun AudioWillScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = VaultColor, contentColor = Color.White),
                             contentPadding = PaddingValues(0.dp),
                         ) {
-                            Icon(Icons.Default.Stop, null, modifier = Modifier.size(36.dp))
+                            OrnamentalIcon(Icons.Default.Stop, null, modifier = Modifier.size(36.dp))
                         }
                     }
                     RecordState.SAVED -> {
@@ -331,7 +332,7 @@ fun AudioWillScreen(
                                 shape = RoundedCornerShape(26.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = VaultColor),
                             ) {
-                                Icon(Icons.Default.PlayArrow, null)
+                                OrnamentalIcon(Icons.Default.PlayArrow, null)
                                 Spacer(Modifier.width(6.dp))
                                 Text("استماع")
                             }
@@ -341,7 +342,7 @@ fun AudioWillScreen(
                                 shape = RoundedCornerShape(26.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = GlossyBlack),
                             ) {
-                                Icon(Icons.Default.Check, null)
+                                OrnamentalIcon(Icons.Default.Check, null)
                                 Spacer(Modifier.width(6.dp))
                                 Text("تم", fontWeight = FontWeight.Bold)
                             }

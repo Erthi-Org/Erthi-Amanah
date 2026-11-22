@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.will
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -53,7 +54,7 @@ fun WillScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.HistoryEdu, contentDescription = null, tint = GoldAccent, modifier = Modifier.size(48.dp))
+                        OrnamentalIcon(Icons.Default.HistoryEdu, contentDescription = null, tint = GoldAccent, modifier = Modifier.size(48.dp))
                         Spacer(Modifier.height(6.dp))
                         Text("اكتب وصيتك وعيّن آلية الوصول إليها", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
                     }
@@ -73,7 +74,7 @@ fun WillScreen(
                     shape = RoundedCornerShape(12.dp),
                 ) {
                     Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = GoldAccent, modifier = Modifier.size(18.dp))
+                        OrnamentalIcon(Icons.Default.Info, contentDescription = null, tint = GoldAccent, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
                         Text(
                             "تنبيه: الوصية المكتوبة هنا هي توثيق شخصي. مدى إلزاميتها القانونية يعتمد على تشريعات بلدك.",
@@ -108,7 +109,7 @@ private fun WillCard(will: WillEntity, onDelete: () -> Unit, onPlayVideo: ((Stri
         colors = CardDefaults.cardColors(containerColor = NavyCard),
     ) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(
+            OrnamentalIcon(
                 if (will.isDraft) Icons.Default.EditNote else Icons.Default.HistoryEdu,
                 contentDescription = null,
                 tint = if (will.isDraft) TextSecondary else GoldAccent,
@@ -137,11 +138,11 @@ private fun WillCard(will: WillEntity, onDelete: () -> Unit, onPlayVideo: ((Stri
             }
             if (will.videoPath != null && onPlayVideo != null) {
                 IconButton(onClick = { onPlayVideo(will.videoPath!!) }) {
-                    Icon(Icons.Default.PlayCircle, null, tint = WillColor, modifier = Modifier.size(24.dp))
+                    OrnamentalIcon(Icons.Default.PlayCircle, null, tint = WillColor, modifier = Modifier.size(24.dp))
                 }
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, null, tint = EmergencyRed, modifier = Modifier.size(20.dp))
+                OrnamentalIcon(Icons.Default.Delete, null, tint = EmergencyRed, modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -156,10 +157,10 @@ private fun WillOptionItem(icon: androidx.compose.ui.graphics.vector.ImageVector
         colors = CardDefaults.cardColors(containerColor = NavyCard),
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = SilverBlue, modifier = Modifier.size(24.dp))
+            OrnamentalIcon(icon, contentDescription = null, tint = SilverBlue, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.width(12.dp))
             Text(label, style = MaterialTheme.typography.bodyMedium, color = TextPrimary, modifier = Modifier.weight(1f))
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextMuted, modifier = Modifier.size(20.dp))
+            OrnamentalIcon(Icons.Default.ChevronRight, contentDescription = null, tint = TextMuted, modifier = Modifier.size(20.dp))
         }
     }
 }

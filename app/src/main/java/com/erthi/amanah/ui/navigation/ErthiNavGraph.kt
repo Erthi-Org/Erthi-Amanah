@@ -1,6 +1,9 @@
 package com.erthi.amanah.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -44,47 +47,29 @@ import com.erthi.amanah.ui.viewmodel.AuthViewModel
 fun ErthiNavGraph(
     authState: AuthState,
     authViewModel: AuthViewModel,
+) {
+    val unlocked by authViewModel.isAuthenticated.collectAsState()
+    when (authState) {
+        AuthState.Loading -> Unit
+        AuthState.FirstLaunch -> OnboardingScreen(onGetStarted = authViewModel::finishOnboarding)
+        AuthState.PinNotSet -> SetPinScreen(authViewModel, onPinSet = {})
+        AuthState.Locked -> AuthScreen(authViewModel, onAuthenticated = {})
+        AuthState.Unlocked -> if (unlocked) {
+            key("authenticated") {
+                UnlockedNavGraph(authViewModel)
+            }
+        } else {
+            AuthScreen(authViewModel, onAuthenticated = {})
+        }
+    }
+}
+
+@Composable
+private fun UnlockedNavGraph(
+    authViewModel: AuthViewModel,
     navController: NavHostController = rememberNavController(),
 ) {
-    val startDestination = when (authState) {
-        AuthState.FirstLaunch -> Screen.Onboarding.route
-        AuthState.PinNotSet -> Screen.SetPin.route
-        AuthState.Locked -> Screen.Auth.route
-        AuthState.Unlocked -> Screen.Home.route
-    }
-
-    NavHost(
-        navController = navController,
-        startDestination = startDestination,
-    ) {
-        composable(Screen.Onboarding.route) {
-            OnboardingScreen(
-                onGetStarted = { navController.navigate(Screen.SetPin.route) }
-            )
-        }
-
-        composable(Screen.SetPin.route) {
-            SetPinScreen(
-                authViewModel = authViewModel,
-                onPinSet = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.SetPin.route) { inclusive = true }
-                    }
-                }
-            )
-        }
-
-        composable(Screen.Auth.route) {
-            AuthScreen(
-                authViewModel = authViewModel,
-                onAuthenticated = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Auth.route) { inclusive = true }
-                    }
-                }
-            )
-        }
-
+    NavHost(navController = navController, startDestination = Screen.Home.route) {
         composable(Screen.Home.route) {
             HomeScreen(
                 onNavigate = { screen -> navController.navigate(screen.route) }
@@ -157,16 +142,11 @@ fun ErthiNavGraph(
                 onBack = { navController.popBackStack() },
                 onNavigateAboutApp = { navController.navigate(Screen.AboutApp.route) },
                 onNavigateAboutErthi = { navController.navigate(Screen.AboutErthi.route) },
-                onLockApp = {
-                    authViewModel.lock()
-                    navController.navigate(Screen.Auth.route) {
-                        popUpTo(Screen.Home.route) { inclusive = true }
-                    }
-                },
+                onLockApp = authViewModel::lock,
+                authViewModel = authViewModel,
                 onNavigatePrivacy = { navController.navigate(Screen.Privacy.route) },
                 onNavigateEncryption = { navController.navigate(Screen.EncryptionInfo.route) },
                 onNavigateRecoveryKey = { navController.navigate(Screen.RecoveryKey.route) },
-                onNavigateDeathVerification = { /* Coming soon — no-op */ },
                 onNavigateLanguagePicker = { navController.navigate(Screen.LanguagePicker.route) },
             )
         }

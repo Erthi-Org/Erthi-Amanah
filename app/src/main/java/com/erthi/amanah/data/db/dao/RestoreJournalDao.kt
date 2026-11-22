@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.erthi.amanah.data.db.entity.RestoreJournalEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface RestoreJournalDao {
@@ -13,6 +14,9 @@ interface RestoreJournalDao {
 
     @Query("SELECT * FROM restore_journal LIMIT 1")
     suspend fun getPendingJournal(): RestoreJournalEntity?
+
+    @Query("SELECT EXISTS(SELECT 1 FROM restore_journal)")
+    fun hasPendingRestore(): Flow<Boolean>
 
     @Query("DELETE FROM restore_journal WHERE sessionId = :sessionId")
     suspend fun deleteJournal(sessionId: String)

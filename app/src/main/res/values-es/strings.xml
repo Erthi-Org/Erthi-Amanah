@@ -39,4 +39,14 @@
     <string name="documents_title">Documentos</string>
     <string name="beneficiaries_title">Familia y beneficiarios</string>
     <string name="emergency_title">Emergencia</string>
+    <string name="language_provisional">Algunas traducciones son provisionales y están pendientes de revisión.</string>
+    <string name="settings_language">Idioma de la aplicación</string>
+    <string name="auth_pin_label">PIN</string>
+    <string name="auth_unlock">Desbloquear</string>
+    <string name="auth_use_biometrics">Desbloquear con biometría</string>
+    <string name="auth_acknowledge">Entiendo y quiero continuar</string>
+    <string name="quran_attribution">Al-Báqara 2:180 (fragmento)</string>
+    <string name="nav_vault">Bóveda</string>
+    <string name="nav_more">Más</string>
+    <string name="settings_death_unavailable">La verificación del fallecimiento no está disponible actualmente</string>
 </resources>

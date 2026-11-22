@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.settings
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -74,7 +75,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
 private fun PrivacyItem(icon: androidx.compose.ui.graphics.vector.ImageVector, iconColor: androidx.compose.ui.graphics.Color, title: String, body: String) {
     AndalusianCard(accentColor = iconColor) {
         Row(verticalAlignment = Alignment.Top) {
-            Icon(icon, null, tint = iconColor, modifier = Modifier.size(22.dp))
+            OrnamentalIcon(icon, null, tint = iconColor, modifier = Modifier.size(22.dp))
             Spacer(Modifier.width(12.dp))
             Column {
                 Text(title, fontWeight = FontWeight.Bold, color = TextPrimary, style = MaterialTheme.typography.titleSmall)

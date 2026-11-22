@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.debts
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -51,7 +52,7 @@ fun DebtsScreen(
                 onClick = { showAddDialog = true },
                 containerColor = DebtsColor,
                 contentColor = NavyDeep,
-            ) { Icon(Icons.Default.Add, null) }
+            ) { OrnamentalIcon(Icons.Default.Add, null) }
         },
     ) { padding ->
         LazyColumn(
@@ -97,7 +98,7 @@ private fun DebtCard(debt: DebtEntity, onDelete: () -> Unit) {
                     .background(DebtsColor.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(icon, null, tint = DebtsColor, modifier = Modifier.size(22.dp))
+                OrnamentalIcon(icon, null, tint = DebtsColor, modifier = Modifier.size(22.dp))
             }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -108,7 +109,7 @@ private fun DebtCard(debt: DebtEntity, onDelete: () -> Unit) {
                 }
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, null, tint = EmergencyRed, modifier = Modifier.size(20.dp))
+                OrnamentalIcon(Icons.Default.Delete, null, tint = EmergencyRed, modifier = Modifier.size(20.dp))
             }
         }
     }

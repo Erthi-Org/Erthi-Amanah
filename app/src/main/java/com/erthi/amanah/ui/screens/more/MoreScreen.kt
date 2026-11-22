@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.more
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -106,14 +107,14 @@ private fun MoreCard(
                     .background(iconColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(icon, null, tint = iconColor, modifier = Modifier.size(22.dp))
+                OrnamentalIcon(icon, null, tint = iconColor, modifier = Modifier.size(22.dp))
             }
             Spacer(Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = TextPrimary)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
             }
-            Icon(Icons.Default.ChevronRight, null, tint = TextMuted, modifier = Modifier.size(18.dp))
+            OrnamentalIcon(Icons.Default.ChevronRight, null, tint = TextMuted, modifier = Modifier.size(18.dp))
         }
     }
 }

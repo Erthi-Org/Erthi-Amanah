@@ -39,4 +39,14 @@
     <string name="documents_title">دستاویزات</string>
     <string name="beneficiaries_title">خاندان اور مستفیدین</string>
     <string name="emergency_title">ہنگامی صورتحال</string>
+    <string name="language_provisional">کچھ تراجم عارضی ہیں اور ان کی نظرثانی باقی ہے۔</string>
+    <string name="settings_language">ایپ کی زبان</string>
+    <string name="auth_pin_label">پن کوڈ</string>
+    <string name="auth_unlock">کھولیں</string>
+    <string name="auth_use_biometrics">بایومیٹرکس سے کھولیں</string>
+    <string name="auth_acknowledge">میں سمجھ گیا ہوں اور آگے بڑھنا چاہتا ہوں</string>
+    <string name="quran_attribution">سورۃ البقرہ، آیت 180 (اقتباس)</string>
+    <string name="nav_vault">محفوظ خانہ</string>
+    <string name="nav_more">مزید</string>
+    <string name="settings_death_unavailable">وفات کی تصدیق فی الحال دستیاب نہیں ہے</string>
 </resources>

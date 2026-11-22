@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed class AuthState {
+    data object Loading : AuthState()
     data object FirstLaunch : AuthState()
     data object PinNotSet : AuthState()
     data object Locked : AuthState()
@@ -36,7 +37,7 @@ class AuthViewModel @Inject constructor(
         _isAuthenticated,
     ) { onboardingDone, pinSet, authenticated ->
         when {
-            !onboardingDone -> AuthState.FirstLaunch
+            !pinSet && !onboardingDone -> AuthState.FirstLaunch
             !pinSet -> AuthState.PinNotSet
             authenticated -> AuthState.Unlocked
             else -> AuthState.Locked
@@ -44,7 +45,7 @@ class AuthViewModel @Inject constructor(
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = AuthState.FirstLaunch,
+        initialValue = AuthState.Loading,
     )
 
     private val _pinError = MutableStateFlow<String?>(null)
@@ -109,6 +110,10 @@ class AuthViewModel @Inject constructor(
     fun lock() {
         lockGeneration++
         _isAuthenticated.value = false
+    }
+
+    fun finishOnboarding() {
+        viewModelScope.launch { authManager.markOnboardingDone() }
     }
 
     fun isBiometricEnabled() = authManager.isBiometricEnabled

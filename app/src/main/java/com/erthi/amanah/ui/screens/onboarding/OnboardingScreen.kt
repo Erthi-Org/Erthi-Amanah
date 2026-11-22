@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.onboarding
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -47,7 +48,7 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
                     .background(NavyCard),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
+                OrnamentalIcon(
                     imageVector = Icons.Default.Shield,
                     contentDescription = null,
                     tint = SilverBlue,
@@ -138,7 +139,7 @@ private fun OnboardingFeatureItem(icon: ImageVector, tint: Color, text: String) 
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
+        OrnamentalIcon(
             imageVector = icon,
             contentDescription = null,
             tint = tint,

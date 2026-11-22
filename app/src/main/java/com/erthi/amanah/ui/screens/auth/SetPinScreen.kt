@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.auth
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
 import androidx.biometric.BiometricPrompt
@@ -17,6 +18,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextDirection
+import com.erthi.amanah.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -33,7 +37,7 @@ import com.erthi.amanah.ui.viewmodel.AuthViewModel
 // Quran excerpt — البقرة 180 (مقتطف). Do not alter the Arabic text.
 private const val QURAN_VERSE =
     "﴿كُتِبَ عَلَيْكُمْ إِذَا حَضَرَ أَحَدَكُمُ الْمَوْتُ\nإِنْ تَرَكَ خَيْرًا الْوَصِيَّةُ﴾"
-private const val QURAN_ATTRIBUTION = "سورة البقرة — الآية 180 (مقتطف)"
+
 
 @Composable
 fun SetPinScreen(
@@ -55,15 +59,16 @@ fun SetPinScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.systemBars)
+                .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 28.dp)
-                .windowInsetsPadding(WindowInsets.systemBars),
+                .padding(horizontal = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(Modifier.height(32.dp))
 
             // Quranic verse frame
-            QuranVerseFrame(verse = QURAN_VERSE, attribution = QURAN_ATTRIBUTION)
+            QuranVerseFrame(verse = QURAN_VERSE, attribution = stringResource(R.string.quran_attribution))
             Spacer(Modifier.height(28.dp))
 
             // Ornamental lock emblem
@@ -71,14 +76,14 @@ fun SetPinScreen(
             Spacer(Modifier.height(16.dp))
 
             Text(
-                "إنشاء رمز سري",
+                stringResource(R.string.set_pin_title),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary,
                 textAlign = TextAlign.Center,
             )
             Text(
-                "أدخل رمزاً سرياً لحماية بياناتك",
+                stringResource(R.string.set_pin_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
                 textAlign = TextAlign.Center,
@@ -88,7 +93,8 @@ fun SetPinScreen(
             OutlinedTextField(
                 value = pin,
                 onValueChange = { if (it.length <= 8) { pin = it; errorMessage = null } },
-                label = { Text("الرمز السري", color = TextSecondary) },
+                label = { Text(stringResource(R.string.auth_pin_label), color = TextSecondary) },
+                textStyle = LocalTextStyle.current.copy(textDirection = TextDirection.Ltr),
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                 singleLine = true,
@@ -99,7 +105,8 @@ fun SetPinScreen(
             OutlinedTextField(
                 value = confirmPin,
                 onValueChange = { if (it.length <= 8) { confirmPin = it; errorMessage = null } },
-                label = { Text("تأكيد الرمز السري", color = TextSecondary) },
+                label = { Text(stringResource(R.string.confirm_pin_hint), color = TextSecondary) },
+                textStyle = LocalTextStyle.current.copy(textDirection = TextDirection.Ltr),
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                 singleLine = true,
@@ -119,7 +126,7 @@ fun SetPinScreen(
                     .padding(vertical = 2.dp),
             ) {
                 Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
-                    Icon(Icons.Default.Warning, null, tint = RoyalGold, modifier = Modifier.size(18.dp))
+                    OrnamentalIcon(Icons.Default.Warning, null, tint = RoyalGold, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(10.dp))
                     Text(
                         // Accurate warning: describes the actual recovery architecture.
@@ -150,7 +157,7 @@ fun SetPinScreen(
                     ),
                 )
                 Text(
-                    "فهمت وأوافق على المتابعة",
+                    stringResource(R.string.auth_acknowledge),
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary,
                 )
@@ -173,9 +180,9 @@ fun SetPinScreen(
                 ),
                 enabled = pin.length >= 4 && confirmPin.length >= 4 && acknowledged,
             ) {
-                Icon(Icons.Default.Lock, null, modifier = Modifier.size(18.dp))
+                OrnamentalIcon(Icons.Default.Lock, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("حفظ الرمز السري", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(stringResource(R.string.btn_save), fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
 
             Spacer(Modifier.height(32.dp))
@@ -192,12 +199,13 @@ fun AuthScreen(
     var pin by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    val canUseBiometric = remember {
+    val biometricsEnabled by authViewModel.isBiometricEnabled().collectAsState(initial = false)
+    val canUseBiometric = remember(context) {
         BiometricManager.from(context).canAuthenticate(BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS
     }
 
-    val biometricPrompt = remember {
-        val activity = context as FragmentActivity
+    val activity = LocalContext.current.findFragmentActivity()
+    val biometricPrompt = remember(activity) {
         val executor = ContextCompat.getMainExecutor(activity)
         BiometricPrompt(activity, executor, object : BiometricPrompt.AuthenticationCallback() {
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
@@ -212,9 +220,9 @@ fun AuthScreen(
 
     val promptInfo = remember {
         BiometricPrompt.PromptInfo.Builder()
-            .setTitle("إرثي أمانة")
-            .setSubtitle("تأكيد الهوية بالبصمة")
-            .setNegativeButtonText("استخدام الرمز السري")
+            .setTitle(context.getString(R.string.app_name))
+            .setSubtitle(context.getString(R.string.auth_prompt_title))
+            .setNegativeButtonText(context.getString(R.string.auth_pin_label))
             .build()
     }
 
@@ -228,15 +236,16 @@ fun AuthScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 28.dp)
-                .windowInsetsPadding(WindowInsets.systemBars),
+                .windowInsetsPadding(WindowInsets.systemBars)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 28.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
             // Quranic verse at top
             QuranVerseFrame(
                 verse = QURAN_VERSE,
-                attribution = QURAN_ATTRIBUTION,
+                attribution = stringResource(R.string.quran_attribution),
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(32.dp))
@@ -246,13 +255,13 @@ fun AuthScreen(
             Spacer(Modifier.height(16.dp))
 
             Text(
-                "تأكيد الهوية",
+                stringResource(R.string.auth_prompt_title),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary,
             )
             Text(
-                "أدخل الرمز السري للدخول",
+                stringResource(R.string.auth_prompt_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
             )
@@ -261,7 +270,8 @@ fun AuthScreen(
             OutlinedTextField(
                 value = pin,
                 onValueChange = { if (it.length <= 8) { pin = it; errorMessage = null } },
-                label = { Text("الرمز السري", color = TextSecondary) },
+                label = { Text(stringResource(R.string.auth_pin_label), color = TextSecondary) },
+                textStyle = LocalTextStyle.current.copy(textDirection = TextDirection.Ltr),
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                 singleLine = true,
@@ -286,10 +296,10 @@ fun AuthScreen(
                 ),
                 enabled = pin.length >= 4,
             ) {
-                Text("دخول", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(stringResource(R.string.auth_unlock), fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
 
-            if (canUseBiometric) {
+            if (canUseBiometric && biometricsEnabled) {
                 Spacer(Modifier.height(12.dp))
                 OutlinedButton(
                     onClick = { biometricPrompt.authenticate(promptInfo) },
@@ -298,13 +308,19 @@ fun AuthScreen(
                     border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = RoyalGold),
                 ) {
-                    Icon(Icons.Default.Fingerprint, null, modifier = Modifier.size(20.dp))
+                    OrnamentalIcon(Icons.Default.Fingerprint, null, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("الدخول بالبصمة", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                    Text(stringResource(R.string.auth_use_biometrics), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                 }
             }
         }
     }
+}
+
+private tailrec fun android.content.Context.findFragmentActivity(): FragmentActivity = when (this) {
+    is FragmentActivity -> this
+    is android.content.ContextWrapper -> baseContext.findFragmentActivity()
+    else -> error("Biometric authentication requires a FragmentActivity")
 }
 
 @Composable

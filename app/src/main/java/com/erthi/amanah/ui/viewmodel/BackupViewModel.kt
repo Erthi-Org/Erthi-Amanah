@@ -78,6 +78,8 @@ class BackupViewModel @Inject constructor(
     private val restoreJournalDao: RestoreJournalDao,
 ) : ViewModel() {
 
+    val hasPendingRestore = restoreJournalDao.hasPendingRestore()
+
     private val _state = MutableStateFlow<BackupState>(BackupState.Idle)
     val state: StateFlow<BackupState> = _state.asStateFlow()
 

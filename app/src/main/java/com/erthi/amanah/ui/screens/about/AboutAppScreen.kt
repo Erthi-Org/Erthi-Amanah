@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.about
 
+import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -225,13 +226,13 @@ private fun LinkCard(
             .border(1.dp, MetallicBorder, RoundedCornerShape(12.dp)),
     ) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = iconColor, modifier = Modifier.size(22.dp))
+            OrnamentalIcon(icon, null, tint = iconColor, modifier = Modifier.size(22.dp))
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(title, fontWeight = FontWeight.Bold, color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
             }
-            Icon(Icons.Default.OpenInNew, null, tint = iconColor, modifier = Modifier.size(16.dp))
+            OrnamentalIcon(Icons.Default.OpenInNew, null, tint = iconColor, modifier = Modifier.size(16.dp))
         }
     }
 }
@@ -244,7 +245,7 @@ internal fun AboutSection(title: String, icon: ImageVector, body: String) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.Top) {
-            Icon(icon, null, tint = SilverBlue, modifier = Modifier.size(22.dp))
+            OrnamentalIcon(icon, null, tint = SilverBlue, modifier = Modifier.size(22.dp))
             Spacer(Modifier.width(10.dp))
             Column {
                 Text(title, fontWeight = FontWeight.Bold, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
