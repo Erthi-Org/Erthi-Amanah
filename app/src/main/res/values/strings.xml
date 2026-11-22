@@ -129,4 +129,8 @@
     <string name="confirm_pin_hint">أعد إدخال الرمز السري</string>
     <string name="pin_mismatch">الرمزان غير متطابقان</string>
     <string name="pin_set_success">تم تعيين الرمز السري بنجاح</string>
+    <string name="attachment_too_large">يتجاوز حجم المرفق الحد الأقصى البالغ 50 ميبيبايت.</string>
+    <string name="attachment_access_expired">تعذّر الوصول إلى الملف. حدّده مرة أخرى.</string>
+    <string name="attachment_save_failed">تعذّر حفظ المرفق.</string>
+    <string name="attachment_delete_failed">تعذّر إتمام حذف الوثيقة وملفها.</string>
 </resources>

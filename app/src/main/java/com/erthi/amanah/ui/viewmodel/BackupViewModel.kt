@@ -10,6 +10,7 @@ import androidx.room.withTransaction
 import com.erthi.amanah.data.backup.BackupCrypto
 import com.erthi.amanah.data.backup.DriveBackupFile
 import com.erthi.amanah.data.backup.DriveBackupManager
+import com.erthi.amanah.data.backup.RestoreFiles
 import com.erthi.amanah.data.db.ErthiDatabase
 import com.erthi.amanah.data.db.dao.*
 import com.erthi.amanah.data.db.entity.*
@@ -20,6 +21,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +36,7 @@ import java.io.DataOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.nio.file.Files
 import java.security.SecureRandom
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -627,7 +631,7 @@ class BackupViewModel @Inject constructor(
         val metaCt = ByteArray(metaCtLen); din.readFully(metaCt)
         val metaBytes = crypto.decrypt(CryptoManager.EncryptedData(metaIv, metaCt))
         val metaJson = JSONObject(String(metaBytes, Charsets.UTF_8))
-        val stagingDir = File(context.cacheDir, "restore_staging_${System.currentTimeMillis()}").also { it.mkdirs() }
+        val stagingDir = Files.createTempDirectory(context.filesDir.toPath(), "restore_staging_").toFile()
         val stagedFiles = mutableListOf<StagedFile>()
         // Once restoreAllStagedWithJournal is called, the Room journal owns the staging dir.
         // The caller must not delete it — the recovery worker will clean up after verified moves.
@@ -648,6 +652,7 @@ class BackupViewModel @Inject constructor(
                 stageFileFromDeviceArchive(din, stagingFile)
                 stagedByFileId[fileId] = stagingFile
             }
+            require(din.read() == -1) { "Trailing archive data" }
             buildStagedFilesFromStreamingMetadata(metaJson, stagedByFileId, stagedFiles)
             journalOwned = true  // DB commit may happen inside; staging dir is now journal's
             restoreAllStagedWithJournal(metaJson, stagingDir, stagedFiles, reEncrypt = false)
@@ -685,7 +690,7 @@ class BackupViewModel @Inject constructor(
         val metaBytes = try { BackupCrypto.decrypt(key, metaIv, metaCt) }
         catch (_: Exception) { throw IllegalArgumentException("كلمة المرور خاطئة أو الملف تالف") }
         val metaJson = JSONObject(String(metaBytes, Charsets.UTF_8))
-        val stagingDir = File(context.cacheDir, "restore_staging_${System.currentTimeMillis()}").also { it.mkdirs() }
+        val stagingDir = Files.createTempDirectory(context.filesDir.toPath(), "restore_staging_").toFile()
         val stagedFiles = mutableListOf<StagedFile>()
         var journalOwned = false
         try {
@@ -708,6 +713,7 @@ class BackupViewModel @Inject constructor(
                 }
                 stagedByFileId[fileId] = stagingFile
             }
+            require(din.read() == -1) { "Trailing archive data" }
             buildStagedFilesFromStreamingMetadata(metaJson, stagedByFileId, stagedFiles)
             journalOwned = true
             restoreAllStagedWithJournal(metaJson, stagingDir, stagedFiles, reEncrypt = true)
@@ -815,79 +821,60 @@ class BackupViewModel @Inject constructor(
         stagingDir: File,
         stagedFiles: List<StagedFile>,
         reEncrypt: Boolean,
-    ) {
+    ) = RestoreFiles.mutex.withLock {
         val sessionId = UUID.randomUUID().toString()
-        val journalJson = JSONArray(stagedFiles.map { sf ->
-            JSONObject().apply {
-                put("staged", sf.staged.absolutePath)
-                put("final", sf.final.absolutePath)
-                put("expectedSize", sf.staged.length())
-            }
-        }).toString()
-
+        var committed = false
         try {
-            db.withTransaction {
-                willDao.deleteAllWills()
-                debtDao.deleteAll()
-                assetDao.deleteAll()
-                entrustedDao.deleteAll()
-                beneficiaryDao.deleteAll()
-                digitalAccountDao.deleteAll()
-                documentDao.deleteAll()
-                vaultItemDao.deleteAll()
-                val willsArr = metaJson.getJSONArray("wills")
-                val docsArr = metaJson.getJSONArray("documents")
-                restoreWillsFromStaged(willsArr, stagedFiles, reEncrypt)
-                restoreDebts(metaJson)
-                restoreAssets(metaJson)
-                restoreEntrusted(metaJson)
-                restoreBeneficiaries(metaJson)
-                restoreDigitalAccounts(metaJson)
-                restoreDocumentsFromStaged(docsArr, stagedFiles)
-                restoreVaultItems(metaJson, reEncrypt)
-                restoreJournalDao.insertJournal(
-                    RestoreJournalEntity(sessionId, journalJson, stagingDir.absolutePath)
-                )
-            }
-        } catch (e: Exception) {
-            stagingDir.deleteRecursively()
-            throw e
-        }
-
-        // DB committed and journal is in Room — complete file moves
-        val failedMoves = mutableListOf<String>()
-        for (sf in stagedFiles) {
-            if (!sf.staged.exists()) {
-                // If destination exists with correct size, treat as already moved
-                if (sf.final.exists() && sf.final.length() > 0) continue
-                failedMoves += sf.final.name
-                continue
-            }
-            sf.final.parentFile?.mkdirs()
-            val tmpDest = File(sf.final.parentFile, "${sf.final.name}.tmp")
-            var moved = false
-            try {
-                streamCopyFile(sf.staged, tmpDest)
-                if (tmpDest.renameTo(sf.final)) {
-                    sf.staged.delete()
-                    moved = true
-                } else if (sf.staged.renameTo(sf.final)) {
-                    tmpDest.delete()
-                    moved = true
+            check(restoreJournalDao.getPendingJournal() == null) { "An earlier restore is pending" }
+            val filesDir = context.filesDir.canonicalFile
+            val allowedDirectories = setOf("documents", "audio_wills", "video_wills")
+                .map { File(filesDir, it) }.toSet()
+            val entries = stagedFiles.map { sf ->
+                val dest = sf.final.canonicalFile
+                require(dest == sf.final.absoluteFile && dest.parentFile in allowedDirectories) {
+                    "Invalid restore destination"
                 }
-            } catch (_: Exception) {}
-            if (!moved) failedMoves += sf.final.name
+                require(sf.staged.isFile) { "Missing staged restore file" }
+                // Stage data durably before transferring ownership to the Room journal.
+                java.io.RandomAccessFile(sf.staged, "rw").use { it.fd.sync() }
+                RestoreFiles.Entry(sf.staged, dest, sf.staged.length(), RestoreFiles.sha256(sf.staged))
+            }
+            require(entries.map { it.destination }.toSet().size == entries.size) {
+                "Duplicate restore destinations"
+            }
+            val journalJson = JSONArray(entries.map { it.toJson() }).toString()
+            withContext(NonCancellable) {
+                db.withTransaction {
+                    willDao.deleteAllWills()
+                    debtDao.deleteAll()
+                    assetDao.deleteAll()
+                    entrustedDao.deleteAll()
+                    beneficiaryDao.deleteAll()
+                    digitalAccountDao.deleteAll()
+                    documentDao.deleteAll()
+                    vaultItemDao.deleteAll()
+                    val willsArr = metaJson.getJSONArray("wills")
+                    val docsArr = metaJson.getJSONArray("documents")
+                    restoreWillsFromStaged(willsArr, stagedFiles, reEncrypt)
+                    restoreDebts(metaJson)
+                    restoreAssets(metaJson)
+                    restoreEntrusted(metaJson)
+                    restoreBeneficiaries(metaJson)
+                    restoreDigitalAccounts(metaJson)
+                    restoreDocumentsFromStaged(docsArr, stagedFiles)
+                    restoreVaultItems(metaJson, reEncrypt)
+                    restoreJournalDao.insertJournal(
+                        RestoreJournalEntity(sessionId, journalJson, stagingDir.absolutePath)
+                    )
+                }
+                committed = true
+            }
+            entries.forEach(RestoreFiles::publish)
+            restoreJournalDao.deleteJournal(sessionId)
+            stagingDir.deleteRecursively()
+        } finally {
+            if (!committed) stagingDir.deleteRecursively()
         }
-
-        if (failedMoves.isNotEmpty()) {
-            // Keep staging and journal for WorkManager recovery
-            throw IllegalStateException(
-                "تمت الاستعادة جزئياً — فشل نقل ${failedMoves.size} ملف. سيتم إعادة المحاولة عند إعادة تشغيل التطبيق."
-            )
-        }
-        // All moves verified — clean up
-        stagingDir.deleteRecursively()
-        restoreJournalDao.deleteJournal(sessionId)
     }
 
     // ── Legacy BAK/BAK2 restore ───────────────────────────────────────────
@@ -901,7 +888,7 @@ class BackupViewModel @Inject constructor(
         val requiredKeys = listOf("wills", "debts", "assets", "entrusted",
             "beneficiaries", "digitalAccounts", "documents", "vaultItems")
         for (key in requiredKeys) require(root.has(key)) { "بيانات ناقصة: $key" }
-        val stagingDir = File(context.cacheDir, "restore_staging_${System.currentTimeMillis()}").also { it.mkdirs() }
+        val stagingDir = Files.createTempDirectory(context.filesDir.toPath(), "restore_staging_").toFile()
         val stagedFiles = mutableListOf<StagedFile>()
         var journalOwned = false
         try {
@@ -1026,7 +1013,12 @@ class BackupViewModel @Inject constructor(
             val restoredFilePath = when {
                 fileId.isNotEmpty() && fileName.isNotEmpty() -> File(finalDir, fileName).absolutePath
                 fileName.isNotEmpty() && fileDataB64.isNotEmpty() -> File(finalDir, fileName).absolutePath
-                legacyFilePath.isNotEmpty() -> legacyFilePath
+                legacyFilePath.isNotEmpty() -> File(legacyFilePath).canonicalFile.let { existing ->
+                    require(existing.parentFile == finalDir.canonicalFile && existing.isFile) {
+                        "Missing or invalid legacy attachment"
+                    }
+                    existing.absolutePath
+                }
                 else -> ""
             }
             documentDao.insertDocument(DocumentEntity(
@@ -1203,16 +1195,6 @@ class BackupViewModel @Inject constructor(
         require(id.none { it < ' ' }) { "معرف الملف يحتوي على محارف تحكم" }
     }
 
-    private fun streamCopyFile(src: File, dst: File) {
-        val buf = ByteArray(STREAM_COPY_BUF)
-        FileInputStream(src).use { ins ->
-            FileOutputStream(dst).use { out ->
-                var n: Int
-                while (ins.read(buf).also { n = it } != -1) out.write(buf, 0, n)
-                out.flush()
-            }
-        }
-    }
 
     private fun DataInputStream.readBoundedBytes(limit: Int): ByteArray {
         val buf = java.io.ByteArrayOutputStream()

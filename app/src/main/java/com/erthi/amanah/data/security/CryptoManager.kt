@@ -25,6 +25,7 @@ class CryptoManager @Inject constructor() {
         load(null)
     }
 
+    @Synchronized
     fun getOrCreateKey(): SecretKey {
         return if (keyStore.containsAlias(KEY_ALIAS)) {
             (keyStore.getEntry(KEY_ALIAS, null) as KeyStore.SecretKeyEntry).secretKey
@@ -54,6 +55,10 @@ class CryptoManager @Inject constructor() {
         val iv = cipher.iv
         val ciphertext = cipher.doFinal(plaintext)
         return EncryptedData(iv = iv, ciphertext = ciphertext)
+    }
+
+    internal fun encryptDocument(input: java.io.InputStream, output: java.io.OutputStream, checkActive: () -> Unit) {
+        DocumentEncryption.write(input, output, getOrCreateKey(), checkActive)
     }
 
     fun decrypt(encryptedData: EncryptedData): ByteArray {

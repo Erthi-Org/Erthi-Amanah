@@ -161,7 +161,7 @@ fun BackupScreen(
             }
 
             // ── Portable (PBKDF2) ──────────────────────────────────────────
-            SectionLabel("نسخة محمولة (أي جهاز — بكلمة مرور)")
+            SectionLabel("نسخة مشفرة بكلمة مرور")
             BackupInfoCard(Icons.Default.VpnKey, "التشفير", "AES-256-GCM + PBKDF2-SHA256 (310,000 تكرار) — محمية بكلمة مرور", GoldAccent)
             Button(
                 onClick = { exportPortableLauncher.launch("wasiyyati_portable_$dateStr.wasi2bak") },
@@ -172,7 +172,7 @@ fun BackupScreen(
             ) {
                 Icon(Icons.Default.CloudUpload, null)
                 Spacer(Modifier.width(8.dp))
-                Text("نسخة محمولة (أي جهاز)", fontWeight = FontWeight.Bold)
+                Text("نسخة مشفرة بكلمة مرور", fontWeight = FontWeight.Bold)
             }
             OutlinedButton(
                 onClick = { importPortableLauncher.launch(arrayOf("application/octet-stream", "*/*")) },
@@ -244,7 +244,7 @@ fun BackupScreen(
 
             // Notes
             Text(
-                "⚠️ النسخة المحلية مرتبطة بهذا الجهاز. للاستعادة على جهاز آخر استخدم النسخة المحمولة أو Drive واحتفظ بكلمة المرور بأمان.",
+                "النسخة المحلية مرتبطة بمفتاح هذا التثبيت. استعادة النسخة المشفرة بكلمة مرور على جهاز آخر قيد التحقق.",
                 style = MaterialTheme.typography.labelSmall,
                 color = TextMuted,
             )

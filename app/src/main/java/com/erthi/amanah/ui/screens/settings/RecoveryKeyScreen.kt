@@ -15,18 +15,6 @@ import com.erthi.amanah.ui.components.AndalusianCard
 import com.erthi.amanah.ui.components.ErthiTopBar
 import com.erthi.amanah.ui.theme.*
 
-/**
- * Recovery Key information screen.
- *
- * The current architecture does NOT support a traditional standalone recovery key
- * because the encryption key is bound to Android Keystore (hardware-backed, non-exportable).
- * Recovery is possible through:
- *   1. Biometric unlock (if enrolled and configured)
- *   2. An encrypted backup export created by the user, restored by the user
- *      with the same passphrase on a new device.
- *
- * This screen explains the accurate recovery posture without false claims.
- */
 @Composable
 fun RecoveryKeyScreen(onBack: () -> Unit) {
     Scaffold(
@@ -66,14 +54,14 @@ fun RecoveryKeyScreen(onBack: () -> Unit) {
             AndalusianCard(accentColor = SuccessGreenLight) {
                 Column {
                     Text(
-                        "✅ خيار متاح: النسخة الاحتياطية المشفرة",
+                        "النسخة الاحتياطية المشفرة",
                         fontWeight = FontWeight.SemiBold,
                         color = SuccessGreenLight,
                         style = MaterialTheme.typography.titleSmall,
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "يمكنك إنشاء نسخة احتياطية مشفرة بكلمة مرور تختارها من قسم النسخ الاحتياطي، وحفظها على Google Drive أو جهاز تخزين شخصي. إذا فقدت هاتفك أو نسيت الرمز السري، يمكن استعادة بياناتك بكلمة المرور هذه على أي جهاز.",
+                        "يمكنك إنشاء نسخة مشفرة بكلمة مرور وحفظها على مساحة تخزين تختارها. استعادة النسخة على جهاز آخر قيد التحقق، خصوصًا للمرفقات المرتبطة بمفتاح الجهاز.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondary,
                     )
@@ -83,7 +71,7 @@ fun RecoveryKeyScreen(onBack: () -> Unit) {
             AndalusianCard(accentColor = DigitalColor) {
                 Column {
                     Text(
-                        "✅ خيار متاح: البصمة والتعرف على الوجه",
+                        "المصادقة البيومترية",
                         fontWeight = FontWeight.SemiBold,
                         color = DigitalColor,
                         style = MaterialTheme.typography.titleSmall,
@@ -100,7 +88,7 @@ fun RecoveryKeyScreen(onBack: () -> Unit) {
             AndalusianCard(accentColor = PinkEnamel) {
                 Column {
                     Text(
-                        "⚠️ تحذير: نسيان الرمز السري مع غياب النسخة الاحتياطية",
+                        "فقدان الوصول إلى بياناتك",
                         fontWeight = FontWeight.SemiBold,
                         color = PinkEnamel,
                         style = MaterialTheme.typography.titleSmall,
@@ -114,22 +102,6 @@ fun RecoveryKeyScreen(onBack: () -> Unit) {
                 }
             }
 
-            AndalusianCard(accentColor = PurpleEnamelLight) {
-                Column {
-                    Text(
-                        "🔮 مخطط مستقبلاً: مفتاح استرداد قابل للتصدير",
-                        fontWeight = FontWeight.SemiBold,
-                        color = PurpleEnamelLight,
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        "يُدرس تنفيذ آلية مفتاح استرداد منفصلة (passphrase-derived، محمي بالمصادقة، مع تحذير واضح وتوثيق) في إصدار مستقبلي، تحت شرط ألا تُضعف بنية التشفير الحالية.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary,
-                    )
-                }
-            }
         }
     }
 }

@@ -26,6 +26,7 @@ class AuthViewModel @Inject constructor(
     private val authManager: AuthManager,
 ) : ViewModel() {
 
+    private var lockGeneration = 0L
     private val _isAuthenticated = MutableStateFlow(false)
     val isAuthenticated: StateFlow<Boolean> = _isAuthenticated
 
@@ -60,14 +61,17 @@ class AuthViewModel @Inject constructor(
     fun setPin(pin: String, confirmPin: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
         if (pin.length < 4) { onError("الرمز السري يجب أن يكون 4 أرقام على الأقل"); return }
         if (pin != confirmPin) { onError("الرمزان غير متطابقان"); return }
+        val generation = lockGeneration
         viewModelScope.launch {
             authManager.setPin(pin)
+            if (generation != lockGeneration) return@launch
             _isAuthenticated.value = true
             onSuccess()
         }
     }
 
     fun verifyPin(pin: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        val generation = lockGeneration
         viewModelScope.launch {
             val lockUntil = authManager.lockoutUntilMs.first()
             val now = System.currentTimeMillis()
@@ -78,6 +82,7 @@ class AuthViewModel @Inject constructor(
             }
             if (authManager.verifyPin(pin)) {
                 authManager.clearLockout()
+                if (generation != lockGeneration) return@launch
                 _isAuthenticated.value = true
                 onSuccess()
             } else {
@@ -102,6 +107,7 @@ class AuthViewModel @Inject constructor(
     }
 
     fun lock() {
+        lockGeneration++
         _isAuthenticated.value = false
     }
 
