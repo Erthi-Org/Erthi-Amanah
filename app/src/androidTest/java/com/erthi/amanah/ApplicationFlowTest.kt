@@ -1,8 +1,10 @@
 package com.erthi.amanah
 
+import android.content.ContentValues
 import android.graphics.Bitmap
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
+import android.provider.MediaStore
 import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatDelegate
@@ -116,19 +118,27 @@ class ApplicationFlowTest {
         try {
             SystemClock.sleep(550)
             val instrumentation = InstrumentationRegistry.getInstrumentation()
-            val automation = instrumentation.uiAutomation
-            val image = requireNotNull(automation.takeScreenshot())
-            shell("mkdir -p /data/local/tmp/erthi-screen-evidence")
-            val descriptors = automation.executeShellCommandRw(
-                "cat > /data/local/tmp/erthi-screen-evidence/$name.png"
-            )
+            val screenshot = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
+            val image = requireNotNull(screenshot.copy(Bitmap.Config.ARGB_8888, false))
+            val resolver = instrumentation.targetContext.contentResolver
+            val metadata = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, "$name.png")
+                put(MediaStore.MediaColumns.MIME_TYPE, "image/png")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/ErthiScreenEvidence")
+                put(MediaStore.MediaColumns.IS_PENDING, 1)
+            }
+            val uri = requireNotNull(resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, metadata))
             try {
-                ParcelFileDescriptor.AutoCloseOutputStream(descriptors[1]).use {
-                    check(image.compress(Bitmap.CompressFormat.PNG, 100, it))
+                requireNotNull(resolver.openOutputStream(uri)).use { out ->
+                    check(image.compress(Bitmap.CompressFormat.PNG, 100, out)) { "PNG encoding failed for $name" }
                 }
-                ParcelFileDescriptor.AutoCloseInputStream(descriptors[0]).use { it.readBytes() }
+                resolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
+            } catch (e: Exception) {
+                resolver.delete(uri, null, null)
+                throw e
             } finally {
                 image.recycle()
+                screenshot.recycle()
             }
         } finally {
             compose.activityRule.scenario.onActivity {

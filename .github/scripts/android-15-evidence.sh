@@ -36,7 +36,10 @@ PY
             read -r x y <<< "$coordinates"
             adb shell input tap "$x" "$y"
             sleep 1
-            adb exec-out screencap -p > build/visual-evidence/before/02-create-pin.png
+            if adb shell uiautomator dump /sdcard/erthi-baseline.xml >/dev/null &&
+                adb shell cat /sdcard/erthi-baseline.xml | grep -q 'إنشاء رمز سري'; then
+                adb exec-out screencap -p > build/visual-evidence/before/02-create-pin.png
+            fi
         fi
     fi
     # Only the disposable emulator's synthetic baseline install is removed.
@@ -45,5 +48,5 @@ fi
 
 status=0
 ./gradlew connectedDebugAndroidTest --no-daemon || status=$?
-adb pull /data/local/tmp/erthi-screen-evidence build/visual-evidence/after/ || true
+adb pull /sdcard/Download/ErthiScreenEvidence build/visual-evidence/after/ || true
 exit "$status"
