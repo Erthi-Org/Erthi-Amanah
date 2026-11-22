@@ -1,5 +1,6 @@
 package com.erthi.amanah
 
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
@@ -29,8 +30,10 @@ class DocumentAttachmentTest {
         var viewModel: DocumentViewModel? = null
         val docsDir = File(context.filesDir, "documents")
         val existing = docsDir.list().orEmpty().toSet()
-        val data = "Synthetic attachment data".toByteArray()
-        source.writeBytes(data)
+        val image = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888)
+        source.outputStream().use { image.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        image.recycle()
+        val data = source.readBytes()
         java.io.RandomAccessFile(oversized, "rw").use { it.setLength(50L * 1024 * 1024 + 1) }
 
         try {
@@ -46,6 +49,10 @@ class DocumentAttachmentTest {
                 assertEquals("WASI_DOC", String(raw, 0, 8, Charsets.US_ASCII))
                 val encrypted = CryptoManager.EncryptedData.fromByteArray(raw.copyOfRange(8, raw.size))
                 assertArrayEquals(data, crypto.decrypt(encrypted))
+                val preview = vm.preview(document).getOrThrow()
+                assertEquals(4, preview.width)
+                assertEquals(4, preview.height)
+                preview.recycle()
 
                 for (sourceFile in listOf(File(context.cacheDir, "nonexistent-attachment-fixture"), oversized)) {
                     val error = async(start = CoroutineStart.UNDISPATCHED) {

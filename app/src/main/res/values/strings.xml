@@ -151,4 +151,8 @@
     <string name="documents_delete_prompt">حذف الوثيقة والمرفق؟</string>
     <string name="documents_empty">لا توجد وثائق بعد.</string>
     <string name="restore_pending_warning">الاستعادة غير مكتملة. ستتكرر المحاولة عند تشغيل التطبيق مجددًا.</string>
+    <string name="preview_open">عرض المرفق</string>
+    <string name="preview_too_large">تتعذر معاينة ملف يتجاوز 12 ميبيبايت.</string>
+    <string name="preview_unsupported">المعاينة متاحة لصور JPEG وPNG وWebP.</string>
+    <string name="preview_failed">تعذّر فتح المرفق. تحقق من سلامة الملف ومفتاح التشفير.</string>
 </resources>

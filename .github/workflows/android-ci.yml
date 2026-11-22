@@ -189,6 +189,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     if: github.event_name != 'pull_request'
+    permissions:
+      actions: read
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -198,6 +201,16 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
+      - name: Fetch the verified pre-change APK for comparison
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          baseline_run=45012182102
+          expected=fc7963c2070b521be34734a649c04c0de71ea46c
+          actual=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$baseline_run" --jq .head_sha)
+          test "$actual" = "$expected"
+          gh run download "$baseline_run" --repo "$GITHUB_REPOSITORY" --name erthi-amanah-debug --dir "$RUNNER_TEMP/erthi-baseline"
       - name: Enable KVM access on the GitHub-hosted runner
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -211,12 +224,7 @@ jobs:
           target: google_apis
           profile: pixel_6
           disable-animations: true
-          script: |
-            chmod +x gradlew
-            mkdir -p build/visual-evidence
-            ./gradlew connectedDebugAndroidTest --no-daemon || status=$?
-            adb pull /sdcard/Android/data/com.erthi.amanah.debug/files/screenshots build/visual-evidence/ || true
-            test "${status:-0}" -eq 0
+          script: bash .github/scripts/android-15-evidence.sh
       - name: Upload emulator evidence
         if: always()
         uses: actions/upload-artifact@v4

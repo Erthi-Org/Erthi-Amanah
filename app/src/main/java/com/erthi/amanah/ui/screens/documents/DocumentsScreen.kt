@@ -4,7 +4,9 @@ import com.erthi.amanah.ui.components.OrnamentalIcon
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -47,6 +49,11 @@ fun DocumentsScreen(
     var pickedUri by rememberSaveable { mutableStateOf<Uri?>(null) }
     var pickedFileName by rememberSaveable { mutableStateOf("") }
     var showAddDialog by rememberSaveable { mutableStateOf(false) }
+
+    var previewDocument by remember { mutableStateOf<DocumentEntity?>(null) }
+    previewDocument?.let { doc ->
+        DocumentPreviewDialog(doc, viewModel, onDismiss = { previewDocument = null })
+    }
 
     var pendingDeletion by remember { mutableStateOf<DocumentEntity?>(null) }
     pendingDeletion?.let { document ->
@@ -127,7 +134,7 @@ fun DocumentsScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(documents, key = { it.id }) { doc ->
-                    DocumentCard(doc, onDelete = { pendingDeletion = doc })
+                    DocumentCard(doc, onDelete = { pendingDeletion = doc }, onPreview = { previewDocument = doc })
                 }
                 item { Spacer(Modifier.height(72.dp)) }
             }
@@ -136,7 +143,7 @@ fun DocumentsScreen(
 }
 
 @Composable
-private fun DocumentCard(doc: DocumentEntity, onDelete: () -> Unit) {
+private fun DocumentCard(doc: DocumentEntity, onDelete: () -> Unit, onPreview: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -161,11 +168,48 @@ private fun DocumentCard(doc: DocumentEntity, onDelete: () -> Unit) {
                 }
                 if (doc.notes.isNotBlank()) Text(doc.notes, style = MaterialTheme.typography.bodySmall, color = TextSecondary, maxLines = 1)
             }
+            if (hasFile) {
+                IconButton(onClick = onPreview) {
+                    OrnamentalIcon(Icons.Default.Visibility, stringResource(R.string.preview_open), tint = RoyalGoldLight)
+                }
+            }
             IconButton(onClick = onDelete) {
                 OrnamentalIcon(Icons.Default.Delete, stringResource(R.string.btn_delete), tint = EmergencyRed, modifier = Modifier.size(20.dp))
             }
         }
     }
+}
+
+@Composable
+private fun DocumentPreviewDialog(doc: DocumentEntity, viewModel: DocumentViewModel, onDismiss: () -> Unit) {
+    var preview by remember(doc.id) { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var error by remember(doc.id) { mutableStateOf<Int?>(null) }
+    LaunchedEffect(doc.id) {
+        viewModel.preview(doc).fold(
+            onSuccess = { preview = it },
+            onFailure = { error = viewModel.previewError(it) },
+        )
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(doc.title) },
+        text = {
+            val current = preview
+            val errorId = error
+            when {
+                errorId != null -> Text(stringResource(errorId))
+                current != null -> Image(
+                    current.asImageBitmap(),
+                    contentDescription = stringResource(R.string.preview_open),
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 440.dp),
+                )
+                else -> CircularProgressIndicator()
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_back)) }
+        },
+    )
 }
 
 @Composable

@@ -73,4 +73,8 @@
     <string name="documents_delete_prompt">Delete this document and its attachment?</string>
     <string name="documents_empty">No documents yet.</string>
     <string name="restore_pending_warning">A restore is incomplete. It will be retried when the app starts again.</string>
+    <string name="preview_open">View attachment</string>
+    <string name="preview_too_large">Preview is limited to files up to 12 MiB.</string>
+    <string name="preview_unsupported">Preview supports JPEG, PNG and WebP images.</string>
+    <string name="preview_failed">Could not authenticate or open the attachment.</string>
 </resources>

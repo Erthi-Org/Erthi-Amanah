@@ -587,24 +587,22 @@ class BackupViewModel @Inject constructor(
 
     private fun exportDocumentToPortableArchive(docFile: File, key: SecretKeySpec, out: DataOutputStream) {
         val fileSize = docFile.length()
-        val chunkCount = ((fileSize + BACKUP_CHUNK_SIZE - 1) / BACKUP_CHUNK_SIZE).toInt().coerceAtLeast(1)
-        out.writeInt(chunkCount)
-        val buf = ByteArray(BACKUP_CHUNK_SIZE)
-        docFile.inputStream().buffered().use { ins ->
+        val chunkCount = ((fileSize + BACKUP_CHUNK_SIZE - 1) / BACKUP_CHUNK_SIZE).coerceAtLeast(1)
+        require(chunkCount <= MAX_CHUNK_COUNT) { "Document archive exceeds the chunk limit" }
+        out.writeInt(chunkCount.toInt())
+        DataInputStream(docFile.inputStream().buffered()).use { input ->
             var remaining = fileSize
-            while (remaining > 0) {
-                val toRead = minOf(BACKUP_CHUNK_SIZE.toLong(), remaining).toInt()
-                var read = 0
-                while (read < toRead) {
-                    val r = ins.read(buf, read, toRead - read)
-                    if (r == -1) break
-                    read += r
-                }
-                val chunk = buf.copyOf(read)
-                val (iv, ct) = BackupCrypto.encrypt(key, chunk)
-                out.write(iv); out.writeInt(ct.size); out.write(ct)
-                remaining -= read
+            repeat(chunkCount.toInt()) {
+                val count = minOf(BACKUP_CHUNK_SIZE.toLong(), remaining).toInt()
+                val chunk = ByteArray(count)
+                input.readFully(chunk)
+                val (iv, ciphertext) = BackupCrypto.encrypt(key, chunk)
+                out.write(iv)
+                out.writeInt(ciphertext.size)
+                out.write(ciphertext)
+                remaining -= count
             }
+            require(input.read() == -1) { "Document changed during backup" }
         }
     }
 
@@ -807,7 +805,8 @@ class BackupViewModel @Inject constructor(
             val doc = docsArr.getJSONObject(i)
             val fid = doc.optString("fileId", "")
             val fileName = doc.optString("fileName", "")
-            if (fid.isNotEmpty() && fileName.isNotEmpty()) {
+            require(fid.isNotEmpty() == fileName.isNotEmpty()) { "Incomplete document reference" }
+            if (fid.isNotEmpty()) {
                 validateFileId(fileName)
                 val stagedDoc = stagedByFileId[fid]
                     ?: throw IllegalStateException("ملف المستند مرجعه في البيانات لكنه غائب من الأرشيف: $fid")
@@ -823,57 +822,59 @@ class BackupViewModel @Inject constructor(
         stagingDir: File,
         stagedFiles: List<StagedFile>,
         reEncrypt: Boolean,
-    ) = RestoreFiles.mutex.withLock {
+    ) {
         val sessionId = UUID.randomUUID().toString()
         var committed = false
         try {
-            check(restoreJournalDao.getPendingJournal() == null) { "An earlier restore is pending" }
-            val filesDir = context.filesDir.canonicalFile
-            val allowedDirectories = setOf("documents", "audio_wills", "video_wills")
-                .map { File(filesDir, it) }.toSet()
-            val entries = stagedFiles.map { sf ->
-                val dest = sf.final.canonicalFile
-                require(dest.name == sf.final.name && dest.parentFile in allowedDirectories) {
-                    "Invalid restore destination"
+            RestoreFiles.mutex.withLock {
+                check(restoreJournalDao.getPendingJournal() == null) { "An earlier restore is pending" }
+                val filesDir = context.filesDir.canonicalFile
+                val allowedDirectories = setOf("documents", "audio_wills", "video_wills")
+                    .map { File(filesDir, it) }.toSet()
+                val entries = stagedFiles.map { sf ->
+                    val dest = sf.final.canonicalFile
+                    require(dest.name == sf.final.name && dest.parentFile in allowedDirectories) {
+                        "Invalid restore destination"
+                    }
+                    require(sf.staged.isFile) { "Missing staged restore file" }
+                    // Stage data durably before transferring ownership to the Room journal.
+                    java.io.RandomAccessFile(sf.staged, "rw").use { it.fd.sync() }
+                    RestoreFiles.Entry(sf.staged, dest, sf.staged.length(), RestoreFiles.sha256(sf.staged))
                 }
-                require(sf.staged.isFile) { "Missing staged restore file" }
-                // Stage data durably before transferring ownership to the Room journal.
-                java.io.RandomAccessFile(sf.staged, "rw").use { it.fd.sync() }
-                RestoreFiles.Entry(sf.staged, dest, sf.staged.length(), RestoreFiles.sha256(sf.staged))
-            }
-            require(entries.map { it.destination }.toSet().size == entries.size) {
-                "Duplicate restore destinations"
-            }
-            val journalJson = JSONArray(entries.map { it.toJson() }).toString()
-            withContext(NonCancellable) {
-                db.withTransaction {
-                    willDao.deleteAllWills()
-                    debtDao.deleteAll()
-                    assetDao.deleteAll()
-                    entrustedDao.deleteAll()
-                    beneficiaryDao.deleteAll()
-                    digitalAccountDao.deleteAll()
-                    documentDao.deleteAll()
-                    vaultItemDao.deleteAll()
-                    val willsArr = metaJson.getJSONArray("wills")
-                    val docsArr = metaJson.getJSONArray("documents")
-                    restoreWillsFromStaged(willsArr, stagedFiles, reEncrypt)
-                    restoreDebts(metaJson)
-                    restoreAssets(metaJson)
-                    restoreEntrusted(metaJson)
-                    restoreBeneficiaries(metaJson)
-                    restoreDigitalAccounts(metaJson)
-                    restoreDocumentsFromStaged(docsArr, stagedFiles)
-                    restoreVaultItems(metaJson, reEncrypt)
-                    restoreJournalDao.insertJournal(
-                        RestoreJournalEntity(sessionId, journalJson, stagingDir.absolutePath)
-                    )
+                require(entries.map { it.destination }.toSet().size == entries.size) {
+                    "Duplicate restore destinations"
                 }
-                committed = true
+                val journalJson = JSONArray(entries.map { it.toJson() }).toString()
+                withContext(NonCancellable) {
+                    db.withTransaction {
+                        willDao.deleteAllWills()
+                        debtDao.deleteAll()
+                        assetDao.deleteAll()
+                        entrustedDao.deleteAll()
+                        beneficiaryDao.deleteAll()
+                        digitalAccountDao.deleteAll()
+                        documentDao.deleteAll()
+                        vaultItemDao.deleteAll()
+                        val willsArr = metaJson.getJSONArray("wills")
+                        val docsArr = metaJson.getJSONArray("documents")
+                        restoreWillsFromStaged(willsArr, stagedFiles, reEncrypt)
+                        restoreDebts(metaJson)
+                        restoreAssets(metaJson)
+                        restoreEntrusted(metaJson)
+                        restoreBeneficiaries(metaJson)
+                        restoreDigitalAccounts(metaJson)
+                        restoreDocumentsFromStaged(docsArr, stagedFiles)
+                        restoreVaultItems(metaJson, reEncrypt)
+                        restoreJournalDao.insertJournal(
+                            RestoreJournalEntity(sessionId, journalJson, stagingDir.absolutePath)
+                        )
+                    }
+                    committed = true
+                }
+                entries.forEach(RestoreFiles::publish)
+                restoreJournalDao.deleteJournal(sessionId)
+                stagingDir.deleteRecursively()
             }
-            entries.forEach(RestoreFiles::publish)
-            restoreJournalDao.deleteJournal(sessionId)
-            stagingDir.deleteRecursively()
         } finally {
             if (!committed) stagingDir.deleteRecursively()
         }

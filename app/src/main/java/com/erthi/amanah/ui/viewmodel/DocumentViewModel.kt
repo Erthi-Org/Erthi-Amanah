@@ -11,6 +11,9 @@ import com.erthi.amanah.data.db.entity.DocumentEntity
 import com.erthi.amanah.data.security.CryptoManager
 import com.erthi.amanah.data.security.DocumentEncryption
 import com.erthi.amanah.data.security.DocumentTooLargeException
+import com.erthi.amanah.data.security.PreviewTooLargeException
+import com.erthi.amanah.data.security.UnsupportedPreviewException
+import com.erthi.amanah.data.security.renderDocumentPreview
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -118,6 +121,26 @@ class DocumentViewModel @Inject constructor(
     } catch (_: Exception) {
         // Provider metadata is optional. The stream limit is authoritative.
         null
+    }
+
+    internal suspend fun preview(doc: DocumentEntity): Result<android.graphics.Bitmap> =
+        withContext(Dispatchers.IO) {
+            try {
+                val directory = File(context.filesDir, "documents").canonicalFile
+                val source = File(doc.filePath).canonicalFile
+                require(source.isFile && source.parentFile == directory)
+                Result.success(renderDocumentPreview(source, crypto))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    internal fun previewError(error: Throwable): Int = when (error) {
+        is PreviewTooLargeException -> R.string.preview_too_large
+        is UnsupportedPreviewException -> R.string.preview_unsupported
+        else -> R.string.preview_failed
     }
 
     fun delete(doc: DocumentEntity) {
