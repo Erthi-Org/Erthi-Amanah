@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Español — traducciones provisionales (no revisadas por un hablante nativo) -->
+<resources>
+    <string name="app_name">Mi Testamento</string>
+    <string name="app_tagline">Erthi Amanah — Una iniciativa benéfica de Erthi</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Inicio</string>
+    <string name="nav_will">Testamento</string>
+    <string name="nav_finance">Finanzas</string>
+    <string name="nav_debts">Deudas</string>
+    <string name="nav_assets">Bienes</string>
+    <string name="nav_entrusted">Fideicomisos</string>
+    <string name="nav_digital">Cuentas digitales</string>
+    <string name="nav_documents">Documentos</string>
+    <string name="nav_beneficiaries">Familia y beneficiarios</string>
+    <string name="nav_emergency">Emergencia</string>
+    <string name="nav_backup">Copia de seguridad</string>
+    <string name="nav_settings">Ajustes y seguridad</string>
+    <string name="nav_about_app">Acerca de la aplicación</string>
+    <string name="nav_about_erthi">Acerca de Erthi</string>
+    <string name="nav_vault">Cámara acorazada</string>
+    <string name="nav_more">Más</string>
+
+    <!-- Splash / Onboarding -->
+    <string name="slogan">Su testamento. Sus fideicomisos. Sus asuntos — en un lugar seguro.</string>
+    <string name="feature_privacy">Privacidad total\nSus datos permanecen solo en su teléfono</string>
+    <string name="feature_backup">Copia de seguridad cifrada\nEn su propia cuenta en la nube (opcional)</string>
+    <string name="feature_offline">Funciona sin conexión\nAcceda a sus datos en cualquier momento</string>
+    <string name="btn_start">Comenzar</string>
+
+    <!-- Home Dashboard -->
+    <string name="welcome_title">Bienvenido</string>
+    <string name="welcome_subtitle">Gestione su testamento y datos importantes de forma segura</string>
+
+    <!-- Will Module -->
+    <string name="will_title">Testamento</string>
+    <string name="will_subtitle">Redacte, grabe audio o video para su testamento</string>
+    <string name="will_write">Redactar testamento</string>
+    <string name="will_audio">Grabar testamento de audio</string>
+    <string name="will_video">Grabar testamento en vídeo</string>
+    <string name="will_attach">Adjuntar documentos</string>
+    <string name="will_access">Configuración de acceso</string>
+    <string name="will_legal_notice">Nota: El testamento redactado aquí es documentación personal. Su validez legal depende de las leyes de su país y los requisitos de testimonio formal. Consulte a un abogado para garantizar su validez legal.</string>
+
+    <!-- Finance -->
+    <string name="finance_title">Finanzas</string>
+    <string name="finance_subtitle">Cuentas bancarias y saldos</string>
+    <string name="debts_owed_title">Deudas que usted debe</string>
+    <string name="debts_receivable_title">Deudas que le deben a usted</string>
+    <string name="assets_title">Bienes</string>
+    <string name="assets_subtitle">Inmuebles, vehículos y activos</string>
+    <string name="entrusted_title">Fideicomisos</string>
+    <string name="entrusted_subtitle">Artículos en fideicomiso para otros</string>
+    <string name="digital_title">Cuentas digitales</string>
+    <string name="digital_subtitle">Correo electrónico, cuentas y suscripciones</string>
+
+    <!-- Documents -->
+    <string name="documents_title">Documentos</string>
+    <string name="documents_subtitle">Documentos y contratos importantes</string>
+    <string name="documents_add_record">Agregar documento</string>
+    <string name="documents_attach">Adjuntar un archivo</string>
+    <string name="documents_name">Título del documento</string>
+    <string name="documents_category">Categoría</string>
+    <string name="documents_delete_prompt">¿Eliminar este documento y su adjunto?</string>
+    <string name="documents_empty">Todavía no hay documentos.</string>
+
+    <!-- Beneficiaries -->
+    <string name="beneficiaries_title">Familia y beneficiarios</string>
+    <string name="beneficiaries_subtitle">Datos de contacto de quienes necesita comunicarse</string>
+
+    <!-- Emergency -->
+    <string name="emergency_title">Centro de emergencias</string>
+    <string name="emergency_subtitle">Acceso rápido a contactos de emergencia</string>
+    <string name="emergency_ambulance">Ambulancia</string>
+    <string name="emergency_police">Policía</string>
+    <string name="emergency_fire">Bomberos</string>
+    <string name="emergency_general">Emergencia general</string>
+    <string name="emergency_contacts_title">Contactos de emergencia</string>
+    <string name="emergency_sos">Enviar SOS y ubicación\na los contactos seleccionados</string>
+    <string name="emergency_add_contact">Agregar contacto</string>
+
+    <!-- Backup -->
+    <string name="backup_title">Copia de seguridad</string>
+    <string name="backup_subtitle">Guarde una copia cifrada de sus datos en un lugar seguro</string>
+    <string name="backup_cloud">Copia de seguridad en la nube</string>
+    <string name="backup_cloud_desc">Subir una copia cifrada automáticamente</string>
+    <string name="backup_now">Crear copia de seguridad ahora</string>
+    <string name="backup_frequency">Frecuencia de copia de seguridad</string>
+    <string name="backup_weekly">Semanalmente</string>
+    <string name="backup_last">Última copia de seguridad</string>
+    <string name="backup_connected">Conectado</string>
+    <string name="backup_disconnected">No conectado</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Ajustes y seguridad</string>
+    <string name="settings_lock">Bloquear aplicación</string>
+    <string name="settings_lock_desc">Con huella dactilar o PIN</string>
+    <string name="settings_encrypt">Cifrado de datos</string>
+    <string name="settings_encrypt_desc">Cifrado local AES-256 — Activo</string>
+    <string name="settings_recovery_key">Clave de recuperación</string>
+    <string name="settings_recovery_key_desc">Administrar clave de descifrado</string>
+    <string name="settings_death_proof">Verificación de fallecimiento (opcional)</string>
+    <string name="settings_death_proof_desc">Establecer el método para abrir el testamento</string>
+    <string name="settings_privacy">Privacidad</string>
+    <string name="settings_privacy_desc">Sus datos no se envían a ningún servidor</string>
+    <string name="settings_language">Idioma de la aplicación</string>
+    <string name="settings_death_unavailable">La verificación del fallecimiento no está disponible actualmente</string>
+
+    <!-- About -->
+    <string name="about_app_title">Acerca de la aplicación</string>
+    <string name="about_app_desc">Erthi Amanah — un proyecto benéfico de código abierto</string>
+    <string name="about_erthi_title">Acerca de Erthi</string>
+    <string name="version_label">Versión</string>
+
+    <!-- Common -->
+    <string name="btn_save">Guardar</string>
+    <string name="btn_cancel">Cancelar</string>
+    <string name="btn_delete">Eliminar</string>
+    <string name="btn_edit">Editar</string>
+    <string name="btn_add">Añadir</string>
+    <string name="btn_export">Exportar</string>
+    <string name="btn_back">Volver</string>
+    <string name="label_name">Nombre</string>
+    <string name="label_amount">Importe</string>
+    <string name="label_currency">Moneda</string>
+    <string name="label_date">Fecha</string>
+    <string name="label_notes">Notas</string>
+    <string name="label_status">Estado</string>
+    <string name="label_phone">Número de teléfono</string>
+    <string name="label_relation">Relación</string>
+    <string name="empty_list">Sin datos</string>
+    <string name="tap_to_add">Toque para añadir nuevos datos</string>
+    <string name="confirm_delete">¿Está seguro de que desea eliminar?</string>
+
+    <!-- Auth -->
+    <string name="auth_prompt_title">Verificar identidad</string>
+    <string name="auth_prompt_subtitle">Use su huella dactilar o PIN para continuar</string>
+    <string name="auth_pin_label">PIN</string>
+    <string name="auth_unlock">Desbloquear</string>
+    <string name="auth_use_biometrics">Desbloquear con biometría</string>
+    <string name="auth_acknowledge">Entiendo y quiero continuar</string>
+    <string name="set_pin_title">Crear PIN</string>
+    <string name="set_pin_hint">Introduzca un PIN de 6 dígitos</string>
+    <string name="confirm_pin_hint">Vuelva a introducir su PIN</string>
+    <string name="pin_mismatch">Los PIN no coinciden</string>
+    <string name="pin_set_success">PIN establecido correctamente</string>
+
+    <!-- Documents errors -->
+    <string name="attachment_too_large">El adjunto supera el límite de 50 MiB.</string>
+    <string name="attachment_access_expired">No se pudo acceder al archivo. Selecciónelo de nuevo.</string>
+    <string name="attachment_save_failed">No se pudo guardar el adjunto.</string>
+    <string name="attachment_delete_failed">No se pudo completar la eliminación del documento y su adjunto.</string>
+
+    <!-- Preview -->
+    <string name="preview_open">Ver adjunto</string>
+    <string name="preview_too_large">La vista previa se limita a archivos de hasta 12 MiB.</string>
+    <string name="preview_unsupported">La vista previa admite imágenes JPEG, PNG y WebP.</string>
+    <string name="preview_failed">No se pudo autenticar o abrir el adjunto.</string>
+
+    <!-- Restore -->
+    <string name="restore_pending_warning">La restauración está incompleta. Se reintentará cuando se inicie la aplicación de nuevo.</string>
+
+    <!-- Language -->
+    <string name="language_picker_title">Elegir idioma</string>
+    <string name="language_provisional">Algunas traducciones son provisionales y están pendientes de revisión por un hablante nativo.</string>
+
+    <!-- Quran attribution -->
+    <string name="quran_attribution">Al-Báqara 2:180 (fragmento)</string>
+</resources>

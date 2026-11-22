@@ -1,0 +1,267 @@
+name: Android CI — Build & Test
+
+on:
+  push:
+    branches: [ "feature/**", "main" ]
+  workflow_dispatch:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Validate Gradle wrapper
+        uses: gradle/wrapper-validation-action@v3
+
+      - name: Decode and verify stable debug keystore
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.DEBUG_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.DEBUG_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.DEBUG_KEY_PASSWORD }}
+        run: |
+          for name in KEYSTORE_B64 STORE_PASS KEY_ALIAS KEY_PASS; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::A required Android debug signing secret is missing ($name)."
+              exit 1
+            fi
+          done
+          umask 077
+          keystore="$RUNNER_TEMP/ci-debug.keystore"
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$keystore"
+          keytool -exportcert -keystore "$keystore" -storepass:env STORE_PASS \
+            -alias "$KEY_ALIAS" -file "$RUNNER_TEMP/debug-signing.der" >/dev/null 2>&1 || {
+            echo "::error::Could not read the expected signing alias from the keystore."
+            exit 1
+          }
+          actual=$(sha256sum "$RUNNER_TEMP/debug-signing.der" | cut -d ' ' -f1)
+          expected=3600e8ff78aad20c39a91f50a619cf4b5b1d77265d15328ec1c317be91ebabea
+          [[ "$actual" == "$expected" ]] || {
+            echo "::error::Debug keystore certificate does not match the approved fingerprint."
+            exit 1
+          }
+
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: app/build/reports/tests/
+          retention-days: 7
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon
+        env:
+          REQUIRE_STABLE_DEBUG_SIGNING: "true"
+          DEBUG_KEYSTORE_FILE: ${{ runner.temp }}/ci-debug.keystore
+          DEBUG_STORE_PASSWORD: ${{ secrets.DEBUG_STORE_PASSWORD }}
+          DEBUG_KEY_ALIAS: ${{ secrets.DEBUG_KEY_ALIAS }}
+          DEBUG_KEY_PASSWORD: ${{ secrets.DEBUG_KEY_PASSWORD }}
+
+      - name: Verify APK signing certificate and identity
+        shell: bash
+        run: |
+          apk="app/build/outputs/apk/debug/app-debug.apk"
+          expected="3600e8ff78aad20c39a91f50a619cf4b5b1d77265d15328ec1c317be91ebabea"
+
+          # ── Locate apksigner ───────────────────────────────────────────────
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f 2>/dev/null \
+            | sort -V | tail -1)
+          [[ -n "$apksigner" ]] || { echo "::error::apksigner not found in $ANDROID_HOME/build-tools"; exit 1; }
+          echo "apksigner: $apksigner"
+
+          # ── Extract certificate information ────────────────────────────────
+          # Capture stdout + stderr so we see the full output regardless of
+          # apksigner version (older tools wrote some lines to stderr).
+          certs=$("$apksigner" verify --print-certs "$apk" 2>&1)
+          echo "--- apksigner output ---"
+          echo "$certs"
+          echo "--- end output ---"
+
+          # Robust extraction: matches both
+          #   "Signer #1 certificate SHA-256 digest: <hex>"   (build-tools < 35)
+          #   "SHA-256 digest: <hex>"                         (build-tools 35+)
+          # and handles colon-separated hex (36:00:E8:...) or plain hex.
+          actual=$(grep -i "sha-256\|sha256" <<< "$certs" \
+            | awk '{print $NF}' \
+            | tr -d ':' \
+            | tr '[:upper:]' '[:lower:]' \
+            | head -1)
+
+          if [[ -z "$actual" ]]; then
+            echo "::error::Could not extract SHA-256 fingerprint from apksigner output above."
+            exit 1
+          fi
+
+          echo "APK certificate SHA-256: $actual"
+
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::error::APK signing fingerprint mismatch."
+            echo "::error::  Actual:   $actual"
+            echo "::error::  Expected: $expected"
+            exit 1
+          fi
+
+          # ── Verify package name and versionCode via aapt ──────────────────
+          aapt="$(dirname "$apksigner")/aapt"
+          if [[ -x "$aapt" ]]; then
+            badging=$("$aapt" dump badging "$apk" 2>&1)
+            if ! grep -qm1 "^package: name='com.erthi.amanah.debug' versionCode='4' " <<< "$badging"; then
+              echo "::error::Package name or versionCode mismatch in APK badging:"
+              echo "$badging" | head -5
+              exit 1
+            fi
+            echo "✅ Package: com.erthi.amanah.debug  versionCode: 4"
+          else
+            echo "::warning::aapt not found alongside apksigner; skipping badging check."
+          fi
+
+          echo "✅ APK signed with stable keystore: $actual"
+
+      # Confirm the official Erthi gold-seal emblem is embedded in the APK.
+      # Fails if the fabricated mosque icon or any placeholder was packaged instead.
+      - name: Verify official Erthi launcher icon in APK
+        run: |
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          APK_CONTENTS=$(unzip -Z1 "$APK")
+          if grep -q "ic_erthi_seal" <<< "$APK_CONTENTS"; then
+            echo "✅ Official Erthi seal icon found in APK:"
+            unzip -l "$APK" | grep "ic_erthi_seal"
+          else
+            echo "::error::ic_erthi_seal not found in APK resources."
+            echo "::error::Ensure app/src/main/res/drawable/ic_erthi_seal.webp exists and"
+            echo "::error::mipmap-anydpi-v26/ic_launcher.xml references @drawable/ic_erthi_seal."
+            exit 1
+          fi
+
+      - name: Remove runner signing material
+        if: always()
+        shell: bash
+        run: rm -f -- "$RUNNER_TEMP/ci-debug.keystore" "$RUNNER_TEMP/debug-signing.der"
+
+      - name: Upload debug APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: erthi-amanah-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+      - name: Run Android lint
+        run: ./gradlew lintDebug --no-daemon
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-results
+          path: app/build/reports/lint-results-debug.html
+          retention-days: 7
+
+  android-15:
+    name: Android 15 instrumentation and screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    if: github.event_name != 'pull_request'
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - name: Fetch the verified pre-change APK for comparison
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          baseline_run=45012182102
+          expected=fc7963c2070b521be34734a649c04c0de71ea46c
+          actual=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$baseline_run" --jq .head_sha)
+          test "$actual" = "$expected"
+          gh run download "$baseline_run" --repo "$GITHUB_REPOSITORY" --name erthi-amanah-debug --dir "$RUNNER_TEMP/erthi-baseline"
+      - name: Enable KVM access on the GitHub-hosted runner
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run instrumented tests
+        uses: reactivecircus/android-emulator-runner@9125fe764b516df676e33c5e6df011c6f375ef88
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          script: bash .github/scripts/android-15-evidence.sh
+      - name: Upload emulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-15-evidence
+          path: |
+            build/visual-evidence/
+            app/build/reports/androidTests/connected/
+            app/build/outputs/androidTest-results/connected/
+
+  release-prepare:
+    name: Validate release readiness
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build release APK (unsigned)
+        run: ./gradlew assembleRelease --no-daemon
+        env:
+          SIGNING_ENABLED: false
+
+      - name: Upload unsigned release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: erthi-amanah-release-unsigned
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          retention-days: 30

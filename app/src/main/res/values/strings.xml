@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">وصيتي</string>
+    <string name="app_name_en" translatable="false">Wasiyyati</string>
+    <string name="app_tagline">وصيتي — أحد مشروعات إرثي الخيرية</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">الرئيسية</string>
+    <string name="nav_will">الوصية</string>
+    <string name="nav_finance">الأموال</string>
+    <string name="nav_debts">الديون</string>
+    <string name="nav_assets">الممتلكات</string>
+    <string name="nav_entrusted">الأمانات</string>
+    <string name="nav_digital">الحسابات الرقمية</string>
+    <string name="nav_documents">الوثائق</string>
+    <string name="nav_beneficiaries">الأسرة والمستفيدون</string>
+    <string name="nav_emergency">مركز الطوارئ</string>
+    <string name="nav_backup">النسخ الاحتياطي</string>
+    <string name="nav_settings">الإعدادات والأمان</string>
+    <string name="nav_about_app">عن التطبيق</string>
+    <string name="nav_about_erthi">عن إرثي</string>
+
+    <!-- Splash / Onboarding -->
+    <string name="slogan">وصيتك . أماناتك . شؤونك في مكان آمن</string>
+    <string name="feature_privacy">خصوصية كاملة\nبياناتك على هاتفك فقط</string>
+    <string name="feature_backup">نسخ احتياطي مشفّر\nعلى حسابك السحابي (اختياري)</string>
+    <string name="feature_offline">يعمل دون إنترنت\nللوصول إلى بياناتك في أي وقت</string>
+    <string name="btn_start">ابدأ الآن</string>
+
+    <!-- Home Dashboard -->
+    <string name="welcome_title">مرحباً بك</string>
+    <string name="welcome_subtitle">أدِر وصيتك وبياناتك المهمة بأمان</string>
+
+    <!-- Will Module -->
+    <string name="will_title">الوصية</string>
+    <string name="will_subtitle">اكتب وصيتك وسجّلها صوتياً أو فيديو</string>
+    <string name="will_write">كتابة الوصية</string>
+    <string name="will_audio">تسجيل وصية صوتية</string>
+    <string name="will_video">تسجيل وصية بالفيديو</string>
+    <string name="will_attach">إرفاق مستندات</string>
+    <string name="will_access">إعدادات الوصول</string>
+    <string name="will_legal_notice">تنبيه: الوصية المكتوبة هنا هي توثيق شخصي. مدى إلزاميتها القانونية يعتمد على تشريعات بلدك وشروط الإشهاد الرسمي. استشر محامياً للتأكد من صحتها القانونية.</string>
+
+    <!-- Finance -->
+    <string name="finance_title">الأموال</string>
+    <string name="finance_subtitle">الحسابات البنكية والأرصدة</string>
+    <string name="debts_owed_title">ما عليك من ديون</string>
+    <string name="debts_receivable_title">ما لك عند الآخرين</string>
+    <string name="assets_title">الممتلكات</string>
+    <string name="assets_subtitle">العقارات والسيارات والأصول</string>
+    <string name="entrusted_title">الأمانات</string>
+    <string name="entrusted_subtitle">أمانات لديك تخص آخرين</string>
+    <string name="digital_title">الحسابات الرقمية</string>
+    <string name="digital_subtitle">البريد والحسابات والاشتراكات</string>
+
+    <!-- Documents -->
+    <string name="documents_title">الوثائق</string>
+    <string name="documents_subtitle">المستندات والعقود المهمة</string>
+
+    <!-- Beneficiaries -->
+    <string name="beneficiaries_title">الأسرة والمستفيدون</string>
+    <string name="beneficiaries_subtitle">بيانات من تتواصل معهم عند الحاجة</string>
+
+    <!-- Emergency -->
+    <string name="emergency_title">مركز الطوارئ</string>
+    <string name="emergency_subtitle">اتصل بسرعة في الحالات الطارئة</string>
+    <string name="emergency_ambulance">الإسعاف</string>
+    <string name="emergency_police">الشرطة</string>
+    <string name="emergency_fire">المطافئ</string>
+    <string name="emergency_general">طوارئ عامة</string>
+    <string name="emergency_contacts_title">جهات اتصال للطوارئ</string>
+    <string name="emergency_sos">إرسال استغاثة وموقعي\nإلى جهات الاتصال المحددة</string>
+    <string name="emergency_add_contact">إضافة جهة اتصال</string>
+
+    <!-- Backup -->
+    <string name="backup_title">النسخ الاحتياطي</string>
+    <string name="backup_subtitle">احفظ نسخة مشفرة من بياناتك في مكان آمن</string>
+    <string name="backup_cloud">النسخ الاحتياطي السحابي</string>
+    <string name="backup_cloud_desc">رفع نسخة مشفرة تلقائياً</string>
+    <string name="backup_now">إنشاء نسخة احتياطية الآن</string>
+    <string name="backup_frequency">تكرار النسخ الاحتياطي</string>
+    <string name="backup_weekly">أسبوعياً</string>
+    <string name="backup_last">آخر نسخة احتياطية</string>
+    <string name="backup_connected">متصل</string>
+    <string name="backup_disconnected">غير متصل</string>
+
+    <!-- Settings -->
+    <string name="settings_title">الإعدادات والأمان</string>
+    <string name="settings_lock">قفل التطبيق</string>
+    <string name="settings_lock_desc">بالبصمة أو الرمز السري</string>
+    <string name="settings_encrypt">تشفير البيانات</string>
+    <string name="settings_encrypt_desc">تشفير محلي AES-256</string>
+    <string name="settings_recovery_key">مفتاح الاسترداد</string>
+    <string name="settings_recovery_key_desc">إدارة مفتاح فك التشفير</string>
+    <string name="settings_death_proof">إثبات الوفاة (اختياري)</string>
+    <string name="settings_death_proof_desc">تحديد الطريقة المطلوبة لفتح الوصية</string>
+    <string name="settings_privacy">الخصوصية</string>
+    <string name="settings_privacy_desc">لا يتم رفع بياناتك إلى أي خادم</string>
+
+    <!-- About -->
+    <string name="about_app_title">معلومات عن التطبيق</string>
+    <string name="about_app_desc">إرثي أمانة - مشروع خيري مفتوح المصدر</string>
+    <string name="about_erthi_title">عن إرثي</string>
+    <string name="version_label">الإصدار</string>
+
+    <!-- Common -->
+    <string name="btn_save">حفظ</string>
+    <string name="btn_cancel">إلغاء</string>
+    <string name="btn_delete">حذف</string>
+    <string name="btn_edit">تعديل</string>
+    <string name="btn_add">إضافة</string>
+    <string name="btn_export">تصدير</string>
+    <string name="btn_back">رجوع</string>
+    <string name="label_name">الاسم</string>
+    <string name="label_amount">المبلغ</string>
+    <string name="label_currency">العملة</string>
+    <string name="label_date">التاريخ</string>
+    <string name="label_notes">ملاحظات</string>
+    <string name="label_status">الحالة</string>
+    <string name="label_phone">رقم الهاتف</string>
+    <string name="label_relation">صلة القرابة</string>
+    <string name="empty_list">لا توجد بيانات بعد</string>
+    <string name="tap_to_add">اضغط لإضافة بيانات جديدة</string>
+    <string name="confirm_delete">هل أنت متأكد من الحذف؟</string>
+    <string name="auth_prompt_title">تأكيد الهوية</string>
+    <string name="auth_prompt_subtitle">استخدم بصمتك أو الرمز السري للدخول</string>
+    <string name="set_pin_title">إنشاء رمز سري</string>
+    <string name="set_pin_hint">أدخل رمزاً سرياً من 6 أرقام</string>
+    <string name="confirm_pin_hint">أعد إدخال الرمز السري</string>
+    <string name="pin_mismatch">الرمزان غير متطابقان</string>
+    <string name="pin_set_success">تم تعيين الرمز السري بنجاح</string>
+    <string name="attachment_too_large">يتجاوز حجم المرفق الحد الأقصى البالغ 50 ميبيبايت.</string>
+    <string name="attachment_access_expired">تعذّر الوصول إلى الملف. حدّده مرة أخرى.</string>
+    <string name="attachment_save_failed">تعذّر حفظ المرفق.</string>
+    <string name="attachment_delete_failed">تعذّر إتمام حذف الوثيقة وملفها.</string>
+    <string name="language_provisional">بعض الترجمات أولية وقيد المراجعة.</string>
+    <string name="settings_language">لغة التطبيق</string>
+    <string name="auth_pin_label">الرمز السري</string>
+    <string name="auth_unlock">دخول</string>
+    <string name="auth_use_biometrics">الدخول بالبصمة</string>
+    <string name="auth_acknowledge">فهمت وأوافق على المتابعة</string>
+    <string name="quran_attribution">سورة البقرة، الآية 180 (مقتطف)</string>
+    <string name="nav_vault">الخزنة</string>
+    <string name="nav_more">المزيد</string>
+    <string name="settings_death_unavailable">التحقق من الوفاة غير متاح حاليًا</string>
+    <string name="language_picker_title">اختيار اللغة</string>
+    <string name="documents_add_record">إضافة سجل وثيقة</string>
+    <string name="documents_attach">إرفاق ملف</string>
+    <string name="documents_name">عنوان الوثيقة</string>
+    <string name="documents_category">التصنيف</string>
+    <string name="documents_delete_prompt">حذف الوثيقة والمرفق؟</string>
+    <string name="documents_empty">لا توجد وثائق بعد.</string>
+    <string name="restore_pending_warning">الاستعادة غير مكتملة. ستتكرر المحاولة عند تشغيل التطبيق مجددًا.</string>
+    <string name="preview_open">عرض المرفق</string>
+    <string name="preview_too_large">تتعذر معاينة ملف يتجاوز 12 ميبيبايت.</string>
+    <string name="preview_unsupported">المعاينة متاحة لصور JPEG وPNG وWebP.</string>
+    <string name="preview_failed">تعذّر فتح المرفق. تحقق من سلامة الملف ومفتاح التشفير.</string>
+</resources>
