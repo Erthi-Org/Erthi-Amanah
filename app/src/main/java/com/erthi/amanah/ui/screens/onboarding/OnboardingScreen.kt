@@ -11,6 +11,8 @@ import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
+import com.erthi.amanah.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -112,7 +114,7 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
                 ),
             ) {
                 Text(
-                    text = "ابدأ الآن",
+                    text = stringResource(R.string.btn_start),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                 )

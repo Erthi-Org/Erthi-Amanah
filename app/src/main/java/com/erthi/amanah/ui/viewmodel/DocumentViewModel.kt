@@ -93,6 +93,8 @@ class DocumentViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                staging?.delete()
+                published?.delete()
                 val message = when (e) {
                     is DocumentTooLargeException -> R.string.attachment_too_large
                     is SecurityException -> R.string.attachment_access_expired

@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDirection
 import com.erthi.amanah.R
@@ -98,7 +99,7 @@ fun SetPinScreen(
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag("pin-entry"),
                 colors = andalusianFieldColors(),
             )
             Spacer(Modifier.height(14.dp))
@@ -110,7 +111,7 @@ fun SetPinScreen(
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag("pin-confirm"),
                 colors = andalusianFieldColors(),
                 isError = errorMessage != null,
                 supportingText = errorMessage?.let { { Text(it, color = EmergencyRed) } },
@@ -148,6 +149,7 @@ fun SetPinScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Checkbox(
+                    modifier = Modifier.testTag("pin-acknowledge"),
                     checked = acknowledged,
                     onCheckedChange = { acknowledged = it },
                     colors = CheckboxDefaults.colors(
@@ -170,7 +172,7 @@ fun SetPinScreen(
                 onClick = {
                     authViewModel.setPin(pin, confirmPin, onSuccess = onPinSet, onError = { errorMessage = it })
                 },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).testTag("pin-save"),
                 shape = RoundedCornerShape(26.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = RoyalGold,
@@ -275,7 +277,7 @@ fun AuthScreen(
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag("unlock-entry"),
                 colors = andalusianFieldColors(),
                 isError = errorMessage != null,
                 supportingText = errorMessage?.let { { Text(it, color = EmergencyRed) } },
@@ -286,7 +288,7 @@ fun AuthScreen(
                 onClick = {
                     authViewModel.verifyPin(pin, onSuccess = onAuthenticated, onError = { errorMessage = it })
                 },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).testTag("unlock-button"),
                 shape = RoundedCornerShape(26.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = RoyalGold,

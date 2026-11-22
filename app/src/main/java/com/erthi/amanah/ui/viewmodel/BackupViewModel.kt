@@ -833,7 +833,7 @@ class BackupViewModel @Inject constructor(
                 .map { File(filesDir, it) }.toSet()
             val entries = stagedFiles.map { sf ->
                 val dest = sf.final.canonicalFile
-                require(dest == sf.final.absoluteFile && dest.parentFile in allowedDirectories) {
+                require(dest.name == sf.final.name && dest.parentFile in allowedDirectories) {
                     "Invalid restore destination"
                 }
                 require(sf.staged.isFile) { "Missing staged restore file" }
