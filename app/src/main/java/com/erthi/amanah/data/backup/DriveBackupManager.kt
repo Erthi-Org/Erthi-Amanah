@@ -123,6 +123,47 @@ class DriveBackupManager @Inject constructor(
         JSONObject(response).getString("id")
     }
 
+    // Streaming upload — avoids loading the entire archive into memory.
+    suspend fun uploadBackupFile(
+        file: java.io.File,
+        filename: String,
+    ): String = withContext(Dispatchers.IO) {
+        val account = getSignedInAccount()
+            ?: throw IllegalStateException("لم يتم تسجيل الدخول إلى Google")
+        val tok = token(account)
+
+        val boundary = "erthi_backup_${System.currentTimeMillis()}"
+        val metadataBytes = buildString {
+            append("--$boundary\r\n")
+            append("Content-Type: application/json; charset=UTF-8\r\n\r\n")
+            append("""{"name":"$filename","parents":["appDataFolder"]}""")
+            append("\r\n")
+        }.toByteArray(Charsets.UTF_8)
+        val dataPartBytes = "--$boundary\r\nContent-Type: $MIME_OCTET\r\n\r\n".toByteArray(Charsets.UTF_8)
+        val closingBytes = "\r\n--$boundary--\r\n".toByteArray(Charsets.UTF_8)
+        val totalLength = metadataBytes.size.toLong() + dataPartBytes.size.toLong() +
+                file.length() + closingBytes.size.toLong()
+
+        val conn = openConn("$DRIVE_UPLOAD/files?uploadType=multipart", "POST", tok)
+        conn.setRequestProperty("Content-Type", "multipart/related; boundary=$boundary")
+        conn.setFixedLengthStreamingMode(totalLength)
+        conn.getOutputStream().use { out ->
+            out.write(metadataBytes)
+            out.write(dataPartBytes)
+            file.inputStream().use { it.copyTo(out) }
+            out.write(closingBytes)
+        }
+
+        val response = conn.readResponse()
+        if (conn.responseCode !in 200..299) {
+            conn.disconnect()
+            throw DriveApiException("فشل الرفع: ${conn.responseCode} — $response")
+        }
+        conn.disconnect()
+
+        JSONObject(response).getString("id")
+    }
+
     // ── List backups ─────────────────────────────────────────────────────────
 
     suspend fun listBackups(): List<DriveBackupFile> = withContext(Dispatchers.IO) {

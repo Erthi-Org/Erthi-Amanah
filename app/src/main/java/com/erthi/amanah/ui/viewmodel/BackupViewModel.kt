@@ -17,6 +17,7 @@ import com.erthi.amanah.data.db.entity.*
 import com.erthi.amanah.data.db.dao.RestoreJournalDao
 import com.erthi.amanah.data.db.entity.RestoreJournalEntity
 import com.erthi.amanah.data.security.CryptoManager
+import com.erthi.amanah.data.security.DocumentEncryption
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -218,7 +219,7 @@ class BackupViewModel @Inject constructor(
                         "حجم النسخة ${archiveSize / 1024 / 1024} ميجابايت يتجاوز حد الرفع (${MAX_DRIVE_UPLOAD_BYTES / 1024 / 1024} ميجابايت)"
                     }
                     val dateStr = SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault()).format(Date())
-                    val driveFileId = driveManager.uploadBackup(tmpFile.readBytes(), "wasiyyati_drive_$dateStr.wasi3bak")
+                    val driveFileId = driveManager.uploadBackupFile(tmpFile, "wasiyyati_drive_$dateStr.wasi3bak")
                     _driveState.value = DriveState.Success("✅ تم رفع النسخة بنجاح إلى Google Drive ($driveFileId)")
                     loadDriveBackups()
                 } finally {
@@ -586,23 +587,22 @@ class BackupViewModel @Inject constructor(
     }
 
     private fun exportDocumentToPortableArchive(docFile: File, key: SecretKeySpec, out: DataOutputStream) {
-        val fileSize = docFile.length()
-        val chunkCount = ((fileSize + BACKUP_CHUNK_SIZE - 1) / BACKUP_CHUNK_SIZE).coerceAtLeast(1)
-        require(chunkCount <= MAX_CHUNK_COUNT) { "Document archive exceeds the chunk limit" }
-        out.writeInt(chunkCount.toInt())
-        DataInputStream(docFile.inputStream().buffered()).use { input ->
-            var remaining = fileSize
-            repeat(chunkCount.toInt()) {
-                val count = minOf(BACKUP_CHUNK_SIZE.toLong(), remaining).toInt()
-                val chunk = ByteArray(count)
-                input.readFully(chunk)
-                val (iv, ciphertext) = BackupCrypto.encrypt(key, chunk)
-                out.write(iv)
-                out.writeInt(ciphertext.size)
-                out.write(ciphertext)
-                remaining -= count
-            }
-            require(input.read() == -1) { "Document changed during backup" }
+        // WASI_DOC format: magic(8:"WASI_DOC") + iv(12) + GCM-ciphertext (device-bound).
+        // We must decrypt to plaintext before PBKDF2-encrypting so the destination device
+        // can re-encrypt under its own Keystore key on import (cross-device restore fix).
+        val docBytes = docFile.readBytes()
+        val magicBytes = "WASI_DOC".toByteArray(Charsets.US_ASCII)
+        require(docBytes.size >= magicBytes.size + 12 + 1) { "Malformed WASI_DOC: too short" }
+        require(docBytes.copyOfRange(0, magicBytes.size).contentEquals(magicBytes)) {
+            "Malformed WASI_DOC: unexpected magic"
+        }
+        val iv = docBytes.copyOfRange(magicBytes.size, magicBytes.size + 12)
+        val ciphertext = docBytes.copyOfRange(magicBytes.size + 12, docBytes.size)
+        val plaintext = crypto.decrypt(CryptoManager.EncryptedData(iv, ciphertext))
+        try {
+            writePortableChunks(plaintext, key, out)
+        } finally {
+            plaintext.fill(0)
         }
     }
 
@@ -763,16 +763,34 @@ class BackupViewModel @Inject constructor(
     }
 
     private fun stageDocumentFromPortableArchive(din: DataInputStream, stagingFile: File, key: SecretKeySpec) {
+        // Decrypt each PBKDF2 chunk back to plaintext, then re-encrypt the plaintext as a
+        // fresh WASI_DOC under this device's Keystore — completing the cross-device restore.
+        // Plaintext is never written to disk; it is scrubbed from memory after re-encryption.
         val chunkCount = din.readInt()
         require(chunkCount in 1..MAX_CHUNK_COUNT) { "عدد أجزاء المستند غير صالح: $chunkCount" }
-        stagingFile.outputStream().buffered().use { out ->
-            repeat(chunkCount) {
-                val iv = ByteArray(12); din.readFully(iv)
-                val ctLen = din.readInt()
-                require(ctLen in 1..MAX_CHUNK_BYTES) { "حجم جزء المستند غير صالح: $ctLen" }
-                val ct = ByteArray(ctLen); din.readFully(ct)
-                out.write(BackupCrypto.decrypt(key, iv, ct))
+        val chunks = ArrayList<ByteArray>(chunkCount)
+        var totalSize = 0L
+        repeat(chunkCount) {
+            val iv = ByteArray(12); din.readFully(iv)
+            val ctLen = din.readInt()
+            require(ctLen in 1..MAX_CHUNK_BYTES) { "حجم جزء المستند غير صالح: $ctLen" }
+            val ct = ByteArray(ctLen); din.readFully(ct)
+            val chunk = BackupCrypto.decrypt(key, iv, ct)
+            totalSize += chunk.size
+            require(totalSize <= DocumentEncryption.MAX_BYTES) { "حجم المستند يتجاوز الحد المسموح به" }
+            chunks.add(chunk)
+        }
+        val plaintext = ByteArray(totalSize.toInt())
+        var pos = 0
+        for (chunk in chunks) { chunk.copyInto(plaintext, pos); pos += chunk.size }
+        try {
+            // Write as WASI_DOC (magic + iv + ciphertext) using this device's Keystore key
+            stagingFile.outputStream().buffered().use { output ->
+                DocumentEncryption.write(plaintext.inputStream(), output, crypto.getOrCreateKey())
             }
+        } finally {
+            plaintext.fill(0)
+            chunks.forEach { it.fill(0) }
         }
     }
 

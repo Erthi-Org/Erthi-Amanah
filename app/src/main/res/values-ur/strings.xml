@@ -3,6 +3,8 @@
 <resources>
     <string name="app_name">میری وصیت</string>
     <string name="app_tagline">ارثی امانہ — ارثی خیراتی اقدام</string>
+
+    <!-- Navigation -->
     <string name="nav_home">ہوم</string>
     <string name="nav_will">وصیت</string>
     <string name="nav_finance">مالیات</string>
@@ -15,38 +17,154 @@
     <string name="nav_emergency">ہنگامی صورتحال</string>
     <string name="nav_backup">بیک اپ</string>
     <string name="nav_settings">ترتیبات اور سیکیورٹی</string>
+    <string name="nav_about_app">ایپ کے بارے میں</string>
+    <string name="nav_about_erthi">ارثی کے بارے میں</string>
+    <string name="nav_vault">محفوظ خانہ</string>
+    <string name="nav_more">مزید</string>
+
+    <!-- Splash / Onboarding -->
+    <string name="slogan">آپ کی وصیت۔ آپ کی امانتیں۔ آپ کے معاملات — ایک محفوظ جگہ۔</string>
+    <string name="feature_privacy">مکمل رازداری\nآپ کا ڈیٹا صرف آپ کے فون پر رہتا ہے</string>
+    <string name="feature_backup">خفیہ بیک اپ\nآپ کے اپنے کلاؤڈ اکاؤنٹ پر (اختیاری)</string>
+    <string name="feature_offline">آف لائن کام کرتا ہے\nکسی بھی وقت اپنے ڈیٹا تک رسائی حاصل کریں</string>
     <string name="btn_start">شروع کریں</string>
+
+    <!-- Home Dashboard -->
     <string name="welcome_title">خوش آمدید</string>
+    <string name="welcome_subtitle">اپنی وصیت اور اہم ڈیٹا کو محفوظ طریقے سے منظم کریں</string>
+
+    <!-- Will Module -->
+    <string name="will_title">وصیت</string>
+    <string name="will_subtitle">اپنی وصیت لکھیں، آڈیو یا ویڈیو ریکارڈ کریں</string>
+    <string name="will_write">وصیت لکھیں</string>
+    <string name="will_audio">آڈیو وصیت ریکارڈ کریں</string>
+    <string name="will_video">ویڈیو وصیت ریکارڈ کریں</string>
+    <string name="will_attach">دستاویزات منسلک کریں</string>
+    <string name="will_access">رسائی کی ترتیبات</string>
+    <string name="will_legal_notice">نوٹ: یہاں لکھی وصیت ذاتی دستاویز ہے۔ اس کی قانونی پابندی آپ کے ملک کے قوانین اور رسمی گواہی کی ضروریات پر منحصر ہے۔ قانونی اعتبار کو یقینی بنانے کے لیے وکیل سے مشورہ کریں۔</string>
+
+    <!-- Finance -->
+    <string name="finance_title">مالیات</string>
+    <string name="finance_subtitle">بینک اکاؤنٹس اور بیلنس</string>
+    <string name="debts_owed_title">آپ کے قرضے</string>
+    <string name="debts_receivable_title">آپ کے واجبات</string>
+    <string name="assets_title">اثاثے</string>
+    <string name="assets_subtitle">جائیداد، گاڑیاں اور اثاثے</string>
+    <string name="entrusted_title">امانتیں</string>
+    <string name="entrusted_subtitle">دوسروں کی امانتیں آپ کے پاس</string>
+    <string name="digital_title">ڈیجیٹل اکاؤنٹس</string>
+    <string name="digital_subtitle">ای میل، اکاؤنٹس اور سبسکرپشن</string>
+
+    <!-- Documents -->
+    <string name="documents_title">دستاویزات</string>
+    <string name="documents_subtitle">اہم دستاویزات اور معاہدے</string>
+    <string name="documents_add_record">دستاویز شامل کریں</string>
+    <string name="documents_attach">فائل منسلک کریں</string>
+    <string name="documents_name">دستاویز کا عنوان</string>
+    <string name="documents_category">زمرہ</string>
+    <string name="documents_delete_prompt">یہ دستاویز اور اس کا منسلقہ حذف کریں؟</string>
+    <string name="documents_empty">ابھی کوئی دستاویز نہیں ہے۔</string>
+
+    <!-- Beneficiaries -->
+    <string name="beneficiaries_title">خاندان اور مستفیدین</string>
+    <string name="beneficiaries_subtitle">ضرورت کے وقت رابطہ کرنے والوں کی معلومات</string>
+
+    <!-- Emergency -->
+    <string name="emergency_title">ہنگامی مرکز</string>
+    <string name="emergency_subtitle">ہنگامی رابطوں تک فوری رسائی</string>
+    <string name="emergency_ambulance">ایمبولینس</string>
+    <string name="emergency_police">پولیس</string>
+    <string name="emergency_fire">فائر بریگیڈ</string>
+    <string name="emergency_general">عام ہنگامی صورتحال</string>
+    <string name="emergency_contacts_title">ہنگامی رابطے</string>
+    <string name="emergency_sos">SOS اور مقام بھیجیں\nمنتخب رابطوں کو</string>
+    <string name="emergency_add_contact">رابطہ شامل کریں</string>
+
+    <!-- Backup -->
+    <string name="backup_title">بیک اپ</string>
+    <string name="backup_subtitle">اپنے ڈیٹا کی خفیہ کاپی کسی محفوظ جگہ محفوظ کریں</string>
+    <string name="backup_cloud">کلاؤڈ بیک اپ</string>
+    <string name="backup_cloud_desc">خودکار طریقے سے خفیہ کاپی اپلوڈ کریں</string>
+    <string name="backup_now">ابھی بیک اپ بنائیں</string>
+    <string name="backup_frequency">بیک اپ کی تعدد</string>
+    <string name="backup_weekly">ہفتہ وار</string>
+    <string name="backup_last">آخری بیک اپ</string>
+    <string name="backup_connected">منسلک ہے</string>
+    <string name="backup_disconnected">منسلک نہیں ہے</string>
+
+    <!-- Settings -->
     <string name="settings_title">ترتیبات اور سیکیورٹی</string>
     <string name="settings_lock">ایپ لاک کریں</string>
     <string name="settings_lock_desc">فنگرپرنٹ یا PIN سے</string>
     <string name="settings_encrypt">ڈیٹا انکرپشن</string>
     <string name="settings_encrypt_desc">مقامی AES-256 انکرپشن — فعال</string>
     <string name="settings_recovery_key">ریکوری کلید</string>
+    <string name="settings_recovery_key_desc">ڈکرپشن کلید کا نظم کریں</string>
+    <string name="settings_death_proof">وفات کی تصدیق (اختیاری)</string>
+    <string name="settings_death_proof_desc">وصیت کھولنے کا طریقہ مقرر کریں</string>
     <string name="settings_privacy">رازداری</string>
-    <string name="settings_privacy_desc">آپ کا ڈیٹا آپ کے ڈیوائس پر رہتا ہے</string>
+    <string name="settings_privacy_desc">آپ کا ڈیٹا کسی سرور کو نہیں بھیجا جاتا</string>
+    <string name="settings_language">ایپ کی زبان</string>
+    <string name="settings_death_unavailable">وفات کی تصدیق فی الحال دستیاب نہیں ہے</string>
+
+    <!-- About -->
+    <string name="about_app_title">ایپ کے بارے میں</string>
+    <string name="about_app_desc">Erthi Amanah — ایک اوپن سورس خیراتی منصوبہ</string>
+    <string name="about_erthi_title">ارثی کے بارے میں</string>
+    <string name="version_label">ورژن</string>
+
+    <!-- Common -->
     <string name="btn_save">محفوظ کریں</string>
     <string name="btn_cancel">منسوخ کریں</string>
     <string name="btn_delete">حذف کریں</string>
+    <string name="btn_edit">ترمیم کریں</string>
     <string name="btn_add">شامل کریں</string>
+    <string name="btn_export">برآمد کریں</string>
     <string name="btn_back">واپس</string>
-    <string name="auth_prompt_title">شناخت کی تصدیق کریں</string>
-    <string name="set_pin_title">PIN بنائیں</string>
-    <string name="pin_mismatch">PIN میل نہیں کھاتے</string>
-    <string name="language_picker_title">زبان منتخب کریں</string>
+    <string name="label_name">نام</string>
+    <string name="label_amount">رقم</string>
+    <string name="label_currency">کرنسی</string>
+    <string name="label_date">تاریخ</string>
+    <string name="label_notes">نوٹس</string>
+    <string name="label_status">حالت</string>
+    <string name="label_phone">فون نمبر</string>
+    <string name="label_relation">رشتہ</string>
     <string name="empty_list">کوئی ڈیٹا نہیں</string>
-    <string name="backup_title">بیک اپ</string>
-    <string name="documents_title">دستاویزات</string>
-    <string name="beneficiaries_title">خاندان اور مستفیدین</string>
-    <string name="emergency_title">ہنگامی صورتحال</string>
-    <string name="language_provisional">کچھ تراجم عارضی ہیں اور ان کی نظرثانی باقی ہے۔</string>
-    <string name="settings_language">ایپ کی زبان</string>
+    <string name="tap_to_add">نیا ڈیٹا شامل کرنے کے لیے ٹیپ کریں</string>
+    <string name="confirm_delete">کیا آپ واقعی حذف کرنا چاہتے ہیں؟</string>
+
+    <!-- Auth -->
+    <string name="auth_prompt_title">شناخت کی تصدیق کریں</string>
+    <string name="auth_prompt_subtitle">جاری رکھنے کے لیے اپنا فنگرپرنٹ یا PIN استعمال کریں</string>
     <string name="auth_pin_label">پن کوڈ</string>
     <string name="auth_unlock">کھولیں</string>
     <string name="auth_use_biometrics">بایومیٹرکس سے کھولیں</string>
     <string name="auth_acknowledge">میں سمجھ گیا ہوں اور آگے بڑھنا چاہتا ہوں</string>
+    <string name="set_pin_title">PIN بنائیں</string>
+    <string name="set_pin_hint">6 ہندسوں کا PIN درج کریں</string>
+    <string name="confirm_pin_hint">اپنا PIN دوبارہ درج کریں</string>
+    <string name="pin_mismatch">PIN میل نہیں کھاتے</string>
+    <string name="pin_set_success">PIN کامیابی سے سیٹ ہو گیا</string>
+
+    <!-- Documents errors -->
+    <string name="attachment_too_large">منسلقہ 50 MiB کی حد سے تجاوز کر گیا۔</string>
+    <string name="attachment_access_expired">فائل تک رسائی نہیں ہو سکی۔ اسے دوبارہ منتخب کریں۔</string>
+    <string name="attachment_save_failed">منسلقہ محفوظ نہیں ہو سکا۔</string>
+    <string name="attachment_delete_failed">دستاویز اور اس کا منسلقہ مکمل طور پر حذف نہیں ہو سکا۔</string>
+
+    <!-- Preview -->
+    <string name="preview_open">منسلقہ دیکھیں</string>
+    <string name="preview_too_large">پیش نظارہ 12 MiB تک کی فائلوں تک محدود ہے۔</string>
+    <string name="preview_unsupported">پیش نظارہ JPEG، PNG اور WebP تصاویر کو سپورٹ کرتا ہے۔</string>
+    <string name="preview_failed">منسلقہ کو تصدیق یا کھولا نہیں جا سکا۔</string>
+
+    <!-- Restore -->
+    <string name="restore_pending_warning">بحالی نامکمل ہے۔ ایپ اگلی بار شروع ہونے پر دوبارہ کوشش کی جائے گی۔</string>
+
+    <!-- Language -->
+    <string name="language_picker_title">زبان منتخب کریں</string>
+    <string name="language_provisional">کچھ ترجمے عارضی ہیں اور مادری زبان کے بولنے والے کی جانب سے جائزہ کے منتظر ہیں۔</string>
+
+    <!-- Quran attribution -->
     <string name="quran_attribution">سورۃ البقرہ، آیت 180 (اقتباس)</string>
-    <string name="nav_vault">محفوظ خانہ</string>
-    <string name="nav_more">مزید</string>
-    <string name="settings_death_unavailable">وفات کی تصدیق فی الحال دستیاب نہیں ہے</string>
 </resources>

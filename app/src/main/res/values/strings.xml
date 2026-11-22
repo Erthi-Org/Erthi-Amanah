@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">وصيتي</string>
-    <string name="app_name_en">Wasiyyati</string>
+    <string name="app_name_en" translatable="false">Wasiyyati</string>
     <string name="app_tagline">وصيتي — أحد مشروعات إرثي الخيرية</string>
 
     <!-- Navigation -->

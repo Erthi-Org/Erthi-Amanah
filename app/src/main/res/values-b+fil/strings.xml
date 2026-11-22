@@ -1,52 +1,170 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Filipino — pansamantalang pagsasalin (hindi pa sinuri ng katutubong nagsasalita) -->
+<!-- Filipino — pansamantalang pagsasalin (hindi pa nasuri ng katutubong nagsasalita) -->
 <resources>
-    <string name="app_name">Aking Testamento</string>
-    <string name="app_tagline">Erthi Amanah — Isang Charitable na Inisyatibo ng Erthi</string>
-    <string name="nav_home">Home</string>
+    <string name="app_name">Ang Aking Testamento</string>
+    <string name="app_tagline">Erthi Amanah — Isang Kawanggawa ng Erthi</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Tahanan</string>
     <string name="nav_will">Testamento</string>
     <string name="nav_finance">Pananalapi</string>
     <string name="nav_debts">Mga Utang</string>
     <string name="nav_assets">Mga Ari-arian</string>
-    <string name="nav_entrusted">Pananampalataya</string>
+    <string name="nav_entrusted">Mga Ipinagkatiwala</string>
     <string name="nav_digital">Mga Digital na Account</string>
     <string name="nav_documents">Mga Dokumento</string>
-    <string name="nav_beneficiaries">Pamilya at Mga Benepisyaryo</string>
-    <string name="nav_emergency">Emerhensya</string>
+    <string name="nav_beneficiaries">Pamilya at mga Benepisyaryo</string>
+    <string name="nav_emergency">Emergency</string>
     <string name="nav_backup">Backup</string>
     <string name="nav_settings">Mga Setting at Seguridad</string>
+    <string name="nav_about_app">Tungkol sa App</string>
+    <string name="nav_about_erthi">Tungkol sa Erthi</string>
+    <string name="nav_vault">Vault</string>
+    <string name="nav_more">Higit Pa</string>
+
+    <!-- Splash / Onboarding -->
+    <string name="slogan">Ang iyong testamento. Ang iyong mga ipinagkatiwala. Ang iyong mga usapin — sa isang ligtas na lugar.</string>
+    <string name="feature_privacy">Ganap na privacy\nAng iyong data ay nananatili lamang sa iyong telepono</string>
+    <string name="feature_backup">Naka-encrypt na backup\nSa iyong personal na cloud account (opsyonal)</string>
+    <string name="feature_offline">Gumagana nang offline\nI-access ang iyong data kahit kailan</string>
     <string name="btn_start">Magsimula</string>
+
+    <!-- Home Dashboard -->
     <string name="welcome_title">Maligayang pagdating</string>
+    <string name="welcome_subtitle">Pamahalaan nang ligtas ang iyong testamento at mahahalagang data</string>
+
+    <!-- Will Module -->
+    <string name="will_title">Testamento</string>
+    <string name="will_subtitle">Isulat, mag-record ng audio o video para sa iyong testamento</string>
+    <string name="will_write">Isulat ang Testamento</string>
+    <string name="will_audio">I-record ang Audio na Testamento</string>
+    <string name="will_video">I-record ang Video na Testamento</string>
+    <string name="will_attach">Mag-attach ng Mga Dokumento</string>
+    <string name="will_access">Mga Setting ng Access</string>
+    <string name="will_legal_notice">Paalala: Ang testamentong isinulat dito ay personal na dokumentasyon. Ang legal na bisa nito ay nakasalalay sa mga batas ng iyong bansa at mga kinakailangan sa pormal na pagsasaksi. Kumonsulta sa isang abogado upang matiyak ang legal na bisa nito.</string>
+
+    <!-- Finance -->
+    <string name="finance_title">Pananalapi</string>
+    <string name="finance_subtitle">Mga bank account at balanse</string>
+    <string name="debts_owed_title">Mga utang mo</string>
+    <string name="debts_receivable_title">Mga dapat sa iyo mula sa iba</string>
+    <string name="assets_title">Mga Ari-arian</string>
+    <string name="assets_subtitle">Real estate, mga sasakyan at ari-arian</string>
+    <string name="entrusted_title">Mga Ipinagkatiwala</string>
+    <string name="entrusted_subtitle">Mga bagay na hawak para sa iba</string>
+    <string name="digital_title">Mga Digital na Account</string>
+    <string name="digital_subtitle">Email, mga account at mga subscription</string>
+
+    <!-- Documents -->
+    <string name="documents_title">Mga Dokumento</string>
+    <string name="documents_subtitle">Mga mahahalagang dokumento at kontrata</string>
+    <string name="documents_add_record">Magdagdag ng dokumento</string>
+    <string name="documents_attach">Mag-attach ng file</string>
+    <string name="documents_name">Pamagat ng dokumento</string>
+    <string name="documents_category">Kategorya</string>
+    <string name="documents_delete_prompt">Burahin ang dokumentong ito at ang attachment nito?</string>
+    <string name="documents_empty">Wala pang mga dokumento.</string>
+
+    <!-- Beneficiaries -->
+    <string name="beneficiaries_title">Pamilya at mga Benepisyaryo</string>
+    <string name="beneficiaries_subtitle">Impormasyon sa pakikipag-ugnayan sa mga dapat makipag-ugnayan</string>
+
+    <!-- Emergency -->
+    <string name="emergency_title">Emergency Center</string>
+    <string name="emergency_subtitle">Mabilis na access sa mga emergency contact</string>
+    <string name="emergency_ambulance">Ambulansya</string>
+    <string name="emergency_police">Pulisya</string>
+    <string name="emergency_fire">Bombero</string>
+    <string name="emergency_general">Pangkalahatang Emergency</string>
+    <string name="emergency_contacts_title">Mga Emergency Contact</string>
+    <string name="emergency_sos">Magpadala ng SOS at lokasyon\nsa mga piniling contact</string>
+    <string name="emergency_add_contact">Magdagdag ng contact</string>
+
+    <!-- Backup -->
+    <string name="backup_title">Backup</string>
+    <string name="backup_subtitle">I-save ang naka-encrypt na kopya ng iyong data sa isang ligtas na lugar</string>
+    <string name="backup_cloud">Cloud Backup</string>
+    <string name="backup_cloud_desc">Awtomatikong mag-upload ng naka-encrypt na kopya</string>
+    <string name="backup_now">Gumawa ng Backup Ngayon</string>
+    <string name="backup_frequency">Dalas ng backup</string>
+    <string name="backup_weekly">Lingguhon</string>
+    <string name="backup_last">Huling backup</string>
+    <string name="backup_connected">Nakakonekta</string>
+    <string name="backup_disconnected">Hindi nakakonekta</string>
+
+    <!-- Settings -->
     <string name="settings_title">Mga Setting at Seguridad</string>
     <string name="settings_lock">I-lock ang App</string>
     <string name="settings_lock_desc">Sa fingerprint o PIN</string>
     <string name="settings_encrypt">Pag-encrypt ng Data</string>
     <string name="settings_encrypt_desc">Lokal na AES-256 encryption — Aktibo</string>
     <string name="settings_recovery_key">Recovery Key</string>
+    <string name="settings_recovery_key_desc">Pamahalaan ang decryption key</string>
+    <string name="settings_death_proof">Patunay ng pagkamatay (opsyonal)</string>
+    <string name="settings_death_proof_desc">Itakda ang paraan ng pagbubukas ng testamento</string>
     <string name="settings_privacy">Privacy</string>
-    <string name="settings_privacy_desc">Nananatili ang iyong data sa iyong device</string>
+    <string name="settings_privacy_desc">Ang iyong data ay hindi ipinapadala sa anumang server</string>
+    <string name="settings_language">Wika ng app</string>
+    <string name="settings_death_unavailable">Ang patunay ng pagkamatay ay hindi pa available</string>
+
+    <!-- About -->
+    <string name="about_app_title">Tungkol sa App</string>
+    <string name="about_app_desc">Erthi Amanah — isang open-source na proyektong kawanggawa</string>
+    <string name="about_erthi_title">Tungkol sa Erthi</string>
+    <string name="version_label">Bersyon</string>
+
+    <!-- Common -->
     <string name="btn_save">I-save</string>
     <string name="btn_cancel">Kanselahin</string>
-    <string name="btn_delete">Tanggalin</string>
-    <string name="btn_add">Magdagdag</string>
+    <string name="btn_delete">Burahin</string>
+    <string name="btn_edit">I-edit</string>
+    <string name="btn_add">Idagdag</string>
+    <string name="btn_export">I-export</string>
     <string name="btn_back">Bumalik</string>
-    <string name="auth_prompt_title">I-verify ang pagkakakilanlan</string>
-    <string name="set_pin_title">Gumawa ng PIN</string>
-    <string name="pin_mismatch">Hindi magkatugma ang mga PIN</string>
-    <string name="language_picker_title">Pumili ng wika</string>
+    <string name="label_name">Pangalan</string>
+    <string name="label_amount">Halaga</string>
+    <string name="label_currency">Pera</string>
+    <string name="label_date">Petsa</string>
+    <string name="label_notes">Mga Tala</string>
+    <string name="label_status">Status</string>
+    <string name="label_phone">Numero ng telepono</string>
+    <string name="label_relation">Relasyon</string>
     <string name="empty_list">Walang data</string>
-    <string name="backup_title">Backup</string>
-    <string name="documents_title">Mga Dokumento</string>
-    <string name="beneficiaries_title">Pamilya at Mga Benepisyaryo</string>
-    <string name="emergency_title">Emerhensya</string>
-    <string name="language_provisional">Pansamantala ang ilang salin at kailangan pang suriin.</string>
-    <string name="settings_language">Wika ng app</string>
+    <string name="tap_to_add">I-tap para magdagdag ng bagong data</string>
+    <string name="confirm_delete">Sigurado ka bang gusto mong burahin?</string>
+
+    <!-- Auth -->
+    <string name="auth_prompt_title">Kumpirmahin ang pagkakakilanlan</string>
+    <string name="auth_prompt_subtitle">Gamitin ang iyong fingerprint o PIN upang magpatuloy</string>
     <string name="auth_pin_label">PIN</string>
     <string name="auth_unlock">I-unlock</string>
     <string name="auth_use_biometrics">I-unlock gamit ang biometrics</string>
-    <string name="auth_acknowledge">Nauunawaan ko at nais kong magpatuloy</string>
-    <string name="quran_attribution">Al-Baqarah 2:180 (sipi)</string>
-    <string name="nav_vault">Vault</string>
-    <string name="nav_more">Higit pa</string>
-    <string name="settings_death_unavailable">Kasalukuyang hindi magagamit ang pagpapatunay ng pagkamatay</string>
+    <string name="auth_acknowledge">Naiintindihan ko at nais kong magpatuloy</string>
+    <string name="set_pin_title">Gumawa ng PIN</string>
+    <string name="set_pin_hint">Maglagay ng 6-digit na PIN</string>
+    <string name="confirm_pin_hint">Ilagay muli ang iyong PIN</string>
+    <string name="pin_mismatch">Hindi magkatugma ang mga PIN</string>
+    <string name="pin_set_success">Matagumpay na naitakda ang PIN</string>
+
+    <!-- Documents errors -->
+    <string name="attachment_too_large">Ang attachment ay lumagpas sa limitasyong 50 MiB.</string>
+    <string name="attachment_access_expired">Hindi ma-access ang file. Piliin ito muli.</string>
+    <string name="attachment_save_failed">Hindi ma-save ang attachment.</string>
+    <string name="attachment_delete_failed">Hindi makumpleto ang pagbubura ng dokumento at ng attachment nito.</string>
+
+    <!-- Preview -->
+    <string name="preview_open">Tingnan ang attachment</string>
+    <string name="preview_too_large">Ang preview ay limitado sa mga file hanggang 12 MiB.</string>
+    <string name="preview_unsupported">Sinusuportahan ng preview ang mga JPEG, PNG at WebP na larawan.</string>
+    <string name="preview_failed">Hindi ma-verify o mabuksan ang attachment.</string>
+
+    <!-- Restore -->
+    <string name="restore_pending_warning">Ang isang restore ay hindi kumpleto. Susubukang muli kapag sinimulan ang app.</string>
+
+    <!-- Language -->
+    <string name="language_picker_title">Pumili ng wika</string>
+    <string name="language_provisional">Ang ilang mga pagsasalin ay pansamantala at naghihintay ng pagsusuri ng katutubong nagsasalita.</string>
+
+    <!-- Quran attribution -->
+    <string name="quran_attribution">Al-Baqara 2:180 (sipi)</string>
 </resources>

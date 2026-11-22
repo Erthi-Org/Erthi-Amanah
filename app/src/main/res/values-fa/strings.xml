@@ -3,6 +3,8 @@
 <resources>
     <string name="app_name">وصیت‌نامه‌ام</string>
     <string name="app_tagline">ارثی امانه — ابتکار خیریه ارثی</string>
+
+    <!-- Navigation -->
     <string name="nav_home">خانه</string>
     <string name="nav_will">وصیت‌نامه</string>
     <string name="nav_finance">مالی</string>
@@ -15,38 +17,154 @@
     <string name="nav_emergency">اورژانس</string>
     <string name="nav_backup">پشتیبان‌گیری</string>
     <string name="nav_settings">تنظیمات و امنیت</string>
+    <string name="nav_about_app">درباره برنامه</string>
+    <string name="nav_about_erthi">درباره ارثی</string>
+    <string name="nav_vault">گاوصندوق</string>
+    <string name="nav_more">بیشتر</string>
+
+    <!-- Splash / Onboarding -->
+    <string name="slogan">وصیت‌نامه شما. امانت‌های شما. امور شما — در یک جای امن.</string>
+    <string name="feature_privacy">حریم خصوصی کامل\nداده‌های شما فقط روی گوشی شما می‌ماند</string>
+    <string name="feature_backup">پشتیبان‌گیری رمزگذاری‌شده\nدر حساب ابری شخصی شما (اختیاری)</string>
+    <string name="feature_offline">بدون اینترنت کار می‌کند\nهر زمان به داده‌هایتان دسترسی داشته باشید</string>
     <string name="btn_start">شروع کنید</string>
+
+    <!-- Home Dashboard -->
     <string name="welcome_title">خوش آمدید</string>
+    <string name="welcome_subtitle">وصیت‌نامه و داده‌های مهم خود را به طور ایمن مدیریت کنید</string>
+
+    <!-- Will Module -->
+    <string name="will_title">وصیت‌نامه</string>
+    <string name="will_subtitle">وصیت‌نامه خود را بنویسید، صدا یا تصویر ضبط کنید</string>
+    <string name="will_write">نوشتن وصیت‌نامه</string>
+    <string name="will_audio">ضبط وصیت‌نامه صوتی</string>
+    <string name="will_video">ضبط وصیت‌نامه تصویری</string>
+    <string name="will_attach">پیوست اسناد</string>
+    <string name="will_access">تنظیمات دسترسی</string>
+    <string name="will_legal_notice">توجه: وصیت‌نامه‌ای که اینجا نوشته می‌شود یک مستند شخصی است. اعتبار قانونی آن به قوانین کشور شما و الزامات شهادت رسمی بستگی دارد. برای اطمینان از اعتبار قانونی با یک وکیل مشورت کنید.</string>
+
+    <!-- Finance -->
+    <string name="finance_title">مالی</string>
+    <string name="finance_subtitle">حساب‌های بانکی و موجودی‌ها</string>
+    <string name="debts_owed_title">بدهی‌های شما</string>
+    <string name="debts_receivable_title">مطالبات از دیگران</string>
+    <string name="assets_title">دارایی‌ها</string>
+    <string name="assets_subtitle">املاک، وسایل نقلیه و دارایی‌ها</string>
+    <string name="entrusted_title">امانت‌ها</string>
+    <string name="entrusted_subtitle">اشیاء نگهداری‌شده برای دیگران</string>
+    <string name="digital_title">حساب‌های دیجیتال</string>
+    <string name="digital_subtitle">ایمیل، حساب‌ها و اشتراک‌ها</string>
+
+    <!-- Documents -->
+    <string name="documents_title">اسناد</string>
+    <string name="documents_subtitle">اسناد و قراردادهای مهم</string>
+    <string name="documents_add_record">افزودن سند</string>
+    <string name="documents_attach">پیوست فایل</string>
+    <string name="documents_name">عنوان سند</string>
+    <string name="documents_category">دسته‌بندی</string>
+    <string name="documents_delete_prompt">این سند و پیوست آن حذف شود؟</string>
+    <string name="documents_empty">هنوز سندی وجود ندارد.</string>
+
+    <!-- Beneficiaries -->
+    <string name="beneficiaries_title">خانواده و ذینفعان</string>
+    <string name="beneficiaries_subtitle">اطلاعات تماس افرادی که باید با آن‌ها تماس بگیرید</string>
+
+    <!-- Emergency -->
+    <string name="emergency_title">مرکز اورژانس</string>
+    <string name="emergency_subtitle">دسترسی سریع به مخاطبین اورژانسی</string>
+    <string name="emergency_ambulance">آمبولانس</string>
+    <string name="emergency_police">پلیس</string>
+    <string name="emergency_fire">آتش‌نشانی</string>
+    <string name="emergency_general">اورژانس عمومی</string>
+    <string name="emergency_contacts_title">مخاطبین اورژانسی</string>
+    <string name="emergency_sos">ارسال SOS و موقعیت مکانی\nبه مخاطبین انتخاب‌شده</string>
+    <string name="emergency_add_contact">افزودن مخاطب</string>
+
+    <!-- Backup -->
+    <string name="backup_title">پشتیبان‌گیری</string>
+    <string name="backup_subtitle">یک نسخه رمزگذاری‌شده از داده‌های خود را در جای امنی ذخیره کنید</string>
+    <string name="backup_cloud">پشتیبان‌گیری ابری</string>
+    <string name="backup_cloud_desc">بارگذاری خودکار نسخه رمزگذاری‌شده</string>
+    <string name="backup_now">ایجاد پشتیبان‌گیری اکنون</string>
+    <string name="backup_frequency">دفعات پشتیبان‌گیری</string>
+    <string name="backup_weekly">هفتگی</string>
+    <string name="backup_last">آخرین پشتیبان‌گیری</string>
+    <string name="backup_connected">متصل</string>
+    <string name="backup_disconnected">متصل نیست</string>
+
+    <!-- Settings -->
     <string name="settings_title">تنظیمات و امنیت</string>
     <string name="settings_lock">قفل کردن برنامه</string>
     <string name="settings_lock_desc">با اثر انگشت یا PIN</string>
     <string name="settings_encrypt">رمزگذاری داده‌ها</string>
     <string name="settings_encrypt_desc">رمزگذاری محلی AES-256 — فعال</string>
     <string name="settings_recovery_key">کلید بازیابی</string>
+    <string name="settings_recovery_key_desc">مدیریت کلید رمزگشایی</string>
+    <string name="settings_death_proof">تأیید فوت (اختیاری)</string>
+    <string name="settings_death_proof_desc">روش باز کردن وصیت‌نامه را تعیین کنید</string>
     <string name="settings_privacy">حریم خصوصی</string>
-    <string name="settings_privacy_desc">داده‌های شما روی دستگاه‌تان می‌ماند</string>
+    <string name="settings_privacy_desc">داده‌های شما به هیچ سروری ارسال نمی‌شود</string>
+    <string name="settings_language">زبان برنامه</string>
+    <string name="settings_death_unavailable">تأیید فوت در حال حاضر در دسترس نیست</string>
+
+    <!-- About -->
+    <string name="about_app_title">درباره برنامه</string>
+    <string name="about_app_desc">ارثی امانه — یک پروژه خیریه متن‌باز</string>
+    <string name="about_erthi_title">درباره ارثی</string>
+    <string name="version_label">نسخه</string>
+
+    <!-- Common -->
     <string name="btn_save">ذخیره</string>
     <string name="btn_cancel">لغو</string>
     <string name="btn_delete">حذف</string>
+    <string name="btn_edit">ویرایش</string>
     <string name="btn_add">افزودن</string>
+    <string name="btn_export">صادر کردن</string>
     <string name="btn_back">برگشت</string>
-    <string name="auth_prompt_title">تأیید هویت</string>
-    <string name="set_pin_title">ایجاد PIN</string>
-    <string name="pin_mismatch">PIN‌ها مطابقت ندارند</string>
-    <string name="language_picker_title">انتخاب زبان</string>
+    <string name="label_name">نام</string>
+    <string name="label_amount">مبلغ</string>
+    <string name="label_currency">ارز</string>
+    <string name="label_date">تاریخ</string>
+    <string name="label_notes">یادداشت‌ها</string>
+    <string name="label_status">وضعیت</string>
+    <string name="label_phone">شماره تلفن</string>
+    <string name="label_relation">نسبت</string>
     <string name="empty_list">داده‌ای وجود ندارد</string>
-    <string name="backup_title">پشتیبان‌گیری</string>
-    <string name="documents_title">اسناد</string>
-    <string name="beneficiaries_title">خانواده و ذینفعان</string>
-    <string name="emergency_title">اورژانس</string>
-    <string name="language_provisional">برخی ترجمه‌ها موقت‌اند و هنوز بازبینی نشده‌اند.</string>
-    <string name="settings_language">زبان برنامه</string>
+    <string name="tap_to_add">برای افزودن داده جدید ضربه بزنید</string>
+    <string name="confirm_delete">آیا مطمئن هستید که می‌خواهید حذف کنید؟</string>
+
+    <!-- Auth -->
+    <string name="auth_prompt_title">تأیید هویت</string>
+    <string name="auth_prompt_subtitle">برای ادامه از اثر انگشت یا PIN خود استفاده کنید</string>
     <string name="auth_pin_label">رمز ورود</string>
     <string name="auth_unlock">باز کردن قفل</string>
     <string name="auth_use_biometrics">باز کردن قفل با احراز هویت زیستی</string>
     <string name="auth_acknowledge">متوجه شدم و می‌خواهم ادامه دهم</string>
+    <string name="set_pin_title">ایجاد PIN</string>
+    <string name="set_pin_hint">یک PIN ۶ رقمی وارد کنید</string>
+    <string name="confirm_pin_hint">PIN خود را مجدداً وارد کنید</string>
+    <string name="pin_mismatch">PIN‌ها مطابقت ندارند</string>
+    <string name="pin_set_success">PIN با موفقیت تنظیم شد</string>
+
+    <!-- Documents errors -->
+    <string name="attachment_too_large">پیوست از محدودیت ۵۰ مگابایت تجاوز می‌کند.</string>
+    <string name="attachment_access_expired">دسترسی به فایل امکان‌پذیر نبود. دوباره انتخاب کنید.</string>
+    <string name="attachment_save_failed">ذخیره پیوست امکان‌پذیر نبود.</string>
+    <string name="attachment_delete_failed">حذف کامل سند و پیوست آن امکان‌پذیر نبود.</string>
+
+    <!-- Preview -->
+    <string name="preview_open">مشاهده پیوست</string>
+    <string name="preview_too_large">پیش‌نمایش به فایل‌های تا ۱۲ مگابایت محدود است.</string>
+    <string name="preview_unsupported">پیش‌نمایش از تصاویر JPEG، PNG و WebP پشتیبانی می‌کند.</string>
+    <string name="preview_failed">احراز هویت یا باز کردن پیوست امکان‌پذیر نبود.</string>
+
+    <!-- Restore -->
+    <string name="restore_pending_warning">بازیابی ناقص است. دفعه بعد که برنامه راه‌اندازی شود، دوباره تلاش خواهد شد.</string>
+
+    <!-- Language -->
+    <string name="language_picker_title">انتخاب زبان</string>
+    <string name="language_provisional">برخی ترجمه‌ها موقتی هستند و در انتظار بازبینی توسط گویشور بومی می‌باشند.</string>
+
+    <!-- Quran attribution -->
     <string name="quran_attribution">سوره بقره، آیه ۱۸۰ (گزیده)</string>
-    <string name="nav_vault">گاوصندوق</string>
-    <string name="nav_more">بیشتر</string>
-    <string name="settings_death_unavailable">تأیید فوت در حال حاضر در دسترس نیست</string>
 </resources>

@@ -3,6 +3,8 @@
 <resources>
     <string name="app_name">My Will</string>
     <string name="app_tagline">Erthi Amanah — An Erthi Charitable Initiative</string>
+
+    <!-- Navigation -->
     <string name="nav_home">Home</string>
     <string name="nav_will">Will</string>
     <string name="nav_finance">Finance</string>
@@ -17,14 +19,80 @@
     <string name="nav_settings">Settings &amp; Security</string>
     <string name="nav_about_app">About the App</string>
     <string name="nav_about_erthi">About Erthi</string>
+    <string name="nav_vault">Vault</string>
+    <string name="nav_more">More</string>
+
+    <!-- Splash / Onboarding -->
     <string name="slogan">Your will. Your trusts. Your affairs — in a safe place.</string>
+    <string name="feature_privacy">Full privacy\nYour data stays on your phone only</string>
+    <string name="feature_backup">Encrypted backup\nTo your own cloud account (optional)</string>
+    <string name="feature_offline">Works offline\nAccess your data at any time</string>
     <string name="btn_start">Get Started</string>
+
+    <!-- Home Dashboard -->
     <string name="welcome_title">Welcome</string>
     <string name="welcome_subtitle">Manage your will and important data securely</string>
+
+    <!-- Will Module -->
     <string name="will_title">Will</string>
+    <string name="will_subtitle">Write, record audio or video for your will</string>
     <string name="will_write">Write Your Will</string>
     <string name="will_audio">Record Audio Will</string>
     <string name="will_video">Record Video Will</string>
+    <string name="will_attach">Attach Documents</string>
+    <string name="will_access">Access Settings</string>
+    <string name="will_legal_notice">Note: The will written here is personal documentation. Its legal enforceability depends on your country\'s laws and formal witnessing requirements. Consult a lawyer to ensure legal validity.</string>
+
+    <!-- Finance -->
+    <string name="finance_title">Finance</string>
+    <string name="finance_subtitle">Bank accounts and balances</string>
+    <string name="debts_owed_title">Debts you owe</string>
+    <string name="debts_receivable_title">Debts owed to you</string>
+    <string name="assets_title">Assets</string>
+    <string name="assets_subtitle">Real estate, vehicles and property</string>
+    <string name="entrusted_title">Trusts</string>
+    <string name="entrusted_subtitle">Items held in trust for others</string>
+    <string name="digital_title">Digital Accounts</string>
+    <string name="digital_subtitle">Email, accounts and subscriptions</string>
+
+    <!-- Documents -->
+    <string name="documents_title">Documents</string>
+    <string name="documents_subtitle">Important documents and contracts</string>
+    <string name="documents_add_record">Add document record</string>
+    <string name="documents_attach">Attach a file</string>
+    <string name="documents_name">Document title</string>
+    <string name="documents_category">Category</string>
+    <string name="documents_delete_prompt">Delete this document and its attachment?</string>
+    <string name="documents_empty">No documents yet.</string>
+
+    <!-- Beneficiaries -->
+    <string name="beneficiaries_title">Family &amp; Beneficiaries</string>
+    <string name="beneficiaries_subtitle">Contact details for those you need to reach</string>
+
+    <!-- Emergency -->
+    <string name="emergency_title">Emergency Centre</string>
+    <string name="emergency_subtitle">Quick access to emergency contacts</string>
+    <string name="emergency_ambulance">Ambulance</string>
+    <string name="emergency_police">Police</string>
+    <string name="emergency_fire">Fire Brigade</string>
+    <string name="emergency_general">General Emergency</string>
+    <string name="emergency_contacts_title">Emergency Contacts</string>
+    <string name="emergency_sos">Send SOS and location\nto selected contacts</string>
+    <string name="emergency_add_contact">Add contact</string>
+
+    <!-- Backup -->
+    <string name="backup_title">Backup</string>
+    <string name="backup_subtitle">Save an encrypted copy of your data in a safe place</string>
+    <string name="backup_cloud">Cloud Backup</string>
+    <string name="backup_cloud_desc">Upload an encrypted copy automatically</string>
+    <string name="backup_now">Create Backup Now</string>
+    <string name="backup_frequency">Backup frequency</string>
+    <string name="backup_weekly">Weekly</string>
+    <string name="backup_last">Last backup</string>
+    <string name="backup_connected">Connected</string>
+    <string name="backup_disconnected">Not connected</string>
+
+    <!-- Settings -->
     <string name="settings_title">Settings &amp; Security</string>
     <string name="settings_lock">Lock App</string>
     <string name="settings_lock_desc">With fingerprint or PIN</string>
@@ -32,49 +100,71 @@
     <string name="settings_encrypt_desc">Local AES-256 encryption — Active</string>
     <string name="settings_recovery_key">Recovery Key</string>
     <string name="settings_recovery_key_desc">Manage decryption key</string>
+    <string name="settings_death_proof">Death Verification (optional)</string>
+    <string name="settings_death_proof_desc">Set the method required to open the will</string>
     <string name="settings_privacy">Privacy</string>
-    <string name="settings_privacy_desc">Your data stays on your device</string>
+    <string name="settings_privacy_desc">Your data is not sent to any server</string>
+    <string name="settings_language">App language</string>
+    <string name="settings_death_unavailable">Death verification is currently unavailable</string>
+
+    <!-- About -->
+    <string name="about_app_title">About the App</string>
+    <string name="about_app_desc">Erthi Amanah — an open-source charitable project</string>
+    <string name="about_erthi_title">About Erthi</string>
+    <string name="version_label">Version</string>
+
+    <!-- Common -->
     <string name="btn_save">Save</string>
     <string name="btn_cancel">Cancel</string>
     <string name="btn_delete">Delete</string>
+    <string name="btn_edit">Edit</string>
     <string name="btn_add">Add</string>
+    <string name="btn_export">Export</string>
     <string name="btn_back">Back</string>
     <string name="label_name">Name</string>
     <string name="label_amount">Amount</string>
+    <string name="label_currency">Currency</string>
+    <string name="label_date">Date</string>
     <string name="label_notes">Notes</string>
+    <string name="label_status">Status</string>
+    <string name="label_phone">Phone number</string>
+    <string name="label_relation">Relationship</string>
     <string name="empty_list">No data yet</string>
+    <string name="tap_to_add">Tap to add new data</string>
+    <string name="confirm_delete">Are you sure you want to delete?</string>
+
+    <!-- Auth -->
     <string name="auth_prompt_title">Verify Identity</string>
-    <string name="set_pin_title">Create PIN</string>
-    <string name="pin_mismatch">PINs do not match</string>
-    <string name="language_picker_title">Choose Language</string>
-    <string name="backup_title">Backup</string>
-    <string name="backup_now">Create Backup Now</string>
-    <string name="documents_title">Documents</string>
-    <string name="beneficiaries_title">Family &amp; Beneficiaries</string>
-    <string name="emergency_title">Emergency</string>
-    <string name="language_provisional">Some translations are provisional and pending review.</string>
-    <string name="settings_language">App language</string>
+    <string name="auth_prompt_subtitle">Use your fingerprint or PIN to continue</string>
     <string name="auth_pin_label">PIN</string>
     <string name="auth_unlock">Unlock</string>
     <string name="auth_use_biometrics">Unlock with biometrics</string>
     <string name="auth_acknowledge">I understand and wish to continue</string>
-    <string name="quran_attribution">Al-Baqarah 2:180 (excerpt)</string>
-    <string name="nav_vault">Vault</string>
-    <string name="nav_more">More</string>
-    <string name="settings_death_unavailable">Death verification is currently unavailable</string>
+    <string name="set_pin_title">Create PIN</string>
+    <string name="set_pin_hint">Enter a 6-digit PIN</string>
+    <string name="confirm_pin_hint">Re-enter your PIN</string>
+    <string name="pin_mismatch">PINs do not match</string>
+    <string name="pin_set_success">PIN set successfully</string>
+
+    <!-- Documents errors -->
     <string name="attachment_too_large">The attachment exceeds the 50 MiB limit.</string>
     <string name="attachment_access_expired">Could not access the file. Select it again.</string>
     <string name="attachment_save_failed">Could not save the attachment.</string>
     <string name="attachment_delete_failed">Could not finish deleting the document and its attachment.</string>
-    <string name="documents_add_record">Add document record</string>
-    <string name="documents_attach">Attach a file</string>
-    <string name="documents_name">Document title</string>
-    <string name="documents_category">Category</string>
-    <string name="documents_delete_prompt">Delete this document and its attachment?</string>
-    <string name="documents_empty">No documents yet.</string>
-    <string name="restore_pending_warning">A restore is incomplete. It will be retried when the app starts again.</string>
+
+    <!-- Preview -->
     <string name="preview_open">View attachment</string>
     <string name="preview_too_large">Preview is limited to files up to 12 MiB.</string>
     <string name="preview_unsupported">Preview supports JPEG, PNG and WebP images.</string>
     <string name="preview_failed">Could not authenticate or open the attachment.</string>
+
+    <!-- Restore -->
+    <string name="restore_pending_warning">A restore is incomplete. It will be retried when the app starts again.</string>
+
+    <!-- Language -->
+    <string name="language_picker_title">Choose Language</string>
+    <string name="language_provisional">Some translations are provisional and pending native-speaker review.</string>
+
+    <!-- Quran attribution -->
+    <string name="quran_attribution">Al-Baqarah 2:180 (excerpt)</string>
 </resources>
