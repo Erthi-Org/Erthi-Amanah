@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 
 @HiltWorker
 class RestoreRecoveryWorker @AssistedInject constructor(
@@ -26,7 +27,19 @@ class RestoreRecoveryWorker @AssistedInject constructor(
             val journal = restoreJournalDao.getPendingJournal() ?: return@withLock Result.success()
             val prefs = applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             try {
-                RestoreFiles.entries(journal.stagedJson).forEach(RestoreFiles::publish)
+                val filesDir = applicationContext.filesDir.canonicalFile
+                val allowedDirs = setOf("documents", "audio_wills", "video_wills")
+                    .map { File(filesDir, it) }.toSet()
+                val entries = RestoreFiles.entries(journal.stagedJson)
+                entries.forEach { entry ->
+                    val dest = entry.destination.canonicalFile
+                    if (dest.parentFile !in allowedDirs)
+                        throw IOException("Invalid restore destination: ${entry.destination}")
+                    val staged = entry.staged.canonicalFile
+                    if (!staged.canonicalPath.startsWith(filesDir.canonicalPath + File.separator))
+                        throw IOException("Invalid staged path: ${entry.staged}")
+                }
+                entries.forEach(RestoreFiles::publish)
                 restoreJournalDao.deleteJournal(journal.sessionId)
                 File(journal.stagingDirPath).deleteRecursively()
                 prefs.edit().remove(PREF_KEY_LOSS_AT).remove(PREF_KEY_LOSS_SESSION).apply()

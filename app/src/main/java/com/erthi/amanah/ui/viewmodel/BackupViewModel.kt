@@ -266,8 +266,8 @@ class BackupViewModel @Inject constructor(
                 _state.value = BackupState.Success("✅ تمت الاستعادة بنجاح")
             } catch (e: IllegalArgumentException) {
                 _state.value = BackupState.Error("❌ ${e.message}")
-            } catch (e: Exception) {
-                _state.value = BackupState.Error("❌ فشل فك التشفير — تأكد أن الملف من نفس الجهاز: ${e.localizedMessage}")
+            } catch (_: Exception) {
+                _state.value = BackupState.Error(ERROR_CROSS_DEVICE_RESTORE)
             }
         }
     }
@@ -1237,7 +1237,11 @@ class BackupViewModel @Inject constructor(
     private data class MediaFile(val fileId: String, val file: File, val type: MediaType)
     private enum class MediaType { AUDIO, VIDEO, DOCUMENT }
 
-    private companion object {
+    companion object {
+        /** Shown when a device-bound (BAK4) archive is opened on a different device. */
+        internal const val ERROR_CROSS_DEVICE_RESTORE =
+            "❌ تعذّر فك تشفير النسخة — هذا الملف مخصص لجهاز آخر."
+
         const val WASI_AUD_MAGIC = "WASI_AUD"
         const val WASI_AU2_MAGIC = "WASI_AU2"  // chunked device-encrypted audio (bounded memory)
         const val WASI_BAK2_MAGIC = "WASI_BAK2"
