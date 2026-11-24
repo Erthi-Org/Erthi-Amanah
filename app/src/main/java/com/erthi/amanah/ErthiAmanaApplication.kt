@@ -6,6 +6,7 @@ import androidx.work.Configuration
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.erthi.amanah.data.worker.FieldEncryptionMigrationWorker
 import com.erthi.amanah.data.worker.RestoreRecoveryWorker
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -28,6 +29,11 @@ class ErthiAmanaApplication : Application(), Configuration.Provider {
             "restore_recovery",
             ExistingWorkPolicy.KEEP,
             OneTimeWorkRequestBuilder<RestoreRecoveryWorker>().build(),
+        )
+        WorkManager.getInstance(this).enqueueUniqueWork(
+            "field_encryption_migration",
+            ExistingWorkPolicy.KEEP,
+            OneTimeWorkRequestBuilder<FieldEncryptionMigrationWorker>().build(),
         )
     }
 }

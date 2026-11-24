@@ -455,11 +455,11 @@ class BackupViewModel @Inject constructor(
                     }
                 }
             }))
-            put("debts", buildDebtsArray(debts))
-            put("assets", buildAssetsArray(assets))
-            put("entrusted", buildEntrustedArray(entrusted))
-            put("beneficiaries", buildBeneficiariesArray(beneficiaries))
-            put("digitalAccounts", buildDigitalAccountsArray(digitalAccounts))
+            put("debts", buildDebtsArray(debts, portable))
+            put("assets", buildAssetsArray(assets, portable))
+            put("entrusted", buildEntrustedArray(entrusted, portable))
+            put("beneficiaries", buildBeneficiariesArray(beneficiaries, portable))
+            put("digitalAccounts", buildDigitalAccountsArray(digitalAccounts, portable))
             put("documents", JSONArray(documents.mapIndexed { i, doc ->
                 JSONObject().apply {
                     put("title", doc.title); put("category", doc.category)
@@ -880,11 +880,11 @@ class BackupViewModel @Inject constructor(
                         val willsArr = metaJson.getJSONArray("wills")
                         val docsArr = metaJson.getJSONArray("documents")
                         restoreWillsFromStaged(willsArr, stagedFiles, reEncrypt)
-                        restoreDebts(metaJson)
-                        restoreAssets(metaJson)
-                        restoreEntrusted(metaJson)
-                        restoreBeneficiaries(metaJson)
-                        restoreDigitalAccounts(metaJson)
+                        restoreDebts(metaJson, reEncrypt)
+                        restoreAssets(metaJson, reEncrypt)
+                        restoreEntrusted(metaJson, reEncrypt)
+                        restoreBeneficiaries(metaJson, reEncrypt)
+                        restoreDigitalAccounts(metaJson, reEncrypt)
                         restoreDocumentsFromStaged(docsArr, stagedFiles)
                         restoreVaultItems(metaJson, reEncrypt)
                         restoreJournalDao.insertJournal(
@@ -1056,83 +1056,88 @@ class BackupViewModel @Inject constructor(
         }
     }
 
-    private suspend fun restoreDebts(root: JSONObject) {
+    private suspend fun restoreDebts(root: JSONObject, reEncrypt: Boolean) {
         val arr = root.getJSONArray("debts")
+        val e: (String) -> String = { raw -> if (reEncrypt) raw.enc() else raw }
         for (i in 0 until arr.length()) {
             val d = arr.getJSONObject(i)
             debtDao.insertDebt(DebtEntity(
                 direction = DebtDirection.valueOf(d.getString("direction")),
-                personName = d.getString("personName"),
+                personName = e(d.getString("personName")),
                 amount = d.getDouble("amount"),
                 currency = d.optString("currency", "EGP"),
                 dueDate = d.optLong("dueDate", 0L).takeIf { it > 0L },
-                description = d.optString("description", ""),
-                evidence = d.optString("evidence", ""),
+                description = e(d.optString("description", "")),
+                evidence = e(d.optString("evidence", "")),
                 status = RepaymentStatus.valueOf(d.getString("status")),
             ))
         }
     }
 
-    private suspend fun restoreAssets(root: JSONObject) {
+    private suspend fun restoreAssets(root: JSONObject, reEncrypt: Boolean) {
         val arr = root.getJSONArray("assets")
+        val e: (String) -> String = { raw -> if (reEncrypt) raw.enc() else raw }
         for (i in 0 until arr.length()) {
             val a = arr.getJSONObject(i)
             assetDao.insertAsset(AssetEntity(
                 type = AssetType.valueOf(a.getString("type")),
-                name = a.getString("name"),
-                description = a.optString("description", ""),
+                name = e(a.getString("name")),
+                description = e(a.optString("description", "")),
                 estimatedValue = a.optDouble("estimatedValue", 0.0).takeIf { it > 0.0 },
                 currency = a.optString("currency", "EGP"),
-                location = a.optString("location", ""),
-                accountReference = a.optString("accountReference", ""),
-                notes = a.optString("notes", ""),
+                location = e(a.optString("location", "")),
+                accountReference = e(a.optString("accountReference", "")),
+                notes = e(a.optString("notes", "")),
             ))
         }
     }
 
-    private suspend fun restoreEntrusted(root: JSONObject) {
+    private suspend fun restoreEntrusted(root: JSONObject, reEncrypt: Boolean) {
         val arr = root.getJSONArray("entrusted")
+        val enc: (String) -> String = { raw -> if (reEncrypt) raw.enc() else raw }
         for (i in 0 until arr.length()) {
             val e = arr.getJSONObject(i)
             entrustedDao.insertEntrusted(EntrustedEntity(
-                ownerName = e.getString("ownerName"),
-                ownerPhone = e.optString("ownerPhone", ""),
-                itemDescription = e.getString("itemDescription"),
-                returnInstructions = e.optString("returnInstructions", ""),
-                evidence = e.optString("evidence", ""),
+                ownerName = enc(e.getString("ownerName")),
+                ownerPhone = enc(e.optString("ownerPhone", "")),
+                itemDescription = enc(e.getString("itemDescription")),
+                returnInstructions = enc(e.optString("returnInstructions", "")),
+                evidence = enc(e.optString("evidence", "")),
             ))
         }
     }
 
-    private suspend fun restoreBeneficiaries(root: JSONObject) {
+    private suspend fun restoreBeneficiaries(root: JSONObject, reEncrypt: Boolean) {
         val arr = root.getJSONArray("beneficiaries")
+        val e: (String) -> String = { raw -> if (reEncrypt) raw.enc() else raw }
         for (i in 0 until arr.length()) {
             val b = arr.getJSONObject(i)
             beneficiaryDao.insertBeneficiary(BeneficiaryEntity(
-                fullName = b.getString("fullName"),
+                fullName = e(b.getString("fullName")),
                 relation = b.optString("relation", ""),
-                phone = b.optString("phone", ""),
-                email = b.optString("email", ""),
-                nationalId = b.optString("nationalId", ""),
+                phone = e(b.optString("phone", "")),
+                email = e(b.optString("email", "")),
+                nationalId = e(b.optString("nationalId", "")),
                 isEmergencyContact = b.optBoolean("isEmergency", false),
                 emergencyPriority = b.optInt("emergencyPriority", 0),
                 canAccessWill = b.optBoolean("canAccessWill", false),
-                notes = b.optString("notes", ""),
+                notes = e(b.optString("notes", "")),
             ))
         }
     }
 
-    private suspend fun restoreDigitalAccounts(root: JSONObject) {
+    private suspend fun restoreDigitalAccounts(root: JSONObject, reEncrypt: Boolean) {
         val arr = root.getJSONArray("digitalAccounts")
+        val e: (String) -> String = { raw -> if (reEncrypt) raw.enc() else raw }
         for (i in 0 until arr.length()) {
             val da = arr.getJSONObject(i)
             digitalAccountDao.insertAccount(DigitalAccountEntity(
-                platform = da.getString("platform"),
-                accountIdentifier = da.getString("accountIdentifier"),
-                instructions = da.optString("instructions", ""),
+                platform = e(da.getString("platform")),
+                accountIdentifier = e(da.getString("accountIdentifier")),
+                instructions = e(da.optString("instructions", "")),
                 subscriptionCost = da.optDouble("subscriptionCost", 0.0).takeIf { it > 0.0 },
                 currency = da.optString("currency", "EGP"),
-                notes = da.optString("notes", ""),
+                notes = e(da.optString("notes", "")),
             ))
         }
     }
@@ -1165,48 +1170,60 @@ class BackupViewModel @Inject constructor(
 
     // ── Shared array builders ─────────────────────────────────────────────
 
-    private fun buildDebtsArray(debts: List<DebtEntity>) = JSONArray(debts.map { d ->
+    private fun buildDebtsArray(debts: List<DebtEntity>, portable: Boolean) = JSONArray(debts.map { d ->
         JSONObject().apply {
-            put("direction", d.direction.name); put("personName", d.personName)
+            put("direction", d.direction.name)
+            put("personName", if (portable) d.personName.dec() else d.personName)
             put("amount", d.amount); put("currency", d.currency)
-            put("dueDate", d.dueDate ?: 0L); put("description", d.description)
-            put("evidence", d.evidence); put("status", d.status.name)
+            put("dueDate", d.dueDate ?: 0L)
+            put("description", if (portable) d.description.dec() else d.description)
+            put("evidence", if (portable) d.evidence.dec() else d.evidence)
+            put("status", d.status.name)
         }
     })
 
-    private fun buildAssetsArray(assets: List<AssetEntity>) = JSONArray(assets.map { a ->
+    private fun buildAssetsArray(assets: List<AssetEntity>, portable: Boolean) = JSONArray(assets.map { a ->
         JSONObject().apply {
-            put("type", a.type.name); put("name", a.name)
-            put("description", a.description); put("estimatedValue", a.estimatedValue ?: 0.0)
-            put("currency", a.currency); put("location", a.location)
-            put("accountReference", a.accountReference); put("notes", a.notes)
+            put("type", a.type.name)
+            put("name", if (portable) a.name.dec() else a.name)
+            put("description", if (portable) a.description.dec() else a.description)
+            put("estimatedValue", a.estimatedValue ?: 0.0); put("currency", a.currency)
+            put("location", if (portable) a.location.dec() else a.location)
+            put("accountReference", if (portable) a.accountReference.dec() else a.accountReference)
+            put("notes", if (portable) a.notes.dec() else a.notes)
         }
     })
 
-    private fun buildEntrustedArray(entrusted: List<EntrustedEntity>) = JSONArray(entrusted.map { e ->
+    private fun buildEntrustedArray(entrusted: List<EntrustedEntity>, portable: Boolean) = JSONArray(entrusted.map { e ->
         JSONObject().apply {
-            put("ownerName", e.ownerName); put("ownerPhone", e.ownerPhone)
-            put("itemDescription", e.itemDescription)
-            put("returnInstructions", e.returnInstructions); put("evidence", e.evidence)
+            put("ownerName", if (portable) e.ownerName.dec() else e.ownerName)
+            put("ownerPhone", if (portable) e.ownerPhone.dec() else e.ownerPhone)
+            put("itemDescription", if (portable) e.itemDescription.dec() else e.itemDescription)
+            put("returnInstructions", if (portable) e.returnInstructions.dec() else e.returnInstructions)
+            put("evidence", if (portable) e.evidence.dec() else e.evidence)
         }
     })
 
-    private fun buildBeneficiariesArray(beneficiaries: List<BeneficiaryEntity>) = JSONArray(beneficiaries.map { b ->
+    private fun buildBeneficiariesArray(beneficiaries: List<BeneficiaryEntity>, portable: Boolean) = JSONArray(beneficiaries.map { b ->
         JSONObject().apply {
-            put("fullName", b.fullName); put("relation", b.relation)
-            put("phone", b.phone); put("email", b.email)
-            put("nationalId", b.nationalId)
+            put("fullName", if (portable) b.fullName.dec() else b.fullName)
+            put("relation", b.relation)
+            put("phone", if (portable) b.phone.dec() else b.phone)
+            put("email", if (portable) b.email.dec() else b.email)
+            put("nationalId", if (portable) b.nationalId.dec() else b.nationalId)
             put("isEmergency", b.isEmergencyContact); put("emergencyPriority", b.emergencyPriority)
-            put("canAccessWill", b.canAccessWill); put("notes", b.notes)
+            put("canAccessWill", b.canAccessWill)
+            put("notes", if (portable) b.notes.dec() else b.notes)
         }
     })
 
-    private fun buildDigitalAccountsArray(accounts: List<DigitalAccountEntity>) = JSONArray(accounts.map { da ->
+    private fun buildDigitalAccountsArray(accounts: List<DigitalAccountEntity>, portable: Boolean) = JSONArray(accounts.map { da ->
         JSONObject().apply {
-            put("platform", da.platform); put("accountIdentifier", da.accountIdentifier)
-            put("instructions", da.instructions)
+            put("platform", if (portable) da.platform.dec() else da.platform)
+            put("accountIdentifier", if (portable) da.accountIdentifier.dec() else da.accountIdentifier)
+            put("instructions", if (portable) da.instructions.dec() else da.instructions)
             put("subscriptionCost", da.subscriptionCost ?: 0.0); put("currency", da.currency)
-            put("notes", da.notes)
+            put("notes", if (portable) da.notes.dec() else da.notes)
         }
     })
 
