@@ -10,8 +10,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import java.security.MessageDigest
-import java.security.SecureRandom
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.MutablePreferences
 import android.util.Base64
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,6 +25,7 @@ class AuthManager @Inject constructor(
 ) {
 
     companion object {
+        private val KEY_PIN_VERSION = intPreferencesKey("pin_hash_version")
         private val KEY_PIN_HASH = stringPreferencesKey("pin_hash")
         private val KEY_PIN_SALT = stringPreferencesKey("pin_salt")
         private val KEY_ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
@@ -70,22 +73,40 @@ class AuthManager @Inject constructor(
     }
 
     suspend fun setPin(pin: String) {
-        val salt = generateSalt()
-        val hash = hashPin(pin, salt)
+        val salt = PinHash.salt()
+        val hash = withContext(Dispatchers.Default) { PinHash.derive(pin, salt, PinHash.PBKDF2) }
         dataStore.edit { prefs ->
-            prefs[KEY_PIN_SALT] = Base64.encodeToString(salt, Base64.NO_WRAP)
-            prefs[KEY_PIN_HASH] = hash
+            prefs.writePin(salt, hash)
             prefs[KEY_ONBOARDING_DONE] = true
         }
     }
 
-    suspend fun verifyPin(pin: String): Boolean {
-        val prefs = dataStore.data.first()
-        val saltBase64 = prefs[KEY_PIN_SALT] ?: return false
-        val storedHash = prefs[KEY_PIN_HASH] ?: return false
-        val salt = Base64.decode(saltBase64, Base64.NO_WRAP)
-        val inputHash = hashPin(pin, salt)
-        return inputHash == storedHash
+    suspend fun verifyPin(pin: String): Boolean = withContext(Dispatchers.Default) {
+        var verified = false
+        dataStore.edit { prefs ->
+            val salt = prefs[KEY_PIN_SALT]?.let(::decode) ?: return@edit
+            val hash = prefs[KEY_PIN_HASH]?.let(::decode) ?: return@edit
+            val version = prefs[KEY_PIN_VERSION] ?: PinHash.LEGACY
+            verified = PinHash.verify(pin, salt, hash, version)
+            if (verified && version == PinHash.LEGACY) {
+                val newSalt = PinHash.salt()
+                prefs.writePin(newSalt, PinHash.derive(pin, newSalt, PinHash.PBKDF2))
+            }
+        }
+        verified
+    }
+
+    private fun decode(value: String): ByteArray? =
+        try {
+            Base64.decode(value, Base64.NO_WRAP)
+        } catch (_: IllegalArgumentException) {
+            null
+        }
+
+    private fun MutablePreferences.writePin(salt: ByteArray, hash: ByteArray) {
+        this[KEY_PIN_SALT] = Base64.encodeToString(salt, Base64.NO_WRAP)
+        this[KEY_PIN_HASH] = Base64.encodeToString(hash, Base64.NO_WRAP)
+        this[KEY_PIN_VERSION] = PinHash.PBKDF2
     }
 
     suspend fun setBiometricEnabled(enabled: Boolean) {
@@ -96,16 +117,4 @@ class AuthManager @Inject constructor(
         dataStore.edit { prefs -> prefs[KEY_ONBOARDING_DONE] = true }
     }
 
-    private fun generateSalt(): ByteArray {
-        val salt = ByteArray(32)
-        SecureRandom().nextBytes(salt)
-        return salt
-    }
-
-    private fun hashPin(pin: String, salt: ByteArray): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        digest.update(salt)
-        val hash = digest.digest(pin.toByteArray(Charsets.UTF_8))
-        return Base64.encodeToString(hash, Base64.NO_WRAP)
-    }
 }

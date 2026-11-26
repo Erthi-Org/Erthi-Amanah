@@ -41,7 +41,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
                 icon = Icons.Default.Lock,
                 iconColor = RoyalGold,
                 title = "التشفير المحلي",
-                body = "كل الملفات الحساسة (الصوت والفيديو والوثائق) مشفرة بـ AES-256-GCM باستخدام Android Keystore. لا تُرسَل مفاتيح التشفير إلى أي خارج. الرمز السري مُجزَّأ بـ SHA-256 مع ملح عشوائي ومحفوظ في DataStore.",
+                body = "كل الملفات الحساسة (الصوت والفيديو والوثائق) مشفرة بـ AES-256-GCM باستخدام Android Keystore. لا تُرسَل مفاتيح التشفير إلى أي خارج. الرمز السري مُجزَّأ بـ PBKDF2-HMAC-SHA256 مع ملح عشوائي ومحفوظ في DataStore.",
             )
             PrivacyItem(
                 icon = Icons.Default.CloudUpload,

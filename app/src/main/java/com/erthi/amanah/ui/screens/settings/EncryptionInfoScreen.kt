@@ -66,7 +66,7 @@ fun EncryptionInfoScreen(onBack: () -> Unit) {
             )
             EncryptionItem(
                 title = "حماية الرمز السري",
-                detail = "الرمز السري لا يُحفظ نصاً صريحاً. يُحفظ فقط ناتج SHA-256 مع ملح عشوائي (32 بايت) عبر Android DataStore.",
+                detail = "الرمز السري لا يُحفظ نصاً صريحاً. يُحفظ فقط ناتج PBKDF2-HMAC-SHA256 مع ملح عشوائي (32 بايت) عبر Android DataStore.",
             )
             EncryptionItem(
                 title = "قاعدة البيانات (Room)",
