@@ -1,6 +1,9 @@
 package com.erthi.amanah.data.security
 
 import android.content.Context
+import android.os.SystemClock
+import android.provider.Settings
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -8,7 +11,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -30,34 +34,74 @@ class AuthManager @Inject constructor(
         private val KEY_PIN_SALT = stringPreferencesKey("pin_salt")
         private val KEY_ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         private val KEY_BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
-        private val KEY_LOCKOUT_UNTIL_MS = androidx.datastore.preferences.core.longPreferencesKey("lockout_until_ms")
-        private val KEY_FAILED_ATTEMPTS = androidx.datastore.preferences.core.intPreferencesKey("failed_attempts")
+        private val KEY_LEGACY_LOCKOUT = longPreferencesKey("lockout_until_ms")
+        private val KEY_LOCKOUT_START = longPreferencesKey("lockout_elapsed_start")
+        private val KEY_LOCKOUT_DURATION = longPreferencesKey("lockout_duration")
+        private val KEY_LOCKOUT_BOOT = intPreferencesKey("lockout_boot_count")
+        private val KEY_FAILED_ATTEMPTS = intPreferencesKey("failed_attempts")
     }
 
-    val lockoutUntilMs: Flow<Long> = dataStore.data.map { prefs -> prefs[KEY_LOCKOUT_UNTIL_MS] ?: 0L }
-    val failedAttempts: Flow<Int> = dataStore.data.map { prefs -> prefs[KEY_FAILED_ATTEMPTS] ?: 0 }
+    private fun bootCount(): Int =
+        Settings.Global.getInt(context.contentResolver, Settings.Global.BOOT_COUNT, -1)
+
+    val remainingLockSeconds: Flow<Int> = flow {
+        while (true) {
+            emit(((remainingLockMs() + 999) / 1000).toInt())
+            delay(1_000)
+        }
+    }
+
+    suspend fun remainingLockMs(): Long {
+        var result = 0L
+        dataStore.edit { prefs ->
+            val boot = bootCount()
+            val now = SystemClock.elapsedRealtime()
+            val duration = prefs[KEY_LOCKOUT_DURATION] ?: 0L
+            val lockout = Lockout(prefs[KEY_LOCKOUT_BOOT] ?: -1, prefs[KEY_LOCKOUT_START] ?: 0L, duration)
+            val active = when {
+                (prefs.remove(KEY_LEGACY_LOCKOUT) ?: 0L) > 0L ->
+                    Lockout(boot, now, Lockout.MAX_DURATION_MS).also { prefs.saveLockout(it) }
+                duration > 0 && lockout.needsRestart(boot, now) ->
+                    lockout.copy(boot = boot, startedMs = now).also { prefs.saveLockout(it) }
+                else -> lockout
+            }
+            result = active.remainingMs(now)
+            if (result == 0L) {
+                prefs.remove(KEY_LOCKOUT_DURATION)
+                prefs.remove(KEY_LOCKOUT_START)
+                prefs.remove(KEY_LOCKOUT_BOOT)
+            }
+        }
+        return result
+    }
 
     suspend fun recordFailedAttempt(): Int {
-        var newCount = 0
+        var count = 0
         dataStore.edit { prefs ->
-            newCount = (prefs[KEY_FAILED_ATTEMPTS] ?: 0) + 1
-            prefs[KEY_FAILED_ATTEMPTS] = newCount
+            count = ((prefs[KEY_FAILED_ATTEMPTS] ?: 0) + 1).coerceAtMost(10)
+            prefs[KEY_FAILED_ATTEMPTS] = count
+            val duration = Lockout.durationFor(count)
+            if (duration > 0) {
+                prefs.saveLockout(Lockout(bootCount(), SystemClock.elapsedRealtime(), duration))
+            }
         }
-        return newCount
-    }
-
-    suspend fun setLockout(durationMs: Long) {
-        dataStore.edit { prefs ->
-            prefs[KEY_LOCKOUT_UNTIL_MS] = System.currentTimeMillis() + durationMs
-            prefs[KEY_FAILED_ATTEMPTS] = 0
-        }
+        return count
     }
 
     suspend fun clearLockout() {
         dataStore.edit { prefs ->
-            prefs[KEY_LOCKOUT_UNTIL_MS] = 0L
-            prefs[KEY_FAILED_ATTEMPTS] = 0
+            prefs.remove(KEY_LOCKOUT_DURATION)
+            prefs.remove(KEY_LOCKOUT_START)
+            prefs.remove(KEY_LOCKOUT_BOOT)
+            prefs.remove(KEY_LEGACY_LOCKOUT)
+            prefs.remove(KEY_FAILED_ATTEMPTS)
         }
+    }
+
+    private fun MutablePreferences.saveLockout(lockout: Lockout) {
+        this[KEY_LOCKOUT_START] = lockout.startedMs
+        this[KEY_LOCKOUT_DURATION] = lockout.durationMs
+        this[KEY_LOCKOUT_BOOT] = lockout.boot
     }
 
     val isPinSet: Flow<Boolean> = dataStore.data.map { prefs ->

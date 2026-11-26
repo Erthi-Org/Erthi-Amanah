@@ -8,10 +8,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 sealed class AuthState {
@@ -51,12 +51,8 @@ class AuthViewModel @Inject constructor(
     private val _pinError = MutableStateFlow<String?>(null)
     val pinError: StateFlow<String?> = _pinError
 
-    // Lockout is persisted in DataStore — survives process death
-    val remainingLockSeconds: StateFlow<Int> = authManager.lockoutUntilMs
-        .map { until ->
-            val remaining = ((until - System.currentTimeMillis()) / 1000).toInt()
-            if (remaining > 0) remaining else 0
-        }
+    private val pinAttempts = Mutex()
+    val remainingLockSeconds: StateFlow<Int> = authManager.remainingLockSeconds
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     fun setPin(pin: String, confirmPin: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
@@ -74,30 +70,27 @@ class AuthViewModel @Inject constructor(
     fun verifyPin(pin: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
         val generation = lockGeneration
         viewModelScope.launch {
-            val lockUntil = authManager.lockoutUntilMs.first()
-            val now = System.currentTimeMillis()
-            if (lockUntil > now) {
-                val remaining = ((lockUntil - now) / 1000) + 1
-                onError("محاولات خاطئة كثيرة. انتظر $remaining ثانية")
-                return@launch
-            }
-            if (authManager.verifyPin(pin)) {
-                authManager.clearLockout()
-                if (generation != lockGeneration) return@launch
-                _isAuthenticated.value = true
-                onSuccess()
-            } else {
-                val attempts = authManager.recordFailedAttempt()
-                when {
-                    attempts >= 10 -> {
-                        authManager.setLockout(300_000L)
-                        onError("10 محاولات خاطئة. الرجاء الانتظار 5 دقائق")
+            pinAttempts.withLock {
+                if (generation != lockGeneration || _isAuthenticated.value) return@withLock
+                val remainingMs = authManager.remainingLockMs()
+                if (remainingMs > 0) {
+                    val seconds = (remainingMs + 999) / 1000
+                    onError("محاولات خاطئة كثيرة. انتظر ${seconds} ثانية")
+                    return@withLock
+                }
+                if (authManager.verifyPin(pin)) {
+                    authManager.clearLockout()
+                    if (generation != lockGeneration) return@withLock
+                    _isAuthenticated.value = true
+                    onSuccess()
+                } else {
+                    val attempts = authManager.recordFailedAttempt()
+                    val message = when {
+                        attempts >= 10 -> "10 محاولات خاطئة. الرجاء الانتظار 5 دقائق"
+                        attempts >= 5 -> "محاولات خاطئة كثيرة. الرجاء الانتظار 30 ثانية"
+                        else -> "رمز سري خاطئ. تبقّت ${5 - attempts} محاولات"
                     }
-                    attempts >= 5 -> {
-                        authManager.setLockout(30_000L)
-                        onError("5 محاولات خاطئة. الرجاء الانتظار 30 ثانية")
-                    }
-                    else -> onError("رمز سري خاطئ. تبقّت ${5 - attempts} محاولات")
+                    onError(message)
                 }
             }
         }
