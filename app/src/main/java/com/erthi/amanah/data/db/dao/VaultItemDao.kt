@@ -11,6 +11,12 @@ interface VaultItemDao {
     @Query("SELECT * FROM vault_items ORDER BY updatedAt DESC")
     fun getAllItems(): Flow<List<VaultItemEntity>>
 
+    @Query("SELECT * FROM vault_items ORDER BY id")
+    suspend fun getItemsForMigration(): List<VaultItemEntity>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM vault_items WHERE serviceName LIKE '[vault2]%')")
+    suspend fun hasProtectedItems(): Boolean
+
     @Query("SELECT * FROM vault_items WHERE category = :category ORDER BY updatedAt DESC")
     fun getByCategory(category: VaultCategory): Flow<List<VaultItemEntity>>
 

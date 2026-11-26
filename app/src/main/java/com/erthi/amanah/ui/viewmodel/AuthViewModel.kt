@@ -14,6 +14,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
+import javax.crypto.Cipher
+import kotlinx.coroutines.CancellationException
+import com.erthi.amanah.data.security.VaultCrypto
 
 sealed class AuthState {
     data object Loading : AuthState()
@@ -26,6 +29,7 @@ sealed class AuthState {
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authManager: AuthManager,
+    private val vault: VaultCrypto,
 ) : ViewModel() {
 
     private var lockGeneration = 0L
@@ -66,12 +70,20 @@ class AuthViewModel @Inject constructor(
         if (pin != confirmPin) { onError("الرمزان غير متطابقان"); return }
         val generation = lockGeneration
         viewModelScope.launch {
-            pinAttempts.withLock {
-                if (generation != lockGeneration) return@launch
-                authManager.setPin(pin)
+            val key = try {
+                pinAttempts.withLock {
+                    if (generation != lockGeneration) return@launch
+                    authManager.setPin(pin)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                onError("تعذر حفظ الرمز السري")
+                return@launch
             }
             if (generation != lockGeneration) return@launch
             dismissPinUpgrade()
+            vault.unlock(key)
             _isAuthenticated.value = true
             onSuccess()
         }
@@ -89,8 +101,17 @@ class AuthViewModel @Inject constructor(
                     return@withLock
                 }
                 if (authManager.verifyPin(pin)) {
+                    val key = try {
+                        authManager.unlockVaultWithPin(pin)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
+                        onError("تعذر فتح الخزنة. أعد المحاولة دون مسح البيانات.")
+                        return@withLock
+                    }
                     authManager.clearLockout()
                     if (generation != lockGeneration) return@withLock
+                    vault.unlock(key)
                     _suggestPinUpgrade.value = !CredentialMinimums.validNewPin(pin)
                     _isAuthenticated.value = true
                     onSuccess()
@@ -107,14 +128,68 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun onBiometricSuccess() {
-        _isAuthenticated.value = true
+    private var preparingBiometric = false
+    private var pendingBiometric: AuthManager.BiometricUnlock? = null
+    val canUnlockVaultWithBiometrics = authManager.canUnlockVaultWithBiometrics
+
+    fun prepareBiometric(onReady: (Cipher?) -> Unit) {
+        if (preparingBiometric || pendingBiometric != null) return
+        preparingBiometric = true
+        val generation = lockGeneration
+        viewModelScope.launch {
+            val prepared = try {
+                authManager.prepareBiometricUnlock()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null
+            }
+            if (generation != lockGeneration) return@launch
+            preparingBiometric = false
+            if (_isAuthenticated.value) return@launch
+            pendingBiometric = prepared
+            onReady(prepared?.cipher)
+        }
+    }
+
+    fun cancelBiometric() {
+        preparingBiometric = false
+        pendingBiometric = null
+    }
+
+    fun onBiometricSuccess(cipher: Cipher?, onSuccess: () -> Unit, onError: () -> Unit) {
+        val prepared = pendingBiometric ?: return
+        if (cipher == null || cipher !== prepared.cipher) return
+        pendingBiometric = null
+        val generation = lockGeneration
+        viewModelScope.launch {
+            pinAttempts.withLock {
+                if (generation != lockGeneration || _isAuthenticated.value) return@withLock
+                if (!authManager.isBiometricUnlockCurrent(prepared)) return@withLock
+                val key = runCatching { vault.openForBiometrics(cipher, prepared.envelope) }.getOrNull()
+                if (key == null) {
+                    onError()
+                    return@withLock
+                }
+                if (generation != lockGeneration) return@withLock
+                if (prepared.legacy) vault.unlockLegacy() else vault.unlock(key)
+                _isAuthenticated.value = true
+                onSuccess()
+            }
+        }
     }
 
     fun lock() {
         lockGeneration++
+        cancelBiometric()
+        vault.lock()
         dismissPinUpgrade()
         _isAuthenticated.value = false
+    }
+
+    override fun onCleared() {
+        lock()
+        super.onCleared()
     }
 
     fun finishOnboarding() {

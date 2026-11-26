@@ -9,6 +9,7 @@ import com.erthi.amanah.data.backup.DriveBackupManager
 import com.erthi.amanah.data.db.ErthiDatabase
 import com.erthi.amanah.data.db.entity.WillEntity
 import com.erthi.amanah.data.security.CryptoManager
+import com.erthi.amanah.data.security.VaultCrypto
 import com.erthi.amanah.ui.viewmodel.BackupState
 import com.erthi.amanah.ui.viewmodel.BackupViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -65,6 +66,7 @@ class CrossDeviceRestoreMessageTest {
             documentDao = db.documentDao(),
             vaultItemDao = db.vaultItemDao(),
             crypto = crypto,
+            vaultCrypto = VaultCrypto(crypto, db, db.vaultItemDao()),
             driveManager = drive,
             restoreJournalDao = db.restoreJournalDao(),
         )

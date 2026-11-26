@@ -13,6 +13,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.first
+import javax.crypto.SecretKey
+import javax.crypto.Cipher
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -26,9 +29,12 @@ import javax.inject.Singleton
 class AuthManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val dataStore: DataStore<Preferences>,
+    private val vault: VaultCrypto,
 ) {
 
     companion object {
+        private val KEY_VAULT_PIN = stringPreferencesKey("vault_pin_envelope")
+        private val KEY_VAULT_BIOMETRIC = stringPreferencesKey("vault_biometric_envelope")
         private val KEY_PIN_VERSION = intPreferencesKey("pin_hash_version")
         private val KEY_PIN_HASH = stringPreferencesKey("pin_hash")
         private val KEY_PIN_SALT = stringPreferencesKey("pin_salt")
@@ -116,13 +122,77 @@ class AuthManager @Inject constructor(
         prefs[KEY_BIOMETRIC_ENABLED] == true
     }
 
-    suspend fun setPin(pin: String) {
+    internal suspend fun setPin(pin: String): SecretKey = withContext(Dispatchers.IO) {
         require(CredentialMinimums.validNewPin(pin))
         val salt = PinHash.salt()
-        val hash = withContext(Dispatchers.Default) { PinHash.derive(pin, salt, PinHash.PBKDF2) }
+        val hash = PinHash.derive(pin, salt, PinHash.PBKDF2)
+        lateinit var key: SecretKey
         dataStore.edit { prefs ->
+            key = if (prefs[KEY_PIN_HASH] == null) vault.newKey()
+            else checkNotNull(vault.activeKey()) { "Unlock before changing the PIN" }
+            val envelope = vault.sealForPin(key, pin)
             prefs.writePin(salt, hash)
+            prefs[KEY_VAULT_PIN] = envelope
             prefs[KEY_ONBOARDING_DONE] = true
+        }
+        key
+    }
+
+    internal suspend fun unlockVaultWithPin(pin: String): SecretKey = withContext(Dispatchers.IO) {
+        lateinit var key: SecretKey
+        dataStore.edit { prefs ->
+            val envelope = prefs[KEY_VAULT_PIN]
+            key = if (envelope == null) {
+                vault.newKey().also { prefs[KEY_VAULT_PIN] = vault.sealForPin(it, pin) }
+            } else {
+                vault.openForPin(envelope, pin)
+            }
+        }
+        vault.migrate(key)
+        if (isBiometricEnabled.first()) provisionBiometrics(key)
+        key
+    }
+
+    val canUnlockVaultWithBiometrics: Flow<Boolean> = dataStore.data.map {
+        it[KEY_BIOMETRIC_ENABLED] == true &&
+            (it[KEY_VAULT_PIN] == null || it[KEY_VAULT_BIOMETRIC] != null)
+    }
+
+    internal data class BiometricUnlock(val cipher: Cipher, val envelope: String, val legacy: Boolean)
+
+    internal suspend fun prepareBiometricUnlock(): BiometricUnlock? = withContext(Dispatchers.IO) {
+        val prefs = dataStore.data.first()
+        if (prefs[KEY_BIOMETRIC_ENABLED] != true) return@withContext null
+        if (prefs[KEY_VAULT_PIN] != null) {
+            val envelope = prefs[KEY_VAULT_BIOMETRIC] ?: return@withContext null
+            return@withContext BiometricUnlock(vault.biometricCipher(), envelope, legacy = false)
+        }
+
+        // An existing biometric-only user can still open and export their old vault.
+        // The first PIN unlock replaces this transitional path with the PIN envelope.
+        val challenge = vault.newKey()
+        val envelope = vault.sealForBiometrics(challenge)
+        BiometricUnlock(vault.biometricCipher(), envelope, legacy = true)
+    }
+
+    internal suspend fun isBiometricUnlockCurrent(unlock: BiometricUnlock): Boolean = dataStore.data.first().let {
+        if (it[KEY_BIOMETRIC_ENABLED] != true) return@let false
+        if (unlock.legacy) it[KEY_VAULT_PIN] == null
+        else it[KEY_VAULT_BIOMETRIC] == unlock.envelope && it[KEY_VAULT_PIN] != null
+    }
+
+    private suspend fun provisionBiometrics(key: SecretKey) {
+        dataStore.edit { prefs ->
+            if (prefs[KEY_BIOMETRIC_ENABLED] != true) return@edit
+            if (prefs[KEY_VAULT_BIOMETRIC] != null && runCatching { vault.biometricCipher() }.isSuccess) {
+                return@edit
+            }
+            prefs.remove(KEY_VAULT_BIOMETRIC)
+            // An unavailable or invalidated biometric key must leave PIN unlock available.
+            runCatching {
+                vault.removeBiometricKey()
+                vault.sealForBiometrics(key)
+            }.getOrNull()?.let { prefs[KEY_VAULT_BIOMETRIC] = it }
         }
     }
 
@@ -155,7 +225,16 @@ class AuthManager @Inject constructor(
     }
 
     suspend fun setBiometricEnabled(enabled: Boolean) {
-        dataStore.edit { prefs -> prefs[KEY_BIOMETRIC_ENABLED] = enabled }
+        withContext(Dispatchers.IO) {
+            dataStore.edit { prefs ->
+                prefs[KEY_BIOMETRIC_ENABLED] = enabled
+                if (!enabled) {
+                    prefs.remove(KEY_VAULT_BIOMETRIC)
+                    runCatching { vault.removeBiometricKey() }
+                }
+            }
+            if (enabled) vault.activeKey()?.let { provisionBiometrics(it) }
+        }
     }
 
     suspend fun markOnboardingDone() {

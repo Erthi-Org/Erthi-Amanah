@@ -1,12 +1,12 @@
 package com.erthi.amanah.ui.viewmodel
 
-import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.erthi.amanah.data.db.dao.VaultItemDao
 import com.erthi.amanah.data.db.entity.VaultCategory
 import com.erthi.amanah.data.db.entity.VaultItemEntity
-import com.erthi.amanah.data.security.CryptoManager
+import com.erthi.amanah.data.security.VaultCrypto
+import com.erthi.amanah.data.security.mapVaultFields
 import com.erthi.amanah.util.PasswordStrength
 import com.erthi.amanah.util.PasswordUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,16 +17,14 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-private const val ENC = "[enc]"
-
 @HiltViewModel
 class VaultViewModel @Inject constructor(
     private val dao: VaultItemDao,
-    private val crypto: CryptoManager,
+    private val crypto: VaultCrypto,
 ) : ViewModel() {
 
     val items: StateFlow<List<VaultItemEntity>> = dao.getAllItems()
-        .map { list -> list.map { it.decrypted() } }
+        .map { list -> list.map { it.mapVaultFields { field -> runCatching { crypto.decrypt(field) }.getOrDefault(field) } } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun saveItem(
@@ -79,30 +77,5 @@ class VaultViewModel @Inject constructor(
     fun passwordStrength(password: String): PasswordStrength =
         PasswordUtils.passwordStrength(password)
 
-    private fun String.enc(): String {
-        val bytes = toByteArray(Charsets.UTF_8)
-        val encData = crypto.encrypt(bytes)
-        return ENC + Base64.encodeToString(encData.toByteArray(), Base64.NO_WRAP)
-    }
-
-    private fun String.dec(): String {
-        if (!startsWith(ENC)) return this
-        return try {
-            val bytes = Base64.decode(removePrefix(ENC), Base64.NO_WRAP)
-            String(crypto.decrypt(CryptoManager.EncryptedData.fromByteArray(bytes)), Charsets.UTF_8)
-        } catch (_: Exception) { this }
-    }
-
-    private fun VaultItemEntity.decrypted() = copy(
-        serviceName = serviceName.dec(),
-        websiteUrl = websiteUrl?.dec(),
-        username = username?.dec(),
-        email = email?.dec(),
-        password = password.dec(),
-        accountIdentifier = accountIdentifier?.dec(),
-        recoveryEmail = recoveryEmail?.dec(),
-        recoveryPhone = recoveryPhone?.dec(),
-        recoveryCodes = recoveryCodes?.dec(),
-        notes = notes?.dec(),
-    )
+    private fun String.enc(): String = crypto.encrypt(this)
 }

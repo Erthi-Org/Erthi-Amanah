@@ -19,6 +19,7 @@ import com.erthi.amanah.data.db.dao.RestoreJournalDao
 import com.erthi.amanah.data.db.entity.RestoreJournalEntity
 import com.erthi.amanah.data.security.CryptoManager
 import com.erthi.amanah.data.security.DocumentEncryption
+import com.erthi.amanah.data.security.VaultCrypto
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -76,6 +77,7 @@ class BackupViewModel @Inject constructor(
     private val documentDao: DocumentDao,
     private val vaultItemDao: VaultItemDao,
     private val crypto: CryptoManager,
+    private val vaultCrypto: VaultCrypto,
     private val driveManager: DriveBackupManager,
     private val restoreJournalDao: RestoreJournalDao,
 ) : ViewModel() {
@@ -436,7 +438,6 @@ class BackupViewModel @Inject constructor(
         mediaFiles: MutableList<MediaFile>,
         portable: Boolean,
     ): String {
-        val dec: (String?) -> String = { s -> s?.dec() ?: "" }
         return JSONObject().apply {
             put("version", 3)
             put("appName", "وصيتي")
@@ -485,17 +486,17 @@ class BackupViewModel @Inject constructor(
             }))
             put("vaultItems", JSONArray(vaultItems.map { v ->
                 JSONObject().apply {
-                    put("serviceName", if (portable) dec(v.serviceName) else v.serviceName)
+                    put("serviceName", vaultBackupField(v.serviceName, portable))
                     put("category", v.category.name)
-                    put("password", if (portable) dec(v.password) else v.password)
-                    put("username", if (portable) dec(v.username) else v.username ?: "")
-                    put("email", if (portable) dec(v.email) else v.email ?: "")
-                    put("websiteUrl", if (portable) dec(v.websiteUrl) else v.websiteUrl ?: "")
-                    put("accountIdentifier", if (portable) dec(v.accountIdentifier) else v.accountIdentifier ?: "")
-                    put("recoveryEmail", if (portable) dec(v.recoveryEmail) else v.recoveryEmail ?: "")
-                    put("recoveryPhone", if (portable) dec(v.recoveryPhone) else v.recoveryPhone ?: "")
-                    put("recoveryCodes", if (portable) dec(v.recoveryCodes) else v.recoveryCodes ?: "")
-                    put("notes", if (portable) dec(v.notes) else v.notes ?: "")
+                    put("password", vaultBackupField(v.password, portable))
+                    put("username", vaultBackupField(v.username, portable))
+                    put("email", vaultBackupField(v.email, portable))
+                    put("websiteUrl", vaultBackupField(v.websiteUrl, portable))
+                    put("accountIdentifier", vaultBackupField(v.accountIdentifier, portable))
+                    put("recoveryEmail", vaultBackupField(v.recoveryEmail, portable))
+                    put("recoveryPhone", vaultBackupField(v.recoveryPhone, portable))
+                    put("recoveryCodes", vaultBackupField(v.recoveryCodes, portable))
+                    put("notes", vaultBackupField(v.notes, portable))
                     put("updatedAt", v.updatedAt)
                 }
             }))
@@ -1151,6 +1152,12 @@ class BackupViewModel @Inject constructor(
         }
     }
 
+    private fun vaultBackupField(value: String?, portable: Boolean): String {
+        if (value == null) return ""
+        if (portable) return vaultCrypto.decrypt(value)
+        return if (vaultCrypto.isProtected(value)) vaultCrypto.decrypt(value).enc() else value
+    }
+
     private suspend fun restoreVaultItems(root: JSONObject, reEncrypt: Boolean) {
         val arr = root.getJSONArray("vaultItems")
         for (i in 0 until arr.length()) {
@@ -1158,12 +1165,12 @@ class BackupViewModel @Inject constructor(
             val category = runCatching { VaultCategory.valueOf(v.optString("category", "OTHER")) }
                 .getOrDefault(VaultCategory.OTHER)
             val encOrRaw: (String) -> String? = { raw ->
-                raw.takeIf { it.isNotEmpty() }?.let { if (reEncrypt) it.enc() else it }
+                raw.takeIf { it.isNotEmpty() }?.let { if (reEncrypt) vaultCrypto.encrypt(it) else vaultCrypto.encrypt(vaultCrypto.decrypt(it)) }
             }
             vaultItemDao.insert(VaultItemEntity(
-                serviceName = if (reEncrypt) v.getString("serviceName").enc() else v.getString("serviceName"),
+                serviceName = encOrRaw(v.getString("serviceName")) ?: vaultCrypto.encrypt(""),
                 category = category,
-                password = if (reEncrypt) v.getString("password").enc() else v.getString("password"),
+                password = encOrRaw(v.getString("password")) ?: vaultCrypto.encrypt(""),
                 username = encOrRaw(v.optString("username", "")),
                 email = encOrRaw(v.optString("email", "")),
                 websiteUrl = encOrRaw(v.optString("websiteUrl", "")),

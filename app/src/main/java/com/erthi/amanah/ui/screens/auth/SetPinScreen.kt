@@ -207,7 +207,7 @@ fun AuthScreen(
     var pin by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    val biometricsEnabled by authViewModel.isBiometricEnabled().collectAsState(initial = false)
+    val biometricsEnabled by authViewModel.canUnlockVaultWithBiometrics.collectAsState(initial = false)
     val canUseBiometric = remember(context) {
         BiometricManager.from(context).canAuthenticate(BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS
     }
@@ -217,10 +217,12 @@ fun AuthScreen(
         val executor = ContextCompat.getMainExecutor(activity)
         BiometricPrompt(activity, executor, object : BiometricPrompt.AuthenticationCallback() {
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                authViewModel.onBiometricSuccess()
-                onAuthenticated()
+                authViewModel.onBiometricSuccess(result.cryptoObject?.cipher, onAuthenticated) {
+                    errorMessage = "تعذر فتح الخزنة بالبصمة. استخدم الرمز السري."
+                }
             }
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                authViewModel.cancelBiometric()
                 errorMessage = errString.toString()
             }
         })
@@ -230,6 +232,7 @@ fun AuthScreen(
         BiometricPrompt.PromptInfo.Builder()
             .setTitle(context.getString(R.string.app_name))
             .setSubtitle(context.getString(R.string.auth_prompt_title))
+            .setAllowedAuthenticators(BIOMETRIC_STRONG)
             .setNegativeButtonText(context.getString(R.string.auth_pin_label))
             .build()
     }
@@ -310,7 +313,15 @@ fun AuthScreen(
             if (canUseBiometric && biometricsEnabled) {
                 Spacer(Modifier.height(12.dp))
                 OutlinedButton(
-                    onClick = { biometricPrompt.authenticate(promptInfo) },
+                    onClick = {
+                        authViewModel.prepareBiometric { cipher ->
+                            if (cipher == null) {
+                                errorMessage = "استخدم الرمز السري لإعادة تفعيل فتح الخزنة بالبصمة."
+                            } else {
+                                biometricPrompt.authenticate(promptInfo, BiometricPrompt.CryptoObject(cipher))
+                            }
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(26.dp),
                     border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.dp),
