@@ -64,8 +64,10 @@ class AuthManager @Inject constructor(
             val now = SystemClock.elapsedRealtime()
             val duration = prefs[KEY_LOCKOUT_DURATION] ?: 0L
             val lockout = Lockout(prefs[KEY_LOCKOUT_BOOT] ?: -1, prefs[KEY_LOCKOUT_START] ?: 0L, duration)
+            val legacyDeadline = prefs[KEY_LEGACY_LOCKOUT] ?: 0L
+            prefs.remove(KEY_LEGACY_LOCKOUT)
             val active = when {
-                (prefs.remove(KEY_LEGACY_LOCKOUT) ?: 0L) > 0L ->
+                legacyDeadline > 0L ->
                     Lockout(boot, now, Lockout.MAX_DURATION_MS).also { prefs.saveLockout(it) }
                 duration > 0 && lockout.needsRestart(boot, now) ->
                     lockout.copy(boot = boot, startedMs = now).also { prefs.saveLockout(it) }
