@@ -13,6 +13,7 @@ import com.erthi.amanah.data.security.VaultCrypto
 import com.erthi.amanah.ui.viewmodel.BackupState
 import com.erthi.amanah.ui.viewmodel.BackupViewModel
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
