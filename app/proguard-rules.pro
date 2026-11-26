@@ -1,0 +1,5 @@
+-keep class com.erthi.amanah.data.db.entity.** { *; }
+-keep class com.erthi.amanah.data.backup.** { *; }
+-keepattributes Signature
+-keepattributes *Annotation*
+-dontwarn kotlinx.serialization.**
