@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.backup
 
+import com.erthi.amanah.data.security.CredentialMinimums
 import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -459,7 +460,7 @@ private fun PassphraseDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    if (isExport) "ستُستخدم لتشفير النسخة الاحتياطية. احتفظ بها في مكان آمن — لا يمكن استرداد البيانات بدونها."
+                    if (isExport) "استخدم 12 حرفاً على الأقل لتشفير النسخة الاحتياطية. احتفظ بها في مكان آمن — لا يمكن استرداد البيانات بدونها."
                     else "أدخل كلمة المرور التي استخدمتها عند إنشاء هذه النسخة.",
                     style = MaterialTheme.typography.bodySmall, color = TextSecondary,
                 )
@@ -498,7 +499,11 @@ private fun PassphraseDialog(
             Button(
                 onClick = { if (passphrase.isNotBlank()) onConfirm(passphrase) },
                 colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = GlossyBlack),
-                enabled = passphrase.length >= 6 && (!isExport || (passphrase == confirm)),
+                enabled = if (isExport) {
+                    CredentialMinimums.validNewBackupPassphrase(passphrase) && passphrase == confirm
+                } else {
+                    passphrase.isNotBlank()
+                },
             ) { Text(if (isExport) "تشفير وحفظ" else "فك التشفير") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("إلغاء", color = MetallicSilver) } },

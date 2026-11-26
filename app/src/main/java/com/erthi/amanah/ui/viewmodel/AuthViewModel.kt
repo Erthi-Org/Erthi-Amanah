@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.viewmodel
 
+import com.erthi.amanah.data.security.CredentialMinimums
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.erthi.amanah.data.security.AuthManager
@@ -55,13 +56,22 @@ class AuthViewModel @Inject constructor(
     val remainingLockSeconds: StateFlow<Int> = authManager.remainingLockSeconds
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
+    private val _suggestPinUpgrade = MutableStateFlow(false)
+    val suggestPinUpgrade: StateFlow<Boolean> = _suggestPinUpgrade
+
+    fun dismissPinUpgrade() { _suggestPinUpgrade.value = false }
+
     fun setPin(pin: String, confirmPin: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
-        if (pin.length < 4) { onError("الرمز السري يجب أن يكون 4 أرقام على الأقل"); return }
+        if (!CredentialMinimums.validNewPin(pin)) { onError("أدخل رمزاً من 6 إلى 8 أرقام"); return }
         if (pin != confirmPin) { onError("الرمزان غير متطابقان"); return }
         val generation = lockGeneration
         viewModelScope.launch {
-            authManager.setPin(pin)
+            pinAttempts.withLock {
+                if (generation != lockGeneration) return@launch
+                authManager.setPin(pin)
+            }
             if (generation != lockGeneration) return@launch
+            dismissPinUpgrade()
             _isAuthenticated.value = true
             onSuccess()
         }
@@ -81,6 +91,7 @@ class AuthViewModel @Inject constructor(
                 if (authManager.verifyPin(pin)) {
                     authManager.clearLockout()
                     if (generation != lockGeneration) return@withLock
+                    _suggestPinUpgrade.value = !CredentialMinimums.validNewPin(pin)
                     _isAuthenticated.value = true
                     onSuccess()
                 } else {
@@ -102,6 +113,7 @@ class AuthViewModel @Inject constructor(
 
     fun lock() {
         lockGeneration++
+        dismissPinUpgrade()
         _isAuthenticated.value = false
     }
 

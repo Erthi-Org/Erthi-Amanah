@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.screens.auth
 
+import com.erthi.amanah.data.security.CredentialMinimums
 import com.erthi.amanah.ui.components.OrnamentalIcon
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
@@ -44,6 +45,7 @@ private const val QURAN_VERSE =
 fun SetPinScreen(
     authViewModel: AuthViewModel,
     onPinSet: () -> Unit,
+    onCancel: (() -> Unit)? = null,
 ) {
     var pin by remember { mutableStateOf("") }
     var confirmPin by remember { mutableStateOf("") }
@@ -117,6 +119,10 @@ fun SetPinScreen(
                 supportingText = errorMessage?.let { { Text(it, color = EmergencyRed) } },
             )
 
+            if (onCancel != null) {
+                TextButton(onClick = onCancel) { Text("لاحقاً") }
+            }
+
             // Security warning
             Spacer(Modifier.height(18.dp))
             Surface(
@@ -180,7 +186,7 @@ fun SetPinScreen(
                     disabledContainerColor = RoyalGold.copy(alpha = 0.3f),
                     disabledContentColor = AndalusianBlue.copy(alpha = 0.5f),
                 ),
-                enabled = pin.length >= 4 && confirmPin.length >= 4 && acknowledged,
+                enabled = CredentialMinimums.validNewPin(pin) && pin == confirmPin && acknowledged,
             ) {
                 OrnamentalIcon(Icons.Default.Lock, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))

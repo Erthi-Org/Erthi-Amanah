@@ -117,6 +117,7 @@ class AuthManager @Inject constructor(
     }
 
     suspend fun setPin(pin: String) {
+        require(CredentialMinimums.validNewPin(pin))
         val salt = PinHash.salt()
         val hash = withContext(Dispatchers.Default) { PinHash.derive(pin, salt, PinHash.PBKDF2) }
         dataStore.edit { prefs ->

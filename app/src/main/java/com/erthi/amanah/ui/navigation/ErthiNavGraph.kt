@@ -4,6 +4,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -56,7 +62,29 @@ fun ErthiNavGraph(
         AuthState.Locked -> AuthScreen(authViewModel, onAuthenticated = {})
         AuthState.Unlocked -> if (unlocked) {
             key("authenticated") {
-                UnlockedNavGraph(authViewModel)
+                val suggestUpgrade by authViewModel.suggestPinUpgrade.collectAsState()
+                var editingPin by remember { mutableStateOf(false) }
+                if (editingPin) {
+                    SetPinScreen(authViewModel, onPinSet = { editingPin = false }, onCancel = { editingPin = false })
+                } else {
+                    UnlockedNavGraph(authViewModel)
+                    if (suggestUpgrade) {
+                        AlertDialog(
+                            onDismissRequest = authViewModel::dismissPinUpgrade,
+                            title = { Text("ترقية الرمز السري") },
+                            text = { Text("يمكنك متابعة استخدام رمزك الحالي أو تغييره إلى رمز أطول من 6 إلى 8 أرقام.") },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    authViewModel.dismissPinUpgrade()
+                                    editingPin = true
+                                }) { Text("تغيير الرمز") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = authViewModel::dismissPinUpgrade) { Text("لاحقاً") }
+                            },
+                        )
+                    }
+                }
             }
         } else {
             AuthScreen(authViewModel, onAuthenticated = {})

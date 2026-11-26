@@ -1,5 +1,6 @@
 package com.erthi.amanah.ui.viewmodel
 
+import com.erthi.amanah.data.security.CredentialMinimums
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -184,6 +185,10 @@ class BackupViewModel @Inject constructor(
     }
 
     fun exportPortableBackup(uri: Uri, passphrase: String) {
+        if (!CredentialMinimums.validNewBackupPassphrase(passphrase)) {
+            _state.value = BackupState.Error("كلمة المرور يجب أن تكون 12 حرفاً على الأقل")
+            return
+        }
         viewModelScope.launch {
             _state.value = BackupState.InProgress
             try {
@@ -206,6 +211,10 @@ class BackupViewModel @Inject constructor(
     }
 
     fun exportDriveBackup(passphrase: String) {
+        if (!CredentialMinimums.validNewBackupPassphrase(passphrase)) {
+            _driveState.value = DriveState.Error("كلمة المرور يجب أن تكون 12 حرفاً على الأقل")
+            return
+        }
         viewModelScope.launch {
             _driveState.value = DriveState.InProgress
             try {
